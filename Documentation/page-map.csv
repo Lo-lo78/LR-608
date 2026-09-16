@@ -1,0 +1,253 @@
+page,rows_per_column,position,jsfx_slider,vst3_id,ui_name
+Kick,8,1,11,slider011,Kick Level
+Kick,8,2,12,slider012,Kick Tune
+Kick,8,3,13,slider013,Kick Punch Amount
+Kick,8,4,14,slider014,Kick Punch Time
+Kick,8,5,15,slider015,Kick Decay
+Kick,8,6,16,slider016,Kick Curve
+Kick,8,7,17,slider017,Kick Click Level
+Kick,8,8,18,slider018,Kick Noise Tone
+Kick,8,9,67,slider067,Kick Click Phase
+Kick,8,10,78,slider078,Kick Curve Pitch
+Kick,8,11,79,slider079,Kick Curve Pitch Decay
+Kick,8,12,100,slider100,Kick Noise Decay
+Kick,8,13,101,slider101,Kick Noise Level
+Kick,8,14,102,slider102,Kick LFO Volume Depth
+Kick,8,15,103,slider103,Kick LFO Frequency
+Kick,8,16,104,slider104,Kick LFO Wave
+Kick,8,17,105,slider105,Kick LFO Pitch Depth
+Kick,8,18,106,slider106,Kick LFO Delay
+Kick,8,19,107,slider107,Kick Body Drive
+Kick,8,20,138,slider138,Kick Body Drive Mix
+Kick,8,21,140,slider140,Kick Body Phase
+Kick,8,22,141,slider141,Kick LFO Smooth
+Kick,8,23,142,slider142,Kick LFO Wave Shape
+Kick,8,24,148,slider148,Kick Click Tone
+Kick,8,25,149,slider149,Kick Click Resonance
+Kick,8,26,150,slider150,Kick Comp Threshold
+Kick,8,27,151,slider151,Kick Comp Ratio
+Kick,8,28,152,slider152,Kick Comp Gain
+Kick,8,29,153,slider153,Kick Comp Attack (ms)
+Kick,8,30,154,slider154,Kick Comp Release (ms)
+Kick,8,31,155,slider155,Kick Comp Mix
+Kick,8,32,247,slider247,Kick Engine
+Snare 1,8,1,19,slider019,Snare Noise Tone Env
+Snare 1,8,2,20,slider020,Snare Level
+Snare 1,8,3,21,slider021,Snare Click Level
+Snare 1,8,4,22,slider022,Snare Body Decay
+Snare 1,8,5,23,slider023,Snare Body Tune
+Snare 1,8,6,24,slider024,Snare Body Level
+Snare 1,8,7,25,slider025,Snare Noise Decay
+Snare 1,8,8,26,slider026,Snare Noise Level
+Snare 1,8,9,27,slider027,Snare Noise Tone
+Snare 1,8,10,28,slider028,Snare Noise Resonance
+Snare 1,8,11,29,slider029,Snare Body Pitch Decay
+Snare 1,8,12,92,slider092,Snare Noise Attack
+Snare 1,8,13,94,slider094,Snare Noise Color
+Snare 1,8,14,96,slider096,Snare Noise Degrade
+Snare 1,8,15,98,slider098,Snare Filter Env Amount
+Snare 1,8,16,108,slider108,Snare Drive
+Snare 1,8,17,116,slider116,Snare Body Mid
+Snare 1,8,18,117,slider117,Snare Body High
+Snare 1,8,19,132,slider132,Snare Noise Ring Freq
+Snare 1,8,20,133,slider133,Snare Noise Ring Depth
+Snare 1,8,21,134,slider134,Snare Noise Ring Wave
+Snare 1,8,22,135,slider135,Snare Noise Ring Smooth
+Snare 1,8,23,136,slider136,Snare Noise Ring Delay
+Snare 1,8,24,137,slider137,Snare Noise Ring Wave Shape
+Snare 1,8,25,139,slider139,Snare Drive Mix
+Snare 1,8,26,156,slider156,Snare Comp Threshold
+Snare 1,8,27,157,slider157,Snare Comp Ratio
+Snare 1,8,28,158,slider158,Snare Comp Gain
+Snare 1,8,29,159,slider159,Snare Comp Attack (ms)
+Snare 1,8,30,160,slider160,Snare Comp Release (ms)
+Snare 1,8,31,161,slider161,Snare Comp Mix
+Snare 1,8,32,248,slider248,Snare 1 Engine
+Snare 2,8,1,198,slider198,Snare 2 Engine
+Snare 2,8,2,221,slider221,Snare2 Level
+Snare 2,8,3,225,slider225,Snare2 Body Level
+Snare 2,8,4,224,slider224,Snare2 Body Tune
+Snare 2,8,5,223,slider223,Snare2 Body Decay
+Snare 2,8,6,230,slider230,Snare2 Body Pitch Decay
+Snare 2,8,7,232,slider232,Snare2 Body Mid
+Snare 2,8,8,233,slider233,Snare2 Body High
+Snare 2,8,9,222,slider222,Snare2 Click Level
+Snare 2,8,10,227,slider227,Snare2 Noise Level
+Snare 2,8,11,226,slider226,Snare2 Noise Decay
+Snare 2,8,12,228,slider228,Snare2 Noise Tone
+Snare 2,8,13,229,slider229,Snare2 Noise Resonance
+Snare 2,8,14,220,slider220,Snare2 Noise Tone Env
+Snare 2,8,15,93,slider093,Snare2 Noise Attack
+Snare 2,8,16,95,slider095,Snare2 Noise Color
+Snare 2,8,17,97,slider097,Snare2 Noise Degrade
+Snare 2,8,18,234,slider234,Snare2 Noise Ring Freq
+Snare 2,8,19,236,slider236,Snare2 Noise Ring Wave
+Snare 2,8,20,235,slider235,Snare2 Noise Ring Depth
+Snare 2,8,21,237,slider237,Snare2 Noise Ring Smooth
+Snare 2,8,22,238,slider238,Snare2 Noise Ring Delay
+Snare 2,8,23,239,slider239,Snare2 Noise Ring Wave Shape
+Snare 2,8,24,99,slider099,Snare2 Filter Env Amount
+Snare 2,8,25,231,slider231,Snare2 Drive
+Snare 2,8,26,240,slider240,Snare2 Drive Mix
+Snare 2,8,27,241,slider241,Snare2 Comp Threshold
+Snare 2,8,28,242,slider242,Snare2 Comp Ratio
+Snare 2,8,29,243,slider243,Snare2 Comp Gain
+Snare 2,8,30,244,slider244,Snare2 Comp Attack (ms)
+Snare 2,8,31,245,slider245,Snare2 Comp Release (ms)
+Snare 2,8,32,246,slider246,Snare2 Comp Mix
+Clap,6,1,30,slider030,Clap Level
+Clap,6,2,31,slider031,Clap Decay
+Clap,6,3,32,slider032,Clap Tone
+Clap,6,4,33,slider033,Clap Hit Level
+Clap,6,5,34,slider034,Clap Filter Tone
+Clap,6,6,35,slider035,Clap Character
+Clap,6,7,36,slider036,Clap Filter Decay Follow
+Clap,6,8,37,slider037,Clap Sequence Balance
+Clap,6,9,38,slider038,Clap Body Size
+Clap,6,10,39,slider039,Clap Dirt
+Clap,6,11,207,slider207,Clap Engine
+Clap,6,12,208,slider208,Clap Resonance
+Rim,10,1,68,slider068,Rim Click Level
+Rim,10,2,69,slider069,Rim Tone
+Rim,10,3,70,slider070,Rim Decay
+Rim,10,4,71,slider071,Rim Level
+Rim,10,5,124,slider124,Rim Second Mode Level
+Rim,10,6,125,slider125,Rim Second Mode Tune
+Rim,10,7,143,slider143,Rim Tape Delay Mix
+Rim,10,8,144,slider144,Rim Tape Delay Time
+Rim,10,9,145,slider145,Rim Tape Delay Tone
+Rim,10,10,146,slider146,Rim Tape Delay Resonance
+Rim,10,11,147,slider147,Rim Tape Delay Feedback
+Rim,10,12,162,slider162,Rim Comp Threshold
+Rim,10,13,163,slider163,Rim Comp Ratio
+Rim,10,14,164,slider164,Rim Comp Gain
+Rim,10,15,165,slider165,Rim Comp Attack (ms)
+Rim,10,16,166,slider166,Rim Comp Release (ms)
+Rim,10,17,167,slider167,Rim Comp Mix
+Rim,10,18,209,slider209,Rim Engine
+Rim,10,19,252,slider252,Rim Delay Mode
+Toms,8,1,40,slider040,Low Tom Pan
+Toms,8,2,41,slider041,Low Tom Click Level
+Toms,8,3,42,slider042,Low Tom Tune
+Toms,8,4,43,slider043,Low Tom Pitch Decay
+Toms,8,5,44,slider044,Low Tom Pitch Amount
+Toms,8,6,45,slider045,Low Tom Decay
+Toms,8,7,46,slider046,Low Tom Noise Level
+Toms,8,8,47,slider047,Low Tom Noise LPF
+Toms,8,9,48,slider048,Mid Tom Pan
+Toms,8,10,49,slider049,Mid Tom Click Level
+Toms,8,11,50,slider050,Mid Tom Tune
+Toms,8,12,51,slider051,Mid Tom Pitch Decay
+Toms,8,13,52,slider052,Mid Tom Pitch Amount
+Toms,8,14,53,slider053,Mid Tom Decay
+Toms,8,15,54,slider054,Mid Tom Noise Level
+Toms,8,16,55,slider055,Mid Tom Noise LPF
+Toms,8,17,56,slider056,High Tom Pan
+Toms,8,18,57,slider057,High Tom Click Level
+Toms,8,19,58,slider058,High Tom Tune
+Toms,8,20,59,slider059,High Tom Pitch Decay
+Toms,8,21,60,slider060,High Tom Pitch Amount
+Toms,8,22,61,slider061,High Tom Decay
+Toms,8,23,62,slider062,High Tom Noise Level
+Toms,8,24,63,slider063,High Tom Noise LPF
+Toms,8,25,64,slider064,Low Tom Level
+Toms,8,26,65,slider065,Mid Tom Level
+Toms,8,27,66,slider066,High Tom Level
+Toms,8,28,109,slider109,Low Tom Wave Morph
+Toms,8,29,110,slider110,Mid Tom Wave Morph
+Toms,8,30,111,slider111,High Tom Wave Morph
+Toms,8,31,118,slider118,Low Tom Saturation
+Toms,8,32,119,slider119,Mid Tom Saturation
+Toms,8,33,120,slider120,High Tom Saturation
+Toms,8,34,121,slider121,Low Tom Noise Decay
+Toms,8,35,122,slider122,Mid Tom Noise Decay
+Toms,8,36,123,slider123,High Tom Noise Decay
+Toms,8,37,174,slider174,LowTom Comp Threshold
+Toms,8,38,175,slider175,LowTom Comp Ratio
+Toms,8,39,176,slider176,LowTom Comp Gain
+Toms,8,40,177,slider177,LowTom Comp Attack (ms)
+Toms,8,41,178,slider178,LowTom Comp Release (ms)
+Toms,8,42,179,slider179,LowTom Comp Mix
+Toms,8,43,180,slider180,MidTom Comp Threshold
+Toms,8,44,181,slider181,MidTom Comp Ratio
+Toms,8,45,182,slider182,MidTom Comp Gain
+Toms,8,46,183,slider183,MidTom Comp Attack (ms)
+Toms,8,47,184,slider184,MidTom Comp Release (ms)
+Toms,8,48,185,slider185,MidTom Comp Mix
+Toms,8,49,186,slider186,HighTom Comp Threshold
+Toms,8,50,187,slider187,HighTom Comp Ratio
+Toms,8,51,188,slider188,HighTom Comp Gain
+Toms,8,52,189,slider189,HighTom Comp Attack (ms)
+Toms,8,53,190,slider190,HighTom Comp Release (ms)
+Toms,8,54,191,slider191,HighTom Comp Mix
+Toms,8,55,219,slider219,Toms Engine
+HiHat,11,1,1,slider001,HiHat CH Decay
+HiHat,11,2,2,slider002,HiHat OH Decay
+HiHat,11,3,3,slider003,HiHat Brightness
+HiHat,11,4,4,slider004,HiHat Metal
+HiHat,11,5,5,slider005,HiHat Level
+HiHat,11,6,90,slider090,HiHat Resonance Mod Amount
+HiHat,11,7,91,slider091,HiHat Resonance Mod Speed (Hz)
+HiHat,11,8,114,slider114,HiHat Metal2
+HiHat,11,9,115,slider115,HiHat Tune
+HiHat,11,10,217,slider217,HiHat Engine
+HiHat,11,11,218,slider218,HiHat Structure
+Cymbal,8,1,6,slider006,Crash Decay
+Cymbal,8,2,7,slider007,Ride Decay
+Cymbal,8,3,8,slider008,Cymbal Brightness
+Cymbal,8,4,9,slider009,Crash Level
+Cymbal,8,5,10,slider010,Ride Level
+Cymbal,8,6,112,slider112,Ride Pitch Relax
+Cymbal,8,7,113,slider113,Ride Relax Speed
+Cymbal,8,8,214,slider214,Cymbal Engine
+Maracas,9,1,168,slider168,Maracas Level
+Maracas,9,2,169,slider169,Maracas Attack
+Maracas,9,3,170,slider170,Maracas Decay
+Maracas,9,4,171,slider171,Maracas Noise Color
+Maracas,9,5,172,slider172,Maracas S&H Rate
+Maracas,9,6,173,slider173,Maracas S&H Amount
+Maracas,9,7,205,slider205,Maracas Bounce
+Maracas,9,8,206,slider206,Maracas Ghost Softness
+Maracas,9,9,216,slider216,Maracas Engine
+Clave / Cowbell,6,1,80,slider080,Clave/Cowbell Level
+Clave / Cowbell,6,2,81,slider081,Clave/Cowbell Decay
+Clave / Cowbell,6,3,82,slider082,Clave/Cowbell Base Pitch
+Clave / Cowbell,6,4,83,slider083,Clave/Cowbell Inharmonic Ratio
+Clave / Cowbell,6,5,84,slider084,Clave/Cowbell Click Amount
+Clave / Cowbell,6,6,85,slider085,Clave/Cowbell Click Sharpness
+Clave / Cowbell,6,7,86,slider086,Clave/Cowbell Metal Body Balance
+Clave / Cowbell,6,8,87,slider087,Clave/Cowbell Ring Mod Amount
+Clave / Cowbell,6,9,88,slider088,Clave/Cowbell Accent Bite
+Clave / Cowbell,6,10,89,slider089,Clave/Cowbell Pitch Snap Amount
+Clave / Cowbell,6,11,204,slider204,Clave/Cowbell Saturation Mix
+Clave / Cowbell,6,12,215,slider215,Cowbell Engine
+Zap,9,1,72,slider072,Zap Level
+Zap,9,2,73,slider073,Zap Fast Decay
+Zap,9,3,74,slider074,Zap Slow Decay
+Zap,9,4,75,slider075,Zap Curve
+Zap,9,5,76,slider076,Zap Tune
+Zap,9,6,77,slider077,Zap Click Level
+Zap,9,7,126,slider126,ZAP LFO Frequency
+Zap,9,8,127,slider127,ZAP LFO Pitch Depth
+Zap,9,9,128,slider128,ZAP LFO Wave
+Zap,9,10,129,slider129,ZAP LFO Smooth
+Zap,9,11,130,slider130,ZAP LFO Delay
+Zap,9,12,131,slider131,ZAP LFO Wave Shape
+Zap,9,13,192,slider192,Zap Comp Threshold
+Zap,9,14,193,slider193,Zap Comp Ratio
+Zap,9,15,194,slider194,Zap Comp Gain
+Zap,9,16,195,slider195,Zap Comp Attack (ms)
+Zap,9,17,196,slider196,Zap Comp Release (ms)
+Zap,9,18,197,slider197,Zap Comp Mix
+Zap,9,19,199,slider199,Zap Engine
+Zap,9,20,210,slider210,Zap Ring Mix
+Zap,9,21,211,slider211,Zap Ring Frequency
+Zap,9,22,212,slider212,Zap Ring Wave
+Zap,9,23,213,slider213,Zap Ring Env Freq Mod
+Global,4,1,249,slider249,Roll Division
+Global,4,2,250,slider250,Accent Velocity Threshold
+Global,4,3,251,slider251,Accent Character
+Global,4,4,253,slider253,Roll Shuffle
+Global,4,5,254,slider254,Roll Second Hit Velocity Reduction
+Global,4,6,255,slider255,Audio Output Mode
+Global,4,7,256,slider256,Master Volume (dB)

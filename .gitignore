@@ -1,0 +1,10 @@
+build/
+.vs/
+out/
+CMakeFiles/
+CMakeCache.txt
+*.obj
+*.pdb
+*.ilk
+*.user
+preset-audit-output/

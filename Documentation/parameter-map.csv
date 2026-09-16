@@ -1,0 +1,257 @@
+jsfx_slider,vst3_id,jsfx_name,ui_name,default,minimum,maximum,step,choices,page,source_occurrences
+1,slider001,HiHat CH Decay,HiHat CH Decay,0.037999999999999999,0.005,0.2,0.001,,HiHat,6
+2,slider002,HiHat OH Decay,HiHat OH Decay,1,0.05,1.5,0.01,,HiHat,7
+3,slider003,HiHat Brightness,HiHat Brightness,0,0,1,0.01,,HiHat,11
+4,slider004,HiHat Metal,HiHat Metal,0.71999999999999997,0,1,0.01,,HiHat,18
+5,slider005,HiHat Level,HiHat Level,0.71999999999999997,0,5,0.01,,HiHat,19
+6,slider006,Crash Decay,Crash Decay,0.70000000000000007,0.1,1,0.05,,Cymbal,6
+7,slider007,Ride Decay,Ride Decay,0.80000000000000004,0.1,1,0.05,,Cymbal,6
+8,slider008,Cymbal Brightness,Cymbal Brightness,0.55000000000000004,0,1,0.01,,Cymbal,8
+9,slider009,Crash Level,Crash Level,1.4000000000000001,0,4,0.01,,Cymbal,19
+10,slider010,Ride Level,Ride Level,2,0,4,0.01,,Cymbal,6
+11,slider011,Kick Level,Kick Level,10,0,30,0.01,,Kick,27
+12,slider012,Kick Tune,Kick Tune,0.26000000000000001,-2,1,0.01,,Kick,8
+13,slider013,Kick Punch Amount,Kick Punch Amount,0.46000000000000002,0,1,0.01,,Kick,8
+14,slider014,Kick Punch Time,Kick Punch Time,0.060999999999999999,0.001,0.2,0.001,,Kick,8
+15,slider015,Kick Decay,Kick Decay,0.20000000000000001,0.001,1,0.001,,Kick,8
+16,slider016,Kick Curve,Kick Curve,0.12,0,1,0.001,,Kick,10
+17,slider017,Kick Click Level,Kick Click Level,0.30499999999999999,0,4,0.001,,Kick,9
+18,slider018,Kick Noise Tone,Kick Noise Tone,0.79000000000000004,0,2,0.01,,Kick,9
+19,slider019,Snare Noise Tone Env,Snare Noise Tone Env,0,0,10,0.01,,Snare 1,19
+20,slider020,Snare Level,Snare Level,11,0,50,0.01,,Snare 1,21
+21,slider021,Snare Click Level,Snare Click Level,0.5,0,2,0.01,,Snare 1,10
+22,slider022,Snare Body Decay,Snare Body Decay,0.02,0,1,0.001,,Snare 1,10
+23,slider023,Snare Body Tune,Snare Body Tune,0,-3,1,0.01,,Snare 1,10
+24,slider024,Snare Body Level,Snare Body Level,0.59999999999999998,0,1,0.01,,Snare 1,10
+25,slider025,Snare Noise Decay,Snare Noise Decay,0.050000000000000003,0,1,0.001,,Snare 1,10
+26,slider026,Snare Noise Level,Snare Noise Level,0.80000000000000004,0,6,0.01,,Snare 1,10
+27,slider027,Snare Noise Tone,Snare Noise Tone,0.59999999999999998,-1,1,0.01,,Snare 1,12
+28,slider028,Snare Noise Resonance,Snare Noise Resonance,0.55000000000000004,0,1,0.01,,Snare 1,12
+29,slider029,Snare Body Pitch Decay,Snare Body Pitch Decay,0.28000000000000003,0,1,0.01,,Snare 1,10
+30,slider030,Clap Level,Clap Level,2.3999999999999999,0,10,0.01,,Clap,27
+31,slider031,Clap Decay,Clap Decay,0.16500000000000001,0.02,0.6,0.005,,Clap,8
+32,slider032,Clap Tone,Clap Tone,0.5,0,1,0.01,,Clap,20
+33,slider033,Clap Hit Level,Clap Hit Level,1,0,1,0.01,,Clap,13
+34,slider034,Clap Filter Tone,Clap Filter Tone,0,-2,2,0.01,,Clap,11
+35,slider035,Clap Character,Clap Character,0.5,0,2,0.01,,Clap,8
+36,slider036,Clap Filter Decay Follow,Clap Filter Decay Follow,0.5,0,1,0.01,,Clap,9
+37,slider037,Clap Sequence Balance,Clap Sequence Balance,0.5,0,1,0.01,,Clap,16
+38,slider038,Clap Body Size,Clap Body Size,0.5,0,1,0.01,,Clap,14
+39,slider039,Clap Dirt,Clap Dirt,0,0,1,0.01,,Clap,22
+40,slider040,Low Tom Pan,Low Tom Pan,-0.5,-1,1,0.01,,Toms,8
+41,slider041,Low Tom Click Level,Low Tom Click Level,0.56999999999999995,0,1,0.01,,Toms,7
+42,slider042,Low Tom Tune,Low Tom Tune,0,-2,2,0.01,,Toms,7
+43,slider043,Low Tom Pitch Decay,Low Tom Pitch Decay,0.041000000000000002,0,1,0.001,,Toms,7
+44,slider044,Low Tom Pitch Amount,Low Tom Pitch Amount,0.29999999999999999,0,1,0.01,,Toms,8
+45,slider045,Low Tom Decay,Low Tom Decay,0.10000000000000001,0.001,1,0.001,,Toms,7
+46,slider046,Low Tom Noise Level,Low Tom Noise Level,0.10000000000000001,0,3,0.01,,Toms,7
+47,slider047,Low Tom Noise LPF,Low Tom Noise LPF,0.10000000000000001,0.01,1,0.01,,Toms,7
+48,slider048,Mid Tom Pan,Mid Tom Pan,0,-1,1,0.01,,Toms,8
+49,slider049,Mid Tom Click Level,Mid Tom Click Level,0.65000000000000002,0,1,0.01,,Toms,7
+50,slider050,Mid Tom Tune,Mid Tom Tune,0.059999999999999998,-2,2,0.01,,Toms,7
+51,slider051,Mid Tom Pitch Decay,Mid Tom Pitch Decay,0.041000000000000002,0,1,0.001,,Toms,7
+52,slider052,Mid Tom Pitch Amount,Mid Tom Pitch Amount,0.16,0,1,0.01,,Toms,8
+53,slider053,Mid Tom Decay,Mid Tom Decay,0.10000000000000001,0.001,1,0.001,,Toms,7
+54,slider054,Mid Tom Noise Level,Mid Tom Noise Level,0.10000000000000001,0,3,0.01,,Toms,7
+55,slider055,Mid Tom Noise LPF,Mid Tom Noise LPF,0.10000000000000001,0.01,1,0.01,,Toms,7
+56,slider056,High Tom Pan,High Tom Pan,0.5,-1,1,0.01,,Toms,8
+57,slider057,High Tom Click Level,High Tom Click Level,0.81999999999999995,0,1,0.01,,Toms,7
+58,slider058,High Tom Tune,High Tom Tune,0,-2,2,0.01,,Toms,7
+59,slider059,High Tom Pitch Decay,High Tom Pitch Decay,0.016,0,1,0.001,,Toms,7
+60,slider060,High Tom Pitch Amount,High Tom Pitch Amount,0.14999999999999999,0,1,0.01,,Toms,8
+61,slider061,High Tom Decay,High Tom Decay,0.10000000000000001,0.001,1,0.001,,Toms,7
+62,slider062,High Tom Noise Level,High Tom Noise Level,0.10000000000000001,0,3,0.01,,Toms,7
+63,slider063,High Tom Noise LPF,High Tom Noise LPF,0.10000000000000001,0.01,1,0.01,,Toms,7
+64,slider064,Low Tom Level,Low Tom Level,7,0,20,0.01,,Toms,20
+65,slider065,Mid Tom Level,Mid Tom Level,7,0,20,0.01,,Toms,7
+66,slider066,High Tom Level,High Tom Level,7,0,20,0.01,,Toms,7
+67,slider067,Kick Click Phase,Kick Click Phase,0,-1,1,0.001,,Kick,8
+68,slider068,Rim Click Level,Rim Click Level,0,-1,3,0.01,,Rim,6
+69,slider069,Rim Tone,Rim Tone,0.5,-1,1,0.01,,Rim,6
+70,slider070,Rim Decay,Rim Decay,0.5,0.001,1,0.0001,,Rim,6
+71,slider071,Rim Level,Rim Level,0,-24,30,0.01,,Rim,10
+72,slider072,Zap Level,Zap Level,1.6000000000000001,0,2,0.01,,Zap,30
+73,slider073,Zap Fast Decay,Zap Fast Decay,0.029999999999999999,0.02,1,0.01,,Zap,10
+74,slider074,Zap Slow Decay,Zap Slow Decay,0.050000000000000003,0.05,2,0.01,,Zap,9
+75,slider075,Zap Curve,Zap Curve,3.6000000000000001,0,10,0.01,,Zap,24
+76,slider076,Zap Tune,Zap Tune,0.29999999999999999,-3,3,0.01,,Zap,17
+77,slider077,Zap Click Level,Zap Click Level,3.04,0,3,0.01,,Zap,9
+78,slider078,Kick Curve Pitch,Kick Curve Pitch,0,-1,1,0.01,,Kick,8
+79,slider079,Kick Curve Pitch Decay,Kick Curve Pitch Decay,1,0,1,0.01,,Kick,8
+80,slider080,Clave/Cowbell Level,Clave/Cowbell Level,6,0,20,0.01,,Clave / Cowbell,23
+81,slider081,Clave/Cowbell Decay,Clave/Cowbell Decay,0.20000000000000001,0,1,0.01,,Clave / Cowbell,8
+82,slider082,Clave/Cowbell Base Pitch,Clave/Cowbell Base Pitch,2,0,4,0.01,,Clave / Cowbell,8
+83,slider083,Clave/Cowbell Inharmonic Ratio,Clave/Cowbell Inharmonic Ratio,0.55000000000000004,0,1,0.01,,Clave / Cowbell,8
+84,slider084,Clave/Cowbell Click Amount,Clave/Cowbell Click Amount,10,0,10,0.01,,Clave / Cowbell,8
+85,slider085,Clave/Cowbell Click Sharpness,Clave/Cowbell Click Sharpness,4,0,5,0.01,,Clave / Cowbell,10
+86,slider086,Clave/Cowbell Metal Body Balance,Clave/Cowbell Metal Body Balance,0,0,1,0.01,,Clave / Cowbell,11
+87,slider087,Clave/Cowbell Ring Mod Amount,Clave/Cowbell Ring Mod Amount,0.29999999999999999,0,1,0.01,,Clave / Cowbell,10
+88,slider088,Clave/Cowbell Accent Bite,Clave/Cowbell Accent Bite,5,0,10,0.01,,Clave / Cowbell,8
+89,slider089,Clave/Cowbell Pitch Snap Amount,Clave/Cowbell Pitch Snap Amount,0.25,0,3,0.01,,Clave / Cowbell,9
+90,slider090,HiHat Resonance Mod Amount,HiHat Resonance Mod Amount,0,0,1,0.01,,HiHat,10
+91,slider091,HiHat Resonance Mod Speed (Hz),HiHat Resonance Mod Speed (Hz),80,10,10000,1,,HiHat,9
+92,slider092,Snare Noise Attack,Snare Noise Attack,0,0,1,0.001,,Snare 1,12
+93,slider093,Snare2 Noise Attack,Snare2 Noise Attack,0,0,1,0.001,,Snare 2,12
+94,slider094,Snare Noise Color,Snare Noise Color,0,0,1,0.001,,Snare 1,10
+95,slider095,Snare2 Noise Color,Snare2 Noise Color,0,0,1,0.001,,Snare 2,10
+96,slider096,Snare Noise Degrade,Snare Noise Degrade,0,0,1,0.001,,Snare 1,12
+97,slider097,Snare2 Noise Degrade,Snare2 Noise Degrade,0,0,1,0.001,,Snare 2,12
+98,slider098,Snare Filter Env Amount,Snare Filter Env Amount,1,0,1,0.01,,Snare 1,12
+99,slider099,Snare2 Filter Env Amount,Snare2 Filter Env Amount,1,0,1,0.01,,Snare 2,12
+100,slider100,Kick Noise Decay,Kick Noise Decay,15,1,500,0.1,,Kick,8
+101,slider101,Kick Noise Level,Kick Noise Level,0.10000000000000001,0,2,0.01,,Kick,8
+102,slider102,Kick LFO Volume Depth,Kick LFO Volume Depth,0,-2,2,0.01,,Kick,10
+103,slider103,Kick LFO Frequency,Kick LFO Frequency,4,0.125,1024,0.125,,Kick,8
+104,slider104,Kick LFO Wave,Kick LFO Wave,0,0,5,1,"Sine,Triangle,Saw Up,Saw Down,PWM,SampleHold",Kick,16
+105,slider105,Kick LFO Pitch Depth,Kick LFO Pitch Depth,0,-4,4,0.01,,Kick,9
+106,slider106,Kick LFO Delay,Kick LFO Delay,200,100,5000,1,,Kick,9
+107,slider107,Kick Body Drive,Kick Body Drive,40,0,1000,1,,Kick,8
+108,slider108,Snare Drive,Snare Drive,50,0,1000,1,,Snare 1,10
+109,slider109,Low Tom Wave Morph,Low Tom Wave Morph,0,0,1,0.01,,Toms,7
+110,slider110,Mid Tom Wave Morph,Mid Tom Wave Morph,0,0,1,0.01,,Toms,7
+111,slider111,High Tom Wave Morph,High Tom Wave Morph,0,0,1,0.01,,Toms,7
+112,slider112,Ride Pitch Relax,Ride Pitch Relax,0.47999999999999998,0,1,0.01,,Cymbal,7
+113,slider113,Ride Relax Speed,Ride Relax Speed,0.35000000000000003,0,1,0.01,,Cymbal,7
+114,slider114,HiHat Metal2,HiHat Metal2,0,0,1,0.01,,HiHat,19
+115,slider115,HiHat Tune,HiHat Tune,0.5,-2,2,0.001,,HiHat,7
+116,slider116,Snare Body Mid,Snare Body Mid,0,0,1,0.01,,Snare 1,10
+117,slider117,Snare Body High,Snare Body High,0,0,1,0.01,,Snare 1,9
+118,slider118,Low Tom Saturation,Low Tom Saturation,0,0,100,0.1,,Toms,9
+119,slider119,Mid Tom Saturation,Mid Tom Saturation,0,0,100,0.01,,Toms,9
+120,slider120,High Tom Saturation,High Tom Saturation,0,0,100,0.1,,Toms,9
+121,slider121,Low Tom Noise Decay,Low Tom Noise Decay,1,0,4,0.01,,Toms,7
+122,slider122,Mid Tom Noise Decay,Mid Tom Noise Decay,1,0,4,0.01,,Toms,7
+123,slider123,High Tom Noise Decay,High Tom Noise Decay,1,0,4,0.01,,Toms,7
+124,slider124,Rim Second Mode Level,Rim Second Mode Level,5,0,6,0.01,,Rim,6
+125,slider125,Rim Second Mode Tune,Rim Second Mode Tune,2.6285714285714286,0,4,0.001,,Rim,6
+126,slider126,ZAP LFO Frequency,ZAP LFO Frequency,16,1,1024,0.125,,Zap,8
+127,slider127,ZAP LFO Pitch Depth,ZAP LFO Pitch Depth,5,0,20,0.01,,Zap,12
+128,slider128,ZAP LFO Wave,ZAP LFO Wave,3,0,5,1,"Sine,Triangle,Saw Up,Saw Down,PWM,SampleHold",Zap,19
+129,slider129,ZAP LFO Smooth,ZAP LFO Smooth,0,0,1,0.001,,Zap,9
+130,slider130,ZAP LFO Delay,ZAP LFO Delay,0,0,6,0.01,,Zap,9
+131,slider131,ZAP LFO Wave Shape,ZAP LFO Wave Shape,0.5,0.01,0.99,0.01,,Zap,15
+132,slider132,Snare Noise Ring Freq,Snare Noise Ring Freq,120,1,1000,1,,Snare 1,10
+133,slider133,Snare Noise Ring Depth,Snare Noise Ring Depth,0,-1,1,0.01,,Snare 1,11
+134,slider134,Snare Noise Ring Wave,Snare Noise Ring Wave,0,0,11,1,"Sine,Triangle,Saw Up,Saw Down,PWM,SampleHold,Acoustic Deep,Acoustic Ring,Acoustic Trash,Acoustic Skin,Acoustic Plate,Acoustic Hollow",Snare 1,17
+135,slider135,Snare Noise Ring Smooth,Snare Noise Ring Smooth,0,0,1,0.001,,Snare 1,11
+136,slider136,Snare Noise Ring Delay,Snare Noise Ring Delay,0,0,3,0.01,,Snare 1,12
+137,slider137,Snare Noise Ring Wave Shape,Snare Noise Ring Wave Shape,0.5,0.01,0.99,0.01,,Snare 1,11
+138,slider138,Kick Body Drive Mix,Kick Body Drive Mix,0.5,0,1,0.01,,Kick,10
+139,slider139,Snare Drive Mix,Snare Drive Mix,0.69999999999999996,0,1,0.01,,Snare 1,11
+140,slider140,Kick Body Phase,Kick Body Phase,0,-1,1,0.001,,Kick,8
+141,slider141,Kick LFO Smooth,Kick LFO Smooth,0,0,1,0.01,,Kick,11
+142,slider142,Kick LFO Wave Shape,Kick LFO Wave Shape,0.5,0.01,0.99,0.01,,Kick,8
+143,slider143,Rim Tape Delay Mix,Rim Tape Delay Mix,0,0,1,0.01,,Rim,5
+144,slider144,Rim Tape Delay Time,Rim Tape Delay Time,0.0078130000000000005,0,0.25,0.0078125,,Rim,5
+145,slider145,Rim Tape Delay Tone,Rim Tape Delay Tone,0.5,0,1,0.01,,Rim,5
+146,slider146,Rim Tape Delay Resonance,Rim Tape Delay Resonance,0.69999999999999996,0.1,2,0.01,,Rim,5
+147,slider147,Rim Tape Delay Feedback,Rim Tape Delay Feedback,0.34999999999999998,0,0.99,0.01,,Rim,5
+148,slider148,Kick Click Tone,Kick Click Tone,3,0,6,0.001,,Kick,8
+149,slider149,Kick Click Resonance,Kick Click Resonance,0.5,0,1,0.001,,Kick,15
+150,slider150,Kick Comp Threshold,Kick Comp Threshold,-18,-60,0,0.1,,Kick,2
+151,slider151,Kick Comp Ratio,Kick Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Kick,6
+152,slider152,Kick Comp Gain,Kick Comp Gain,0,-24,24,0.1,,Kick,2
+153,slider153,Kick Comp Attack (ms),Kick Comp Attack (ms),8,0.1,100,0.1,,Kick,2
+154,slider154,Kick Comp Release (ms),Kick Comp Release (ms),80,1,500,1,,Kick,2
+155,slider155,Kick Comp Mix,Kick Comp Mix,0,0,100,0.1,,Kick,2
+156,slider156,Snare Comp Threshold,Snare Comp Threshold,-18,-60,0,0.1,,Snare 1,5
+157,slider157,Snare Comp Ratio,Snare Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Snare 1,9
+158,slider158,Snare Comp Gain,Snare Comp Gain,0,-24,24,0.1,,Snare 1,5
+159,slider159,Snare Comp Attack (ms),Snare Comp Attack (ms),8,0.1,100,0.1,,Snare 1,5
+160,slider160,Snare Comp Release (ms),Snare Comp Release (ms),90,1,500,1,,Snare 1,5
+161,slider161,Snare Comp Mix,Snare Comp Mix,0,0,100,0.1,,Snare 1,5
+162,slider162,Rim Comp Threshold,Rim Comp Threshold,-16,-60,0,0.1,,Rim,5
+163,slider163,Rim Comp Ratio,Rim Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Rim,9
+164,slider164,Rim Comp Gain,Rim Comp Gain,0,-24,24,0.1,,Rim,5
+165,slider165,Rim Comp Attack (ms),Rim Comp Attack (ms),3,0.1,100,0.1,,Rim,5
+166,slider166,Rim Comp Release (ms),Rim Comp Release (ms),60,1,500,1,,Rim,5
+167,slider167,Rim Comp Mix,Rim Comp Mix,0,0,100,0.1,,Rim,5
+168,slider168,Maracas Level,Maracas Level,5,0,6,0.01,,Maracas,25
+169,slider169,Maracas Attack,Maracas Attack,0.01,0,0.05,0.0001,,Maracas,5
+170,slider170,Maracas Decay,Maracas Decay,0.18000000000000002,0,0.5,0.0001,,Maracas,6
+171,slider171,Maracas Noise Color,Maracas Noise Color,0.5,0,1,0.01,,Maracas,6
+172,slider172,Maracas S&H Rate,Maracas S&H Rate,180,20,1000,1,,Maracas,5
+173,slider173,Maracas S&H Amount,Maracas S&H Amount,0.55000000000000004,0.01,1,0.01,,Maracas,6
+174,slider174,LowTom Comp Threshold,LowTom Comp Threshold,-18,-60,0,0.1,,Toms,5
+175,slider175,LowTom Comp Ratio,LowTom Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Toms,9
+176,slider176,LowTom Comp Gain,LowTom Comp Gain,0,-24,24,0.1,,Toms,5
+177,slider177,LowTom Comp Attack (ms),LowTom Comp Attack (ms),6,0.1,100,0.1,,Toms,5
+178,slider178,LowTom Comp Release (ms),LowTom Comp Release (ms),100,1,500,1,,Toms,5
+179,slider179,LowTom Comp Mix,LowTom Comp Mix,0,0,100,0.1,,Toms,5
+180,slider180,MidTom Comp Threshold,MidTom Comp Threshold,-18,-60,0,0.1,,Toms,5
+181,slider181,MidTom Comp Ratio,MidTom Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Toms,9
+182,slider182,MidTom Comp Gain,MidTom Comp Gain,0,-24,24,0.1,,Toms,5
+183,slider183,MidTom Comp Attack (ms),MidTom Comp Attack (ms),6,0.1,100,0.1,,Toms,5
+184,slider184,MidTom Comp Release (ms),MidTom Comp Release (ms),100,1,500,1,,Toms,5
+185,slider185,MidTom Comp Mix,MidTom Comp Mix,0,0,100,0.1,,Toms,5
+186,slider186,HighTom Comp Threshold,HighTom Comp Threshold,-18,-60,0,0.1,,Toms,5
+187,slider187,HighTom Comp Ratio,HighTom Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Toms,9
+188,slider188,HighTom Comp Gain,HighTom Comp Gain,0,-24,24,0.1,,Toms,5
+189,slider189,HighTom Comp Attack (ms),HighTom Comp Attack (ms),5,0.1,100,0.1,,Toms,5
+190,slider190,HighTom Comp Release (ms),HighTom Comp Release (ms),90,1,500,1,,Toms,5
+191,slider191,HighTom Comp Mix,HighTom Comp Mix,0,0,100,0.1,,Toms,5
+192,slider192,Zap Comp Threshold,Zap Comp Threshold,-16,-60,0,0.1,,Zap,5
+193,slider193,Zap Comp Ratio,Zap Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Zap,9
+194,slider194,Zap Comp Gain,Zap Comp Gain,0,-24,24,0.1,,Zap,5
+195,slider195,Zap Comp Attack (ms),Zap Comp Attack (ms),2,0.1,100,0.1,,Zap,5
+196,slider196,Zap Comp Release (ms),Zap Comp Release (ms),70,1,500,1,,Zap,5
+197,slider197,Zap Comp Mix,Zap Comp Mix,0,0,100,0.1,,Zap,5
+198,slider198,Snare 2 Engine,Snare 2 Engine,0,0,7,1,"808,Simmons,Acoustic,Saike Type 1,Saike Type 2,Saike Type 3,Hybrid FM,Saike 909 Variant",Snare 2,29
+199,slider199,Zap Engine,Zap Engine,0,0,10,1,"LR-608,Clocked Alarm,Particle Beacon,Modal UFO,Karplus Wire,FM Siren,Grain Laser,Chaos Relay,Hyper Spring,Bouncing Coin,Karplus Wire Tune -",Zap,24
+200,slider200,Free Slider 200,Free Slider 200,0,0,40,1,,Unexposed,2
+201,slider201,Free Slider 201,Free Slider 201,0,0,255,1,,Unexposed,1
+202,slider202,Free Slider 202,Free Slider 202,0,-10000,10000,0.000001,,Unexposed,1
+203,slider203,Free Slider 203,Free Slider 203,0,0,10,1,,Unexposed,1
+204,slider204,Clave/Cowbell Saturation Mix,Clave/Cowbell Saturation Mix,1,0,100,0.01,,Clave / Cowbell,10
+205,slider205,Maracas Bounce,Maracas Bounce,0.20000000000000001,0,1,0.01,,Maracas,7
+206,slider206,Maracas Ghost Softness,Maracas Ghost Softness,0.20000000000000001,0,1,0.01,,Maracas,5
+207,slider207,Clap Engine,Clap Engine,3,0,5,1,"808 Circuit,909 Crunch,Roland 808/909,Saike Type 0,Saike Type 1,Saike Type 2",Clap,28
+208,slider208,Clap Resonance,Clap Resonance,0,0,1,0.01,,Clap,6
+209,slider209,Rim Engine,Rim Engine,2,0,3,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2",Rim,19
+210,slider210,Zap Ring Mix,Zap Ring Mix,0,0,1,0.001,,Zap,5
+211,slider211,Zap Ring Frequency,Zap Ring Frequency,180,1,8000,1,,Zap,5
+212,slider212,Zap Ring Wave,Zap Ring Wave,0,0,5,1,"Sine,Triangle,Saw Up,Saw Down,Square,Noise",Zap,9
+213,slider213,Zap Ring Env Freq Mod,Zap Ring Env Freq Mod,0,0,1,0.001,,Zap,5
+214,slider214,Cymbal Engine,Cymbal Engine,1,0,3,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2",Cymbal,22
+215,slider215,Cowbell Engine,Cowbell Engine,2,0,6,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2,Saike Type 3,Timbales Physical,Timbales Wave Mesh",Clave / Cowbell,27
+216,slider216,Maracas Engine,Maracas Engine,3,0,3,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2",Maracas,20
+217,slider217,HiHat Engine,HiHat Engine,0,0,6,1,"LR-608,Ring Alloy,Noise PM,Modal Shell,Saike Type 0,Saike Type 1,Saike Type 2",HiHat,22
+218,slider218,HiHat Structure,HiHat Structure,0.5,0,1,0.01,,HiHat,18
+219,slider219,Toms Engine,Toms Engine,0,0,4,1,"808,Simmons,Saike Type 0,Saike Type 1,Saike Type 2",Toms,24
+220,slider220,Snare2 Noise Tone Env,Snare2 Noise Tone Env,0,0,10,0.01,,Snare 2,11
+221,slider221,Snare2 Level,Snare2 Level,8.1999999999999993,0,50,0.01,,Snare 2,11
+222,slider222,Snare2 Click Level,Snare2 Click Level,0.5,0,2,0.01,,Snare 2,10
+223,slider223,Snare2 Body Decay,Snare2 Body Decay,0.02,0,1,0.001,,Snare 2,10
+224,slider224,Snare2 Body Tune,Snare2 Body Tune,0,-3,1,0.01,,Snare 2,10
+225,slider225,Snare2 Body Level,Snare2 Body Level,0.59999999999999998,0,1,0.01,,Snare 2,10
+226,slider226,Snare2 Noise Decay,Snare2 Noise Decay,0.050000000000000003,0,1,0.001,,Snare 2,10
+227,slider227,Snare2 Noise Level,Snare2 Noise Level,0.80000000000000004,0,6,0.01,,Snare 2,10
+228,slider228,Snare2 Noise Tone,Snare2 Noise Tone,0.59999999999999998,-1,1,0.01,,Snare 2,12
+229,slider229,Snare2 Noise Resonance,Snare2 Noise Resonance,0.55000000000000004,0,1,0.01,,Snare 2,12
+230,slider230,Snare2 Body Pitch Decay,Snare2 Body Pitch Decay,0.28000000000000003,0,1,0.01,,Snare 2,10
+231,slider231,Snare2 Drive,Snare2 Drive,0,0,1000,1,,Snare 2,10
+232,slider232,Snare2 Body Mid,Snare2 Body Mid,0,0,1,0.01,,Snare 2,10
+233,slider233,Snare2 Body High,Snare2 Body High,0,0,1,0.01,,Snare 2,9
+234,slider234,Snare2 Noise Ring Freq,Snare2 Noise Ring Freq,120,1,1000,1,,Snare 2,10
+235,slider235,Snare2 Noise Ring Depth,Snare2 Noise Ring Depth,0,-1,1,0.01,,Snare 2,11
+236,slider236,Snare2 Noise Ring Wave,Snare2 Noise Ring Wave,0,0,11,1,"Sine,Triangle,Saw Up,Saw Down,PWM,SampleHold,Acoustic Deep,Acoustic Ring,Acoustic Trash,Acoustic Skin,Acoustic Plate,Acoustic Hollow",Snare 2,17
+237,slider237,Snare2 Noise Ring Smooth,Snare2 Noise Ring Smooth,0,0,1,0.001,,Snare 2,11
+238,slider238,Snare2 Noise Ring Delay,Snare2 Noise Ring Delay,0,0,3,0.01,,Snare 2,12
+239,slider239,Snare2 Noise Ring Wave Shape,Snare2 Noise Ring Wave Shape,0.5,0.01,0.99,0.01,,Snare 2,11
+240,slider240,Snare2 Drive Mix,Snare2 Drive Mix,0.5,0,1,0.01,,Snare 2,11
+241,slider241,Snare2 Comp Threshold,Snare2 Comp Threshold,-18,-60,0,0.1,,Snare 2,5
+242,slider242,Snare2 Comp Ratio,Snare2 Comp Ratio,1,0,4,1,"4:1,8:1,12:1,20:1,All",Snare 2,8
+243,slider243,Snare2 Comp Gain,Snare2 Comp Gain,0,-24,24,0.1,,Snare 2,5
+244,slider244,Snare2 Comp Attack (ms),Snare2 Comp Attack (ms),8,0.1,100,0.1,,Snare 2,5
+245,slider245,Snare2 Comp Release (ms),Snare2 Comp Release (ms),90,1,500,1,,Snare 2,5
+246,slider246,Snare2 Comp Mix,Snare2 Comp Mix,0,0,100,0.1,,Snare 2,5
+247,slider247,Kick Engine,Kick Engine,0.20000000000000001,0,6,1,"808,Simmons,909,Saike Type 0,Saike Type 1,Saike Type 2,Saike Type 3",Kick,28
+248,slider248,Snare 1 Engine,Snare 1 Engine,0,0,7,1,"808,Simmons,Acoustic,Saike Type 1,Saike Type 2,Saike Type 3,Hybrid FM,Saike 909 Variant",Snare 1,29
+249,slider249,Roll Division,Roll Division,0,0,16,1,"Off,4,6,8,12,16,24,32,48,64,96,128,192,256,384,512,768",Global,8
+250,slider250,Accent Velocity Threshold,Accent Velocity Threshold,112,0,127,1,,Global,2
+251,slider251,Accent Character,Accent Character,1,0,10,0.01,,Global,2
+252,slider252,Rim Delay Mode,Rim Delay Mode,0,0,1,1,"Fixed,Tape",Rim,7
+253,slider253,Roll Shuffle,Roll Shuffle,1,0,100,1,,Global,5
+254,slider254,Roll Second Hit Velocity Reduction,Roll Second Hit Velocity Reduction,1.2,0,100,1,,Global,3
+255,slider255,Audio Output Mode,Audio Output Mode,0,0,1,1,"Stereo,Multichannel",Global,4
+256,slider256,Master Volume (dB),Master Volume (dB),0,-120,0,0.1,,Global,23

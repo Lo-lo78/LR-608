@@ -1,0 +1,34 @@
+name: Build LR-608 VST3
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and test
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File Tools/build-windows.ps1
+
+      - name: Package VST3
+        shell: powershell
+        run: |
+          $vst3 = "build\nmake-release\LR608_artefacts\Release\VST3\LR-608.vst3"
+          if (-not (Test-Path -LiteralPath $vst3)) {
+            throw "VST3 bundle not found: $vst3"
+          }
+          Compress-Archive -Path $vst3 -DestinationPath "LR-608-Windows-VST3.zip" -Force
+
+      - name: Upload VST3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LR-608-Windows-VST3
+          path: LR-608-Windows-VST3.zip
+          if-no-files-found: error

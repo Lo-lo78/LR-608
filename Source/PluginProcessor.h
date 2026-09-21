@@ -25,6 +25,7 @@
 #include "PolyphonicVoice.h"
 #include <atomic>
 #include "OutputStage.h"
+#include "SlotDelay.h"
 
 class LR608AudioProcessor final : public juce::AudioProcessor,
                                   private juce::AudioProcessorValueTreeState::Listener
@@ -44,7 +45,7 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return true; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 32.0; }
+    double getTailLengthSeconds() const override;
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram (int) override {}
@@ -99,6 +100,7 @@ private:
     double currentSampleRate = 44100.0;
     lr608::DrumTimingEngine timingEngine;
     lr608::OutputStage outputStage;
+    std::array<lr608::SlotDelay,lr608::slotCount> slotDelays;
     std::unique_ptr<std::array<lr608::PolyphonicVoice,128>> voicePool;
     std::array<int,128> activeVoiceIndices{};
     int activeVoiceCount=0;

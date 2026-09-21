@@ -34,7 +34,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 276
+    if (std::size (lr608::generated::parameters) != 285
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -90,6 +90,24 @@ int main()
         }
         ids.emplace(filter.id);
     }
+    const std::array<const char*,9> delayIds{"slotDelayDry","slotDelayWet","slotDelayVolume","slotDelayDivision","slotDelayFeedback","slotDelayGlide","slotDelayFilter","slotDelayLeftOffset","slotDelayRightOffset"};
+    for(int index=276;index<285;++index)
+    {
+        const auto&delay=lr608::generated::parameters[index];
+        if(std::string(delay.id)!=delayIds[std::size_t(index-276)]||delay.step<=0||delay.minimum>delay.defaultValue||delay.defaultValue>delay.maximum)
+        {
+            std::cerr<<"Invalid per-Slot delay descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(delay.id);
+    }
+    if(lr608::generated::parameters[lr608::slotDelayDryParameterIndex].defaultValue!=100.0
+       ||lr608::generated::parameters[lr608::slotDelayWetParameterIndex].defaultValue!=0.0
+       ||lr608::generated::parameters[lr608::slotDelayFilterParameterIndex].defaultValue!=0.5)
+    {
+        std::cerr<<"Delay defaults are not backward-compatible\n";
+        return EXIT_FAILURE;
+    }
     if(std::string(lr608::slotEngines[16].name)!="Snare Linn"||lr608::slotEngines[16].subEngine!=8)
     {
         std::cerr<<"Snare Linn engine is missing or misplaced\n";
@@ -100,7 +118,7 @@ int main()
         std::cerr<<"Clap Linn engine is missing or misplaced\n";
         return EXIT_FAILURE;
     }
-    if (ids.size() != 276)
+    if (ids.size() != 285)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -128,6 +146,6 @@ int main()
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap and four musical filter controls, 12 pages, 265 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters and nine stereo delay controls, 12 pages, 265 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

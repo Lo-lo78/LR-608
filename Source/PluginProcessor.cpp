@@ -9,6 +9,13 @@ namespace
 {
 int catalogIndex(juce::StringRef);
 constexpr int slotEngineArchitectureVersion = 4;
+constexpr const char* universalSlotParameterIds[] {
+    "slotPan", "slotVoiceOverlap",
+    "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
+    "slotDelayDry", "slotDelayWet", "slotDelayVolume", "slotDelayDivision", "slotDelayFeedback",
+    "slotDelayGlide", "slotDelayFilter", "slotDelayLeftOffset", "slotDelayRightOffset",
+    "slider250", "slider251"
+};
 
 int migrateLegacyEngineIndex (int oldIndex)
 {
@@ -138,6 +145,7 @@ void LR608AudioProcessor::prepareToPlay (double sampleRate, int)
     currentSampleRate = sampleRate;
     timingEngine.reset();
     for(auto& voice:*voicePool)voice.prepare(sampleRate);
+    for(auto& delay:slotDelays)delay.prepare(sampleRate);
     voiceCounter=0;activeVoiceCount=0;outputIdleLatched=false;
     voiceStealCounter.store(0);
     outputStage.prepare (sampleRate);
@@ -195,17 +203,17 @@ void LR608AudioProcessor::captureSlotParameter(int slot,juce::StringRef id)
 
 void LR608AudioProcessor::captureSlotFromProxy(int slot)
 {
-    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));if(lr608::isOffEngine(engine))return;for(const auto*id:{"slotPan","slotVoiceOverlap","slotLowPassCutoff","slotLowPassResonance","slotHighPassCutoff","slotHighPassResonance","slider250","slider251"})captureSlotParameter(slot,id);const auto&page=lr608::generated::pages[lr608::slotEngines[engine].page];for(std::size_t i=0;i<page.parameterCount;++i)if(!lr608::isEngineSelectorId(page.parameterIds[i]))captureSlotParameter(slot,page.parameterIds[i]);
+    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));if(lr608::isOffEngine(engine))return;for(const auto*id:universalSlotParameterIds)captureSlotParameter(slot,id);const auto&page=lr608::generated::pages[lr608::slotEngines[engine].page];for(std::size_t i=0;i<page.parameterCount;++i)if(!lr608::isEngineSelectorId(page.parameterIds[i]))captureSlotParameter(slot,page.parameterIds[i]);
 }
 
 void LR608AudioProcessor::loadSlotToProxy(int slot)
 {
-    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;currentProxySlot.store(slot);const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));if(lr608::isOffEngine(engine))return;for(const auto*id:{"slotPan","slotVoiceOverlap","slotLowPassCutoff","slotLowPassResonance","slotHighPassCutoff","slotHighPassResonance","slider250","slider251"})if(auto*p=parameters.getParameter(id))p->setValueNotifyingHost(p->convertTo0to1(slotValues[slot][catalogIndex(id)].load()));const auto&page=lr608::generated::pages[lr608::slotEngines[engine].page];for(std::size_t i=0;i<page.parameterCount;++i){if(lr608::isEngineSelectorId(page.parameterIds[i]))continue;if(const auto index=catalogIndex(page.parameterIds[i]);index>=0)if(auto*p=parameters.getParameter(page.parameterIds[i]))p->setValueNotifyingHost(p->convertTo0to1(slotValues[slot][index].load()));}
+    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;currentProxySlot.store(slot);const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));if(lr608::isOffEngine(engine))return;for(const auto*id:universalSlotParameterIds)if(auto*p=parameters.getParameter(id))p->setValueNotifyingHost(p->convertTo0to1(slotValues[slot][catalogIndex(id)].load()));const auto&page=lr608::generated::pages[lr608::slotEngines[engine].page];for(std::size_t i=0;i<page.parameterCount;++i){if(lr608::isEngineSelectorId(page.parameterIds[i]))continue;if(const auto index=catalogIndex(page.parameterIds[i]);index>=0)if(auto*p=parameters.getParameter(page.parameterIds[i]))p->setValueNotifyingHost(p->convertTo0to1(slotValues[slot][index].load()));}
 }
 
 void LR608AudioProcessor::setSlotEngine(int slot,int engine)
 {
-    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;engine=juce::jlimit(0,lr608::slotEngineCount-1,engine);if(auto*p=parameters.getParameter(lr608::slotEngineId(slot))){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(float(engine)));p->endChangeGesture();}for(int i=0;i<lr608::slotParameterValueCount;++i)slotValues[slot][i].store(engineDefaults[engine][i]);slotGrid[slot].store(0);
+    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;engine=juce::jlimit(0,lr608::slotEngineCount-1,engine);if(auto*p=parameters.getParameter(lr608::slotEngineId(slot))){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(float(engine)));p->endChangeGesture();}for(int i=0;i<lr608::slotParameterValueCount;++i)slotValues[slot][i].store(engineDefaults[engine][i]);slotGrid[slot].store(0);slotDelays[std::size_t(slot)].reset();
 }
 
 LR608AudioProcessor::SlotSoundSnapshot LR608AudioProcessor::copySlotSound(int slot)
@@ -469,6 +477,15 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
     loadSlotToProxy(selected);
 }
 
+double LR608AudioProcessor::getTailLengthSeconds() const
+{
+    for(int slot=0;slot<lr608::slotCount;++slot)
+        if(slotValues[slot][lr608::slotDelayWetParameterIndex].load(std::memory_order_relaxed)>0.0f
+           &&slotValues[slot][lr608::slotDelayFeedbackParameterIndex].load(std::memory_order_relaxed)>=99.999f)
+            return std::numeric_limits<double>::infinity();
+    return 32.0;
+}
+
 bool LR608AudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     const auto input = layouts.getMainInputChannelSet();
@@ -490,11 +507,12 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     {
         buffer.clear();
+        bool hasDelayTail=false;
+        for(const auto&delay:slotDelays)if(delay.isActive()){hasDelayTail=true;break;}
         // At true silence the only mandatory operation is clearing the synth
-        // outputs. Avoid parameter reads, playhead access, timing setup and
-        // per-sample traversal until MIDI, a voice, or a scheduled event can
-        // actually produce work.
-        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock())
+        // outputs. Delay tails are part of the Slot insert path, so they keep
+        // the renderer alive even after the source voice has finished.
+        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail)
         {
             if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
             return;
@@ -502,7 +520,34 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         lr608::TimingSettings timing;timing.sampleRate=currentSampleRate;timing.rollDivision=juce::roundToInt(parameters.getRawParameterValue("slider249")->load());timing.shufflePercent=parameters.getRawParameterValue("slider253")->load();timing.secondHitReductionPercent=parameters.getRawParameterValue("slider254")->load();timing.cowbellEngine=0;
         if(auto*hostPlayHead=getPlayHead())if(const auto position=hostPlayHead->getPosition()){if(const auto bpm=position->getBpm())timing.tempo=*bpm;if(const auto signature=position->getTimeSignature()){timing.timeSignatureNumerator=signature->numerator;timing.timeSignatureDenominator=signature->denominator;}if(const auto ppq=position->getPpqPosition()){timing.hostTimelineValid=true;timing.hostPpqPosition=*ppq;if(const auto barStart=position->getPpqPositionOfLastBarStart())timing.hostBarStartPpq=*barStart;else timing.hostBarStartPpq=std::floor(*ppq/(timing.timeSignatureNumerator*4.0/timing.timeSignatureDenominator))*(timing.timeSignatureNumerator*4.0/timing.timeSignatureDenominator);}timing.hostPlaying=position->getIsPlaying();}
         timingEngine.setSettings(timing);
-        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock())
+
+        // One stereo insert delay per Slot. Parameters belong to the Slot/engine
+        // snapshot exactly like Pan and the musical filters; old presets receive
+        // these defaults, with Wet at zero, and therefore keep the old sound.
+        // The exact pre-delay renderer remains the fast path while every insert
+        // is at its transparent defaults.
+        bool delayInsertNeeded=false;
+        std::array<bool,lr608::slotCount> slotInsertNeeded{};
+        for(int slot=0;slot<lr608::slotCount;++slot)
+        {
+            lr608::SlotDelay::Settings settings;
+            settings.dryPercent=slotValues[slot][lr608::slotDelayDryParameterIndex].load(std::memory_order_relaxed);
+            settings.wetPercent=slotValues[slot][lr608::slotDelayWetParameterIndex].load(std::memory_order_relaxed);
+            settings.outputDb=slotValues[slot][lr608::slotDelayVolumeParameterIndex].load(std::memory_order_relaxed);
+            const auto insertNeeded=settings.wetPercent>1.0e-9||std::abs(settings.dryPercent-100.0)>1.0e-9||std::abs(settings.outputDb)>1.0e-9;
+            slotInsertNeeded[std::size_t(slot)]=insertNeeded;
+            delayInsertNeeded=delayInsertNeeded||insertNeeded;
+            settings.divisionIndex=juce::roundToInt(slotValues[slot][lr608::slotDelayDivisionParameterIndex].load(std::memory_order_relaxed));
+            settings.feedbackPercent=slotValues[slot][lr608::slotDelayFeedbackParameterIndex].load(std::memory_order_relaxed);
+            settings.glideMs=slotValues[slot][lr608::slotDelayGlideParameterIndex].load(std::memory_order_relaxed);
+            settings.filter=slotValues[slot][lr608::slotDelayFilterParameterIndex].load(std::memory_order_relaxed);
+            settings.leftOffsetMs=slotValues[slot][lr608::slotDelayLeftOffsetParameterIndex].load(std::memory_order_relaxed);
+            settings.rightOffsetMs=slotValues[slot][lr608::slotDelayRightOffsetParameterIndex].load(std::memory_order_relaxed);
+            settings.tempo=timing.tempo;
+            slotDelays[std::size_t(slot)].setSettings(settings);
+        }
+        hasDelayTail=false;for(const auto&delay:slotDelays)if(delay.isActive()){hasDelayTail=true;break;}
+        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail)
         {
             if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
             return;
@@ -572,26 +617,89 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             auto emitMidi=[&](lr608::GeneratedDrumMidi event){const auto channel=juce::jlimit(1,16,event.channel+1);midi.addEvent(event.noteOn?juce::MidiMessage::noteOn(channel,event.note,juce::uint8(event.velocity)):juce::MidiMessage::noteOff(channel,event.note),sample);};
             while(iterator!=incomingMidi.cend()&&(*iterator).samplePosition==sample){const auto message=(*iterator).getMessage();const auto*bytes=message.getRawData();bool consumed=false;if(message.getRawDataSize()>=3)consumed=timingEngine.handleMidi(bytes[0],bytes[1],bytes[2],trigger,emitMidi);if(!consumed)midi.addEvent(message,sample);++iterator;}
             timingEngine.tick(trigger,emitMidi);
-            if(activeVoiceCount==0)
+
+            std::array<lr608::StereoSample,lr608::OutputStage::stemCount>buses{};
+            bool anySlotProcessing=false;
+            if(!delayInsertNeeded)
             {
-                if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
+                // Backward-compatible fast path: identical summing/routing to
+                // the renderer that existed before the per-Slot delay.
+                for(int active=0;active<activeVoiceCount;)
+                {
+                    auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
+                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
+                    anySlotProcessing=true;
+                    const auto rendered=voice.render();auto&bus=buses[juce::jlimit(0,lr608::OutputStage::stemCount-1,voice.getRoute())];bus.left+=rendered.left;bus.right+=rendered.right;
+                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
+                    ++active;
+                }
+            }
+            else
+            {
+                // Delay-enabled path: sum the polyphonic voices of each Slot,
+                // then run the Slot through its final stereo insert before bus routing.
+                std::array<lr608::StereoSample,lr608::slotCount> slotSamples{};
+                std::array<bool,lr608::slotCount> touched{};
+                std::array<int,lr608::slotCount> slotsToProcess{};
+                int slotsToProcessCount=0;
+                const auto touchSlot=[&](int slot)
+                {
+                    if(touched[std::size_t(slot)])return;
+                    touched[std::size_t(slot)]=true;
+                    slotsToProcess[std::size_t(slotsToProcessCount++)]=slot;
+                };
+                for(int slot=0;slot<lr608::slotCount;++slot)
+                    if(slotInsertNeeded[std::size_t(slot)]&&slotDelays[std::size_t(slot)].isActive())touchSlot(slot);
+                for(int active=0;active<activeVoiceCount;)
+                {
+                    auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
+                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
+                    const auto rendered=voice.render();
+                    const auto slot=juce::jlimit(0,lr608::slotCount-1,voice.getSlot());
+                    if(slotInsertNeeded[std::size_t(slot)])
+                    {
+                        touchSlot(slot);
+                        slotSamples[std::size_t(slot)].left+=rendered.left;
+                        slotSamples[std::size_t(slot)].right+=rendered.right;
+                    }
+                    else
+                    {
+                        // Slots whose insert is still at its defaults remain on
+                        // the exact legacy voice->bus path, even while another
+                        // Slot is using its delay.
+                        const auto route=juce::jlimit(0,lr608::OutputStage::stemCount-1,voice.getRoute());
+                        buses[std::size_t(route)].left+=rendered.left;
+                        buses[std::size_t(route)].right+=rendered.right;
+                        anySlotProcessing=true;
+                    }
+                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
+                    ++active;
+                }
+                anySlotProcessing=anySlotProcessing||slotsToProcessCount>0;
+                for(int item=0;item<slotsToProcessCount;++item)
+                {
+                    const auto slot=slotsToProcess[std::size_t(item)];
+                    const auto rendered=slotDelays[std::size_t(slot)].process(slotSamples[std::size_t(slot)]);
+                    const auto route=juce::jlimit(0,lr608::OutputStage::stemCount-1,slotOutputs[slot].load(std::memory_order_relaxed));
+                    buses[std::size_t(route)].left+=rendered.left;
+                    buses[std::size_t(route)].right+=rendered.right;
+                }
+            }
+            if(!anySlotProcessing)
+            {
+                if(activeVoiceCount==0&&!timingEngine.needsSampleClock())
+                {
+                    if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
+                }
                 continue;
             }
             outputIdleLatched=false;
-            std::array<lr608::StereoSample,lr608::OutputStage::stemCount>buses{};
-            for(int active=0;active<activeVoiceCount;)
-            {
-                auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
-                if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
-                const auto rendered=voice.render();auto&bus=buses[juce::jlimit(0,lr608::OutputStage::stemCount-1,voice.getRoute())];bus.left+=rendered.left;bus.right+=rendered.right;
-                if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
-                ++active;
-            }
             outputStage.process(buses,true,masterDb,0);
             for(int bus=0;bus<getBusCount(false);++bus)if(outputLeft[std::size_t(bus)]!=nullptr&&(buses[bus].left!=0||buses[bus].right!=0)){outputLeft[std::size_t(bus)][sample]+=float(buses[bus].left);outputRight[std::size_t(bus)][sample]+=float(buses[bus].right);}
         }
         return;
     }
+}
 
 #if 0 // Superseded by the slot-specific 128-voice renderer above.
     lr608::TimingSettings timing;
@@ -805,7 +913,7 @@ void LR608AudioProcessor::storeSlotStates()
     juce::ValueTree slots("SlotStates");
     for(int slot=0;slot<lr608::slotCount;++slot)
     {
-        juce::ValueTree node("Slot");node.setProperty("index",slot,nullptr);node.setProperty("grid",slotGrid[slot].load(),nullptr);node.setProperty("output",slotOutputs[slot].load(),nullptr);node.setProperty("name",slotNames[std::size_t(slot)],nullptr);for(const auto*id:{"slotPan","slotVoiceOverlap","slotLowPassCutoff","slotLowPassResonance","slotHighPassCutoff","slotHighPassResonance","slider250","slider251"})node.setProperty(id,slotValues[slot][catalogIndex(id)].load(),nullptr);
+        juce::ValueTree node("Slot");node.setProperty("index",slot,nullptr);node.setProperty("grid",slotGrid[slot].load(),nullptr);node.setProperty("output",slotOutputs[slot].load(),nullptr);node.setProperty("name",slotNames[std::size_t(slot)],nullptr);for(const auto*id:universalSlotParameterIds)node.setProperty(id,slotValues[slot][catalogIndex(id)].load(),nullptr);
         const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));if(lr608::isOffEngine(engine)){slots.addChild(node,-1,nullptr);continue;}const auto&page=lr608::generated::pages[lr608::slotEngines[engine].page];
         for(std::size_t item=0;item<page.parameterCount;++item)if(!lr608::isEngineSelectorId(page.parameterIds[item]))if(const auto p=catalogIndex(page.parameterIds[item]);p>=0)node.setProperty(juce::Identifier(page.parameterIds[item]),slotValues[slot][p].load(),nullptr);
         slots.addChild(node,-1,nullptr);
@@ -815,6 +923,7 @@ void LR608AudioProcessor::storeSlotStates()
 
 void LR608AudioProcessor::restoreSlotStates()
 {
+    for(auto& delay:slotDelays)delay.reset();
     const auto legacyAccentThreshold=parameters.getRawParameterValue("slider250")->load(),legacyAccentCharacter=parameters.getRawParameterValue("slider251")->load();
     for(int slot=0;slot<lr608::slotCount;++slot){const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));for(int p=0;p<lr608::slotParameterValueCount;++p)slotValues[slot][p].store(engineDefaults[engine][p]);slotGrid[slot].store(0);slotOutputs[slot].store(0);slotNames[std::size_t(slot)].clear();}
     if(const auto slots=parameters.state.getChildWithName("SlotStates");slots.isValid())for(int child=0;child<slots.getNumChildren();++child){const auto node=slots.getChild(child);const auto slot=int(node.getProperty("index",-1));if(!juce::isPositiveAndBelow(slot,lr608::slotCount))continue;slotGrid[slot].store(juce::jmax(0,int(node.getProperty("grid",0))));slotNames[std::size_t(slot)]=node.getProperty("name").toString().trim().substring(0,48);const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));int legacyOutput=0;if(!lr608::isOffEngine(engine)){const auto routeName=juce::Identifier(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id);legacyOutput=int(node.getProperty(routeName,0));}const auto output=node.hasProperty("output")?int(node.getProperty("output")):legacyOutput;slotOutputs[slot].store(juce::jlimit(0,lr608::OutputStage::stemCount-1,output));if(!node.hasProperty("slider250"))slotValues[slot][catalogIndex("slider250")].store(legacyAccentThreshold);if(!node.hasProperty("slider251"))slotValues[slot][catalogIndex("slider251")].store(legacyAccentCharacter);for(int property=0;property<node.getNumProperties();++property){const auto name=node.getPropertyName(property);if(name==juce::Identifier("index")||name==juce::Identifier("grid")||name==juce::Identifier("output")||name==juce::Identifier("name"))continue;if(const auto p=catalogIndex(name.toString());p>=0)slotValues[slot][p].store(float(node.getProperty(name)));}}

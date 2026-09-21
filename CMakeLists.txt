@@ -93,6 +93,8 @@ target_sources(LR608 PRIVATE
     Source/PolyphonicVoice.h
     Source/OutputStage.cpp
     Source/OutputStage.h
+    Source/SlotDelay.cpp
+    Source/SlotDelay.h
 )
 target_compile_features(LR608 PRIVATE cxx_std_20)
 target_compile_definitions(LR608 PUBLIC
@@ -127,6 +129,10 @@ if(LR608_BUILD_CATALOG_TEST)
     target_compile_features(LR608TimingTest PRIVATE cxx_std_20)
     target_include_directories(LR608TimingTest PRIVATE Source)
     add_test(NAME LR608TimingAudit COMMAND LR608TimingTest)
+    add_executable(LR608SlotDelayTest Tests/SlotDelayAudit.cpp Source/SlotDelay.cpp)
+    target_compile_features(LR608SlotDelayTest PRIVATE cxx_std_20)
+    target_include_directories(LR608SlotDelayTest PRIVATE Source)
+    add_test(NAME LR608SlotDelayAudit COMMAND LR608SlotDelayTest)
     add_executable(LR608VoiceTest Tests/VoiceAudit.cpp Source/Kick808Voice.cpp Source/KickOtherVoices.cpp Source/SnareVoice.cpp Source/ClapRimVoices.cpp Source/TomVoice.cpp Source/HatCymbalVoices.cpp Source/SaikeMetal.cpp Source/MaracasVoice.cpp Source/CowbellVoice.cpp Source/ZapVoice.cpp Source/PolyphonicVoice.cpp Source/OutputStage.cpp)
     target_compile_features(LR608VoiceTest PRIVATE cxx_std_20)
     target_include_directories(LR608VoiceTest PRIVATE Source)

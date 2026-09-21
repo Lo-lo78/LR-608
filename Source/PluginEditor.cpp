@@ -906,6 +906,15 @@ void LR608AudioProcessorEditor::updateParameterList()
     }
     if(!globalOpen)
     {
+        for(int catalog=lr608::slotDelayDryParameterIndex;catalog<=lr608::slotDelayRightOffsetParameterIndex;++catalog)
+        {
+            visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back(lr608::generated::parameters[catalog].name);
+            auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();
+            parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
+        }
+    }
+    if(!globalOpen)
+    {
         for(const auto catalog:{249,250})
         {
             visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back(lr608::generated::parameters[catalog].name);

@@ -71,16 +71,14 @@ UNIVERSAL_SLOT_PARAMETERS = [
     (260, "slotLowPassResonance", "Low Pass Resonance", 0.5, 10.0, 0.01, 0.707, ""),
     (261, "slotHighPassCutoff", "High Pass Cutoff", 20.0, 20000.0, 1.0, 20.0, ""),
     (262, "slotHighPassResonance", "High Pass Resonance", 0.5, 10.0, 0.01, 0.707, ""),
-    (263, "slotDelayDry", "Delay Dry (%)", 0.0, 100.0, 0.1, 100.0, ""),
     (264, "slotDelayWet", "Delay Wet (%)", 0.0, 100.0, 0.1, 0.0, ""),
-    (265, "slotDelayVolume", "Delay Volume (dB)", -60.0, 18.0, 0.1, 0.0, ""),
-    (266, "slotDelayDivision", "Delay Time", 0.0, 11.0, 1.0, 4.0,
-     "4 Bars|3 Bars|2 Bars|1 Bar|1/8|1/16|1/32|1/64|1/128|1/256|1/512|1/1024"),
+    (266, "slotDelayDivision", "Delay Time", 0.0, 1035.0, 1.0, 1016.0, ""),
     (267, "slotDelayFeedback", "Delay Feedback (%)", 0.0, 100.0, 0.1, 50.0, ""),
     (268, "slotDelayGlide", "Delay Speed Glide (ms)", 0.0, 10000.0, 1.0, 0.0, ""),
     (269, "slotDelayFilter", "Delay Feedback Filter", 0.0, 1.0, 0.001, 0.5, ""),
     (270, "slotDelayLeftOffset", "Delay Left Offset (ms)", 0.0, 60000.0, 1.0, 0.0, ""),
     (271, "slotDelayRightOffset", "Delay Right Offset (ms)", 0.0, 60000.0, 1.0, 0.0, ""),
+    (272, "slotDelayFilterResonance", "Delay Filter Resonance", 0.5, 10.0, 0.01, 0.707, ""),
 ]
 
 PAGE_ROUTING = {

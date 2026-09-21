@@ -21,7 +21,8 @@ int main()
 {
     constexpr double sampleRate = 48000.0;
 
-    // Old presets/default state must be sample-exact through the insert.
+    // The delay is a pure send return. At its default Wet=0 it contributes
+    // absolute zero; the dry signal lives only in LR-608's original renderer.
     {
         lr608::SlotDelay delay;
         delay.prepare (sampleRate);
@@ -32,8 +33,8 @@ int main()
             const lr608::StereoSample input { std::sin (double (i) * 0.17) * 0.37,
                                               std::cos (double (i) * 0.11) * 0.23 };
             const auto output = delay.process (input);
-            require (output.left == input.left && output.right == input.right,
-                     "default Dry=100/Wet=0/Volume=0 is not transparent");
+            require (output.left == 0.0 && output.right == 0.0,
+                     "default Wet=0 send return is not silent");
         }
     }
 
@@ -42,7 +43,6 @@ int main()
         lr608::SlotDelay delay;
         delay.prepare (sampleRate);
         lr608::SlotDelay::Settings settings;
-        settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
         settings.timeIndex = 0; // 1/1024: short enough for a fast audit.
         settings.feedbackPercent = 0.0;
@@ -65,7 +65,6 @@ int main()
         lr608::SlotDelay delay;
         delay.prepare (sampleRate);
         lr608::SlotDelay::Settings settings;
-        settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
         settings.timeIndex = 0;
         settings.feedbackPercent = 45.0;
@@ -87,7 +86,6 @@ int main()
         lr608::SlotDelay delay;
         delay.prepare (sampleRate);
         lr608::SlotDelay::Settings settings;
-        settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
         settings.timeIndex = 0;
         settings.feedbackPercent = 0.0;
@@ -110,7 +108,6 @@ int main()
         lr608::SlotDelay delay;
         delay.prepare (sampleRate);
         lr608::SlotDelay::Settings settings;
-        settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
         settings.timeIndex = 0;
         settings.feedbackPercent = 100.0;
@@ -135,7 +132,6 @@ int main()
         lr608::SlotDelay delay;
         delay.prepare (sampleRate);
         lr608::SlotDelay::Settings settings;
-        settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
         settings.timeIndex = 0;
         settings.feedbackPercent = 100.0;
@@ -153,6 +149,6 @@ int main()
         }
     }
 
-    std::cout << "SlotDelay audit passed: continuous musical time, transparent default, stereo/pan preservation, L/R offsets, resonant filters, infinite bounded feedback.\n";
+    std::cout << "SlotDelay audit passed: pure send return, continuous musical time, stereo/pan preservation, L/R offsets, resonant filters, infinite bounded feedback.\n";
     return 0;
 }

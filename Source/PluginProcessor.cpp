@@ -4,17 +4,17 @@
 #include "GeneratedParameters.h"
 #include "GeneratedPages.h"
 #include <limits>
+#include <cmath>
 
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 5;
+constexpr int slotEngineArchitectureVersion = 6;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
-    "slotDelayDry", "slotDelayWet", "slotDelayVolume", "slotDelayDivision", "slotDelayFeedback",
-    "slotDelayGlide", "slotDelayFilter", "slotDelayLeftOffset", "slotDelayRightOffset",
-    "slotDelayFilterResonance", "slider250", "slider251"
+    "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
+    "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slider250", "slider251"
 };
 
 int migrateLegacyEngineIndex (int oldIndex)
@@ -70,7 +70,7 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
         if(sourceVersion<=1)return migrateLegacyEngineIndex(engine);
         if(sourceVersion==2)return migrateVersion3EngineIndex(migrateVersion2EngineIndex(engine));
         if(sourceVersion==3)return migrateVersion3EngineIndex(engine);
-        return engine; // Version 4 -> 5 only changes the delay time encoding.
+        return engine; // Versions 4+ keep the current engine ordering.
     };
 
     for (int slot = 0; slot < lr608::slotCount; ++slot)
@@ -87,7 +87,7 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
     }
     if (sourceVersion == 4)
     {
-        // Version 4 stored Delay Time as 12 fixed choices. Version 5 keeps
+        // Version 4 stored Delay Time as 12 fixed choices. Version 5+ keeps
         // those exact musical times while changing to the continuous code.
         if (auto slots = state.getChildWithName ("SlotStates"); slots.isValid())
             for (int child = 0; child < slots.getNumChildren(); ++child)
@@ -97,6 +97,26 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
                     continue;
                 const auto oldIndex = juce::jlimit (0, 11, juce::roundToInt (double (slot.getProperty ("slotDelayDivision"))));
                 slot.setProperty ("slotDelayDivision", migrateVersion4DelayTimeIndex (oldIndex), nullptr);
+            }
+    }
+    if (sourceVersion == 4 || sourceVersion == 5)
+    {
+        // Version 6 turns the effect into a true parallel send. Dry and the
+        // old extra output gain disappear; fold the old output gain into Wet
+        // so experimental delay presets keep approximately the same return level.
+        if (auto slots = state.getChildWithName ("SlotStates"); slots.isValid())
+            for (int child = 0; child < slots.getNumChildren(); ++child)
+            {
+                auto slot = slots.getChild (child);
+                if (slot.hasProperty ("slotDelayWet"))
+                {
+                    const auto wet = double (slot.getProperty ("slotDelayWet"));
+                    const auto volumeDb = double (slot.getProperty ("slotDelayVolume", 0.0));
+                    const auto migratedWet = juce::jlimit (0.0, 100.0, wet * std::pow (10.0, volumeDb / 20.0));
+                    slot.setProperty ("slotDelayWet", migratedWet, nullptr);
+                }
+                slot.removeProperty ("slotDelayDry", nullptr);
+                slot.removeProperty ("slotDelayVolume", nullptr);
             }
     }
 
@@ -320,19 +340,49 @@ juce::Result LR608AudioProcessor::pasteMidiKeyFromText(int note,const juce::Stri
         layer.output=int(node.getProperty("output",0));layer.chokeTrigger=int(node.getProperty("chokeTrigger",0));layer.chokeTarget=int(node.getProperty("chokeTarget",0));
         if(!node.hasType("Layer")||!juce::isPositiveAndBelow(layer.sound.engine,lr608::offEngineIndex)||!juce::isPositiveAndBelow(layer.output,lr608::OutputStage::stemCount)||!juce::isPositiveAndBelow(layer.chokeTrigger,129)||!juce::isPositiveAndBelow(layer.chokeTarget,129))
             return juce::Result::fail("Invalid LR-608 clipboard layer");
-        for(int p=0;p<lr608::slotParameterValueCount;++p)
+        if(clipboardVersion==4||clipboardVersion==5)
         {
-            const auto id=juce::Identifier("p"+juce::String(p));
-            if(!node.hasProperty(id))
+            // Versions 4/5 used Dry, Wet and a second output gain before the
+            // delay became a pure send in version 6. Their delay fields also
+            // occupied two extra numeric snapshot positions.
+            const auto oldValue=[&](int p,double fallback,bool required)
             {
-                if(p>=lr608::slotVoiceOverlapParameterIndex){layer.sound.values[std::size_t(p)]=float(lr608::generated::parameters[p].defaultValue);continue;}
-                return juce::Result::fail("Incomplete LR-608 clipboard layer");
+                const auto id=juce::Identifier("p"+juce::String(p));
+                if(!node.hasProperty(id))return required?std::numeric_limits<double>::quiet_NaN():fallback;
+                return double(node.getProperty(id));
+            };
+            for(int p=0;p<276;++p)
+            {
+                const auto value=oldValue(p,0.0,true);
+                if(!std::isfinite(value))return juce::Result::fail("Incomplete LR-608 clipboard layer");
+                layer.sound.values[std::size_t(p)]=float(value);
             }
-            const auto value=float(node.getProperty(id));if(!std::isfinite(value))return juce::Result::fail("Invalid LR-608 clipboard value");
-            layer.sound.values[std::size_t(p)]=value;
+            const auto oldWet=oldValue(277,0.0,false),oldVolume=oldValue(278,0.0,false);
+            layer.sound.values[std::size_t(lr608::slotDelayWetParameterIndex)]=float(juce::jlimit(0.0,100.0,oldWet*std::pow(10.0,oldVolume/20.0)));
+            auto oldTime=juce::roundToInt(oldValue(279,4.0,false));
+            if(clipboardVersion==4)oldTime=migrateVersion4DelayTimeIndex(oldTime);
+            layer.sound.values[std::size_t(lr608::slotDelayDivisionParameterIndex)]=float(oldTime);
+            layer.sound.values[std::size_t(lr608::slotDelayFeedbackParameterIndex)]=float(oldValue(280,50.0,false));
+            layer.sound.values[std::size_t(lr608::slotDelayGlideParameterIndex)]=float(oldValue(281,0.0,false));
+            layer.sound.values[std::size_t(lr608::slotDelayFilterParameterIndex)]=float(oldValue(282,0.5,false));
+            layer.sound.values[std::size_t(lr608::slotDelayLeftOffsetParameterIndex)]=float(oldValue(283,0.0,false));
+            layer.sound.values[std::size_t(lr608::slotDelayRightOffsetParameterIndex)]=float(oldValue(284,0.0,false));
+            layer.sound.values[std::size_t(lr608::slotDelayFilterResonanceParameterIndex)]=float(clipboardVersion>=5?oldValue(285,0.707,false):0.707);
         }
-        if(clipboardVersion==4)
-            layer.sound.values[std::size_t(lr608::slotDelayDivisionParameterIndex)]=float(migrateVersion4DelayTimeIndex(juce::roundToInt(layer.sound.values[std::size_t(lr608::slotDelayDivisionParameterIndex)])));
+        else
+        {
+            for(int p=0;p<lr608::slotParameterValueCount;++p)
+            {
+                const auto id=juce::Identifier("p"+juce::String(p));
+                if(!node.hasProperty(id))
+                {
+                    if(p>=lr608::slotVoiceOverlapParameterIndex){layer.sound.values[std::size_t(p)]=float(lr608::generated::parameters[p].defaultValue);continue;}
+                    return juce::Result::fail("Incomplete LR-608 clipboard layer");
+                }
+                const auto value=float(node.getProperty(id));if(!std::isfinite(value))return juce::Result::fail("Invalid LR-608 clipboard value");
+                layer.sound.values[std::size_t(p)]=value;
+            }
+        }
         layers.push_back(layer);
     }
     const auto existingLayers=getActiveSlotCountForMidiNote(note);
@@ -547,7 +597,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         bool hasDelayTail=false;
         for(const auto&delay:slotDelays)if(delay.isActive()){hasDelayTail=true;break;}
         // At true silence the only mandatory operation is clearing the synth
-        // outputs. Delay tails are part of the Slot insert path, so they keep
+        // outputs. Delay send tails keep
         // the renderer alive even after the source voice has finished.
         if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail)
         {
@@ -558,22 +608,15 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         if(auto*hostPlayHead=getPlayHead())if(const auto position=hostPlayHead->getPosition()){if(const auto bpm=position->getBpm())timing.tempo=*bpm;if(const auto signature=position->getTimeSignature()){timing.timeSignatureNumerator=signature->numerator;timing.timeSignatureDenominator=signature->denominator;}if(const auto ppq=position->getPpqPosition()){timing.hostTimelineValid=true;timing.hostPpqPosition=*ppq;if(const auto barStart=position->getPpqPositionOfLastBarStart())timing.hostBarStartPpq=*barStart;else timing.hostBarStartPpq=std::floor(*ppq/(timing.timeSignatureNumerator*4.0/timing.timeSignatureDenominator))*(timing.timeSignatureNumerator*4.0/timing.timeSignatureDenominator);}timing.hostPlaying=position->getIsPlaying();}
         timingEngine.setSettings(timing);
 
-        // One stereo insert delay per Slot. Parameters belong to the Slot/engine
-        // snapshot exactly like Pan and the musical filters; old presets receive
-        // these defaults, with Wet at zero, and therefore keep the old sound.
-        // The exact pre-delay renderer remains the fast path while every insert
-        // is at its transparent defaults.
-        bool delayInsertNeeded=false;
-        std::array<bool,lr608::slotCount> slotInsertNeeded{};
+        // One stereo delay send per Slot. The dry signal never passes through
+        // SlotDelay: it remains on LR-608's original voice->bus path. Wet is
+        // the only level control and scales only the parallel delay return.
+        std::array<bool,lr608::slotCount> slotDelayEnabled{};
         for(int slot=0;slot<lr608::slotCount;++slot)
         {
             lr608::SlotDelay::Settings settings;
-            settings.dryPercent=slotValues[slot][lr608::slotDelayDryParameterIndex].load(std::memory_order_relaxed);
             settings.wetPercent=slotValues[slot][lr608::slotDelayWetParameterIndex].load(std::memory_order_relaxed);
-            settings.outputDb=slotValues[slot][lr608::slotDelayVolumeParameterIndex].load(std::memory_order_relaxed);
-            const auto insertNeeded=settings.wetPercent>1.0e-9||std::abs(settings.dryPercent-100.0)>1.0e-9||std::abs(settings.outputDb)>1.0e-9;
-            slotInsertNeeded[std::size_t(slot)]=insertNeeded;
-            delayInsertNeeded=delayInsertNeeded||insertNeeded;
+            slotDelayEnabled[std::size_t(slot)]=settings.wetPercent>1.0e-9;
             settings.timeIndex=juce::roundToInt(slotValues[slot][lr608::slotDelayDivisionParameterIndex].load(std::memory_order_relaxed));
             settings.feedbackPercent=slotValues[slot][lr608::slotDelayFeedbackParameterIndex].load(std::memory_order_relaxed);
             settings.glideMs=slotValues[slot][lr608::slotDelayGlideParameterIndex].load(std::memory_order_relaxed);
@@ -657,71 +700,48 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             timingEngine.tick(trigger,emitMidi);
 
             std::array<lr608::StereoSample,lr608::OutputStage::stemCount>buses{};
+            std::array<lr608::StereoSample,lr608::slotCount> slotSends{};
+            std::array<bool,lr608::slotCount> touched{};
+            std::array<int,lr608::slotCount> slotsToProcess{};
+            int slotsToProcessCount=0;
             bool anySlotProcessing=false;
-            if(!delayInsertNeeded)
+            const auto touchSlot=[&](int slot)
             {
-                // Backward-compatible fast path: identical summing/routing to
-                // the renderer that existed before the per-Slot delay.
-                for(int active=0;active<activeVoiceCount;)
+                if(touched[std::size_t(slot)])return;
+                touched[std::size_t(slot)]=true;
+                slotsToProcess[std::size_t(slotsToProcessCount++)]=slot;
+            };
+            // Existing delay tails keep running after their source voices end.
+            for(int slot=0;slot<lr608::slotCount;++slot)
+                if(slotDelays[std::size_t(slot)].isActive())touchSlot(slot);
+
+            for(int active=0;active<activeVoiceCount;)
+            {
+                auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
+                if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
+                anySlotProcessing=true;
+                const auto rendered=voice.render();auto&bus=buses[juce::jlimit(0,lr608::OutputStage::stemCount-1,voice.getRoute())];bus.left+=rendered.left;bus.right+=rendered.right;
+
+                // Parallel send copy only. The three statements above are the
+                // original dry summing path and stay unchanged even with delay on.
+                const auto slot=juce::jlimit(0,lr608::slotCount-1,voice.getSlot());
+                if(slotDelayEnabled[std::size_t(slot)])
                 {
-                    auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
-                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
-                    anySlotProcessing=true;
-                    const auto rendered=voice.render();auto&bus=buses[juce::jlimit(0,lr608::OutputStage::stemCount-1,voice.getRoute())];bus.left+=rendered.left;bus.right+=rendered.right;
-                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
-                    ++active;
+                    touchSlot(slot);
+                    slotSends[std::size_t(slot)].left+=rendered.left;
+                    slotSends[std::size_t(slot)].right+=rendered.right;
                 }
+                if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
+                ++active;
             }
-            else
+            for(int item=0;item<slotsToProcessCount;++item)
             {
-                // Delay-enabled path: sum the polyphonic voices of each Slot,
-                // then run the Slot through its final stereo insert before bus routing.
-                std::array<lr608::StereoSample,lr608::slotCount> slotSamples{};
-                std::array<bool,lr608::slotCount> touched{};
-                std::array<int,lr608::slotCount> slotsToProcess{};
-                int slotsToProcessCount=0;
-                const auto touchSlot=[&](int slot)
-                {
-                    if(touched[std::size_t(slot)])return;
-                    touched[std::size_t(slot)]=true;
-                    slotsToProcess[std::size_t(slotsToProcessCount++)]=slot;
-                };
-                for(int slot=0;slot<lr608::slotCount;++slot)
-                    if(slotInsertNeeded[std::size_t(slot)]&&slotDelays[std::size_t(slot)].isActive())touchSlot(slot);
-                for(int active=0;active<activeVoiceCount;)
-                {
-                    auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
-                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
-                    const auto rendered=voice.render();
-                    const auto slot=juce::jlimit(0,lr608::slotCount-1,voice.getSlot());
-                    if(slotInsertNeeded[std::size_t(slot)])
-                    {
-                        touchSlot(slot);
-                        slotSamples[std::size_t(slot)].left+=rendered.left;
-                        slotSamples[std::size_t(slot)].right+=rendered.right;
-                    }
-                    else
-                    {
-                        // Slots whose insert is still at its defaults remain on
-                        // the exact legacy voice->bus path, even while another
-                        // Slot is using its delay.
-                        const auto route=juce::jlimit(0,lr608::OutputStage::stemCount-1,voice.getRoute());
-                        buses[std::size_t(route)].left+=rendered.left;
-                        buses[std::size_t(route)].right+=rendered.right;
-                        anySlotProcessing=true;
-                    }
-                    if(!voice.isActive()){activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];continue;}
-                    ++active;
-                }
-                anySlotProcessing=anySlotProcessing||slotsToProcessCount>0;
-                for(int item=0;item<slotsToProcessCount;++item)
-                {
-                    const auto slot=slotsToProcess[std::size_t(item)];
-                    const auto rendered=slotDelays[std::size_t(slot)].process(slotSamples[std::size_t(slot)]);
-                    const auto route=juce::jlimit(0,lr608::OutputStage::stemCount-1,slotOutputs[slot].load(std::memory_order_relaxed));
-                    buses[std::size_t(route)].left+=rendered.left;
-                    buses[std::size_t(route)].right+=rendered.right;
-                }
+                const auto slot=slotsToProcess[std::size_t(item)];
+                const auto wet=slotDelays[std::size_t(slot)].process(slotSends[std::size_t(slot)]);
+                const auto route=juce::jlimit(0,lr608::OutputStage::stemCount-1,slotOutputs[slot].load(std::memory_order_relaxed));
+                buses[std::size_t(route)].left+=wet.left;
+                buses[std::size_t(route)].right+=wet.right;
+                anySlotProcessing=true;
             }
             if(!anySlotProcessing)
             {

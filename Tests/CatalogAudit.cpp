@@ -34,7 +34,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 286
+    if (std::size (lr608::generated::parameters) != 284
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -90,8 +90,8 @@ int main()
         }
         ids.emplace(filter.id);
     }
-    const std::array<const char*,10> delayIds{"slotDelayDry","slotDelayWet","slotDelayVolume","slotDelayDivision","slotDelayFeedback","slotDelayGlide","slotDelayFilter","slotDelayLeftOffset","slotDelayRightOffset","slotDelayFilterResonance"};
-    for(int index=276;index<286;++index)
+    const std::array<const char*,8> delayIds{"slotDelayWet","slotDelayDivision","slotDelayFeedback","slotDelayGlide","slotDelayFilter","slotDelayLeftOffset","slotDelayRightOffset","slotDelayFilterResonance"};
+    for(int index=276;index<284;++index)
     {
         const auto&delay=lr608::generated::parameters[index];
         if(std::string(delay.id)!=delayIds[std::size_t(index-276)]||delay.step<=0||delay.minimum>delay.defaultValue||delay.defaultValue>delay.maximum)
@@ -101,8 +101,7 @@ int main()
         }
         ids.emplace(delay.id);
     }
-    if(lr608::generated::parameters[lr608::slotDelayDryParameterIndex].defaultValue!=100.0
-       ||lr608::generated::parameters[lr608::slotDelayWetParameterIndex].defaultValue!=0.0
+    if(lr608::generated::parameters[lr608::slotDelayWetParameterIndex].defaultValue!=0.0
        ||lr608::generated::parameters[lr608::slotDelayFilterParameterIndex].defaultValue!=0.5
        ||lr608::generated::parameters[lr608::slotDelayFilterResonanceParameterIndex].defaultValue!=0.707)
     {
@@ -119,7 +118,7 @@ int main()
         std::cerr<<"Clap Linn engine is missing or misplaced\n";
         return EXIT_FAILURE;
     }
-    if (ids.size() != 286)
+    if (ids.size() != 284)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;

@@ -86,9 +86,7 @@ void SlotDelay::ensureCapacity (std::size_t samples)
 void SlotDelay::setSettings (const Settings& settings)
 {
     if (hasSettings
-        && settings.dryPercent == lastSettings.dryPercent
         && settings.wetPercent == lastSettings.wetPercent
-        && settings.outputDb == lastSettings.outputDb
         && settings.timeIndex == lastSettings.timeIndex
         && settings.feedbackPercent == lastSettings.feedbackPercent
         && settings.glideMs == lastSettings.glideMs
@@ -102,10 +100,7 @@ void SlotDelay::setSettings (const Settings& settings)
     hasSettings = true;
 
     const auto wasEnabled = enabled;
-    dryGain = std::clamp (settings.dryPercent, 0.0, 100.0) * 0.01;
     wetGain = std::clamp (settings.wetPercent, 0.0, 100.0) * 0.01;
-    const auto outputDb = std::clamp (settings.outputDb, -60.0, 18.0);
-    outputGain = std::abs (outputDb) <= 1.0e-12 ? 1.0 : std::pow (10.0, outputDb / 20.0);
     enabled = wetGain > 1.0e-9;
     if (! enabled)
     {
@@ -252,18 +247,10 @@ void SlotDelay::updateDelayGlide() noexcept
 
 StereoSample SlotDelay::process (StereoSample input)
 {
-    // Exact transparent path: this is the default, so existing kits and
-    // presets remain sample-for-sample on the old signal path.
-    if (! enabled)
-    {
-        if (dryGain == 1.0 && outputGain == 1.0)
-            return input;
-        return { input.left * dryGain * outputGain,
-                 input.right * dryGain * outputGain };
-    }
-
-    if (leftBuffer.empty())
-        return input;
+    // This processor is a pure send return. The original Slot signal never
+    // enters this output path; it stays on LR-608's legacy voice->bus route.
+    if (! enabled || leftBuffer.empty())
+        return {};
 
     updateDelayGlide();
     const auto delayedL = readFractional (leftBuffer, currentDelayL);
@@ -291,7 +278,6 @@ StereoSample SlotDelay::process (StereoSample input)
         silentSamples = 0;
     }
 
-    return { (input.left * dryGain + delayedL * wetGain) * outputGain,
-             (input.right * dryGain + delayedR * wetGain) * outputGain };
+    return { delayedL * wetGain, delayedR * wetGain };
 }
 }

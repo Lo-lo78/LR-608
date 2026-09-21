@@ -11,9 +11,7 @@ class SlotDelay
 public:
     struct Settings
     {
-        double dryPercent = 100.0;
         double wetPercent = 0.0;
-        double outputDb = 0.0;
         int timeIndex = 1016; // 1/8 note; see quarterNotesForTimeIndex().
         double feedbackPercent = 50.0;
         double glideMs = 0.0;
@@ -42,7 +40,7 @@ private:
     std::vector<float> leftBuffer, rightBuffer;
     std::size_t writeIndex = 0;
 
-    double dryGain = 1.0, wetGain = 0.0, outputGain = 1.0;
+    double wetGain = 0.0;
     double feedbackGain = 0.5;
     double filterPosition = 0.5;
     double filterResonance = 0.707;

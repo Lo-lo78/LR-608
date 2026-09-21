@@ -23,7 +23,12 @@ int main (int argc, char** argv)
         if (root.exists())
             root.deleteRecursively();
     }
-    LR608AudioProcessor processor (root);
+    // Keep the processor off the Windows test executable stack.  The full LR-608
+    // processor owns large per-Slot state arrays, and adding DSP state can otherwise
+    // push this audit over the default stack limit even though the plug-in itself
+    // is normally heap-allocated by the host.
+    auto processorStorage = std::make_unique<LR608AudioProcessor> (root);
+    auto& processor = *processorStorage;
     const auto factoryEntries=processor.presetManager.listDirectory(root.getChildFile("Factory"));
     if(factoryEntries.empty()||factoryEntries.front().isDirectory||factoryEntries.front().name!="Init")
     {std::cerr<<"Init is not the first Factory browser preset\n";return EXIT_FAILURE;}

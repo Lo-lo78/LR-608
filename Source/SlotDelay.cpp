@@ -24,7 +24,7 @@ void SlotDelay::reset()
     std::fill (leftBuffer.begin(), leftBuffer.end(), 0.0f);
     std::fill (rightBuffer.begin(), rightBuffer.end(), 0.0f);
     writeIndex = 0;
-    filterLpL = filterLpR = filterHpLpL = filterHpLpR = 0.0;
+    filterIc1L = filterIc2L = filterIc1R = filterIc2R = 0.0;
     currentDelayL = targetDelayL = std::max (1.0, currentDelayL);
     currentDelayR = targetDelayR = std::max (1.0, currentDelayR);
     delayStepL = delayStepR = 0.0;
@@ -33,14 +33,16 @@ void SlotDelay::reset()
     silentSamples = 0;
 }
 
-double SlotDelay::quarterNotesForDivision (int index) noexcept
+double SlotDelay::quarterNotesForTimeIndex (int index) noexcept
 {
-    // Long musical times first, then conventional note divisions down to 1/1024.
-    static constexpr double quarterNotes[] {
-        16.0, 12.0, 8.0, 4.0,
-        0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125, 0.00390625
-    };
-    return quarterNotes[std::clamp (index, 0, int (std::size (quarterNotes)) - 1)];
+    // 0..1020 is every denominator from 1/1024 through 1/4, with no gaps.
+    // Above that the time advances one quarter-note beat at a time through
+    // four 4/4 bars. The UI renders the long values as 1, 1.1..1.4,
+    // 2.1..2.4, 3.1..3.4 as requested.
+    index = std::clamp (index, 0, 1035);
+    if (index <= 1020)
+        return 4.0 / double (1024 - index);
+    return double (index - 1019);
 }
 
 double SlotDelay::tapeLimit (double x) noexcept
@@ -87,10 +89,11 @@ void SlotDelay::setSettings (const Settings& settings)
         && settings.dryPercent == lastSettings.dryPercent
         && settings.wetPercent == lastSettings.wetPercent
         && settings.outputDb == lastSettings.outputDb
-        && settings.divisionIndex == lastSettings.divisionIndex
+        && settings.timeIndex == lastSettings.timeIndex
         && settings.feedbackPercent == lastSettings.feedbackPercent
         && settings.glideMs == lastSettings.glideMs
         && settings.filter == lastSettings.filter
+        && settings.filterResonance == lastSettings.filterResonance
         && settings.leftOffsetMs == lastSettings.leftOffsetMs
         && settings.rightOffsetMs == lastSettings.rightOffsetMs
         && settings.tempo == lastSettings.tempo)
@@ -121,8 +124,9 @@ void SlotDelay::setSettings (const Settings& settings)
 
     glideMs = std::clamp (settings.glideMs, 0.0, 10000.0);
     filterPosition = std::clamp (settings.filter, 0.0, 1.0);
+    filterResonance = std::clamp (settings.filterResonance, 0.5, 10.0);
     const auto bpm = std::clamp (settings.tempo, 20.0, 999.0);
-    const auto baseSeconds = (60.0 / bpm) * quarterNotesForDivision (settings.divisionIndex);
+    const auto baseSeconds = (60.0 / bpm) * quarterNotesForTimeIndex (settings.timeIndex);
     const auto baseSamples = std::max (1.0, baseSeconds * sr);
     // Offsets are expressed in milliseconds, but never allowed to cross the
     // following repeat. Full offset therefore approaches the next echo hit.
@@ -163,17 +167,28 @@ void SlotDelay::setSettings (const Settings& settings)
         }
     }
 
-    if (filterPosition < 0.5 - 1.0e-9)
+    if (std::abs (filterPosition - 0.5) > 1.0e-9)
     {
-        const auto strength = (0.5 - filterPosition) * 2.0;
-        const auto cutoff = 20000.0 * std::pow (80.0 / 20000.0, std::pow (strength, 1.25));
-        filterLpCoefficient = 1.0 - std::exp (-2.0 * pi * std::clamp (cutoff, 20.0, sr * 0.45) / sr);
-    }
-    else if (filterPosition > 0.5 + 1.0e-9)
-    {
-        const auto strength = (filterPosition - 0.5) * 2.0;
-        const auto cutoff = 20.0 * std::pow (8000.0 / 20.0, std::pow (strength, 1.25));
-        filterHpCoefficient = 1.0 - std::exp (-2.0 * pi * std::clamp (cutoff, 20.0, sr * 0.45) / sr);
+        double cutoff = 1000.0;
+        if (filterPosition < 0.5)
+        {
+            const auto strength = (0.5 - filterPosition) * 2.0;
+            cutoff = 20000.0 * std::pow (80.0 / 20000.0, std::pow (strength, 1.25));
+        }
+        else
+        {
+            const auto strength = (filterPosition - 0.5) * 2.0;
+            cutoff = 20.0 * std::pow (8000.0 / 20.0, std::pow (strength, 1.25));
+        }
+
+        // Topology-preserving state-variable filter. One Q parameter controls
+        // resonance for both low-pass and high-pass sides of the bipolar tone control.
+        const auto safeCutoff = std::clamp (cutoff, 20.0, sr * 0.45);
+        const auto g = std::tan (pi * safeCutoff / sr);
+        filterK = 1.0 / filterResonance;
+        filterA1 = 1.0 / (1.0 + g * (g + filterK));
+        filterA2 = g * filterA1;
+        filterA3 = g * filterA2;
     }
 }
 
@@ -207,15 +222,18 @@ double SlotDelay::filterFeedback (double input, bool right) noexcept
 {
     if (std::abs (filterPosition - 0.5) <= 1.0e-9)
         return input;
+
+    auto& ic1 = right ? filterIc1R : filterIc1L;
+    auto& ic2 = right ? filterIc2R : filterIc2L;
+    const auto v3 = input - ic2;
+    const auto v1 = filterA1 * ic1 + filterA2 * v3;
+    const auto v2 = ic2 + filterA2 * ic1 + filterA3 * v3;
+    ic1 = 2.0 * v1 - ic1;
+    ic2 = 2.0 * v2 - ic2;
+
     if (filterPosition < 0.5)
-    {
-        auto& state = right ? filterLpR : filterLpL;
-        state += filterLpCoefficient * (input - state);
-        return state;
-    }
-    auto& state = right ? filterHpLpR : filterHpLpL;
-    state += filterHpCoefficient * (input - state);
-    return input - state;
+        return v2;
+    return input - filterK * v1 - v2;
 }
 
 void SlotDelay::updateDelayGlide() noexcept

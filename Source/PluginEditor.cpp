@@ -906,7 +906,10 @@ void LR608AudioProcessorEditor::updateParameterList()
     }
     if(!globalOpen)
     {
-        for(int catalog=lr608::slotDelayDryParameterIndex;catalog<=lr608::slotDelayRightOffsetParameterIndex;++catalog)
+        for(const auto catalog:{lr608::slotDelayDryParameterIndex,lr608::slotDelayWetParameterIndex,lr608::slotDelayVolumeParameterIndex,
+                                lr608::slotDelayDivisionParameterIndex,lr608::slotDelayFeedbackParameterIndex,lr608::slotDelayGlideParameterIndex,
+                                lr608::slotDelayFilterParameterIndex,lr608::slotDelayFilterResonanceParameterIndex,
+                                lr608::slotDelayLeftOffsetParameterIndex,lr608::slotDelayRightOffsetParameterIndex})
         {
             visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back(lr608::generated::parameters[catalog].name);
             auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();

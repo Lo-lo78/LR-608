@@ -44,7 +44,7 @@ int main()
         lr608::SlotDelay::Settings settings;
         settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
-        settings.divisionIndex = 11; // 1/1024: short enough for a fast audit.
+        settings.timeIndex = 0; // 1/1024: short enough for a fast audit.
         settings.feedbackPercent = 0.0;
         delay.setSettings (settings);
         delay.process ({ 0.25, 0.75 });
@@ -67,7 +67,7 @@ int main()
         lr608::SlotDelay::Settings settings;
         settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
-        settings.divisionIndex = 11;
+        settings.timeIndex = 0;
         settings.feedbackPercent = 45.0;
         delay.setSettings (settings);
         delay.process ({ 0.8, 0.0 });
@@ -89,7 +89,7 @@ int main()
         lr608::SlotDelay::Settings settings;
         settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
-        settings.divisionIndex = 11;
+        settings.timeIndex = 0;
         settings.feedbackPercent = 0.0;
         settings.rightOffsetMs = 1.0;
         delay.setSettings (settings);
@@ -112,7 +112,7 @@ int main()
         lr608::SlotDelay::Settings settings;
         settings.dryPercent = 0.0;
         settings.wetPercent = 100.0;
-        settings.divisionIndex = 11;
+        settings.timeIndex = 0;
         settings.feedbackPercent = 100.0;
         delay.setSettings (settings);
         delay.process ({ 0.4, -0.3 });
@@ -128,6 +128,31 @@ int main()
         require (peak < 2.0, "100% feedback escaped the tape limiter");
     }
 
-    std::cout << "SlotDelay audit passed: transparent default, stereo/pan preservation, L/R offsets, infinite bounded feedback.\n";
+
+    // Resonant LP/HP feedback must remain stable and finite even at the extreme Q.
+    for (double filter : { 0.0, 1.0 })
+    {
+        lr608::SlotDelay delay;
+        delay.prepare (sampleRate);
+        lr608::SlotDelay::Settings settings;
+        settings.dryPercent = 0.0;
+        settings.wetPercent = 100.0;
+        settings.timeIndex = 0;
+        settings.feedbackPercent = 100.0;
+        settings.filter = filter;
+        settings.filterResonance = 10.0;
+        delay.setSettings (settings);
+        delay.process ({ 0.35, -0.2 });
+        for (int i = 0; i < int (sampleRate); ++i)
+        {
+            const auto out = delay.process ({ 0.0, 0.0 });
+            require (std::isfinite (out.left) && std::isfinite (out.right),
+                     "resonant feedback filter produced NaN/Inf");
+            require (std::abs (out.left) < 2.0 && std::abs (out.right) < 2.0,
+                     "resonant feedback escaped the tape limiter");
+        }
+    }
+
+    std::cout << "SlotDelay audit passed: continuous musical time, transparent default, stereo/pan preservation, L/R offsets, resonant filters, infinite bounded feedback.\n";
     return 0;
 }

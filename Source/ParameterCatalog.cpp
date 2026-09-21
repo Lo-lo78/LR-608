@@ -11,10 +11,53 @@ juce::StringArray splitChoices (const char* encoded)
 {
     return juce::StringArray::fromTokens (encoded, "|", "");
 }
+
+juce::String delayTimeToText (double plainValue)
+{
+    const auto code = juce::jlimit (0, 1035, juce::roundToInt (plainValue));
+    if (code <= 1020)
+        return "1/" + juce::String (1024 - code);
+
+    const auto beats = code - 1019; // 1021 -> 2 beats, 1023 -> one 4/4 bar.
+    if (beats < 4)
+        return "0." + juce::String (beats);
+    if (beats == 4)
+        return "1";
+
+    // User-facing bar.beat notation: 1.1 ... 1.4, 2.1 ... 2.4, 3.1 ... 3.4.
+    const auto bars = (beats - 1) / 4;
+    const auto beatInBar = ((beats - 1) % 4) + 1;
+    return juce::String (bars) + "." + juce::String (beatInBar);
+}
+
+double delayTimeFromText (const juce::String& source)
+{
+    const auto text = source.trim();
+    if (text.startsWith ("1/"))
+    {
+        const auto denominator = juce::jlimit (4, 1024, text.substring (2).getIntValue());
+        return double (1024 - denominator);
+    }
+
+    const auto dot = text.indexOfChar ('.');
+    if (dot >= 0)
+    {
+        const auto bars = juce::jlimit (0, 3, text.substring (0, dot).getIntValue());
+        const auto beat = juce::jlimit (1, 4, text.substring (dot + 1).getIntValue());
+        return double (1019 + bars * 4 + beat);
+    }
+
+    // Plain integers 1..4 mean exact bars.
+    const auto bars = juce::jlimit (1, 4, text.getIntValue());
+    return double (1019 + bars * 4);
+}
 }
 
 juce::String valueToText (int sliderNumber, double plainValue)
 {
+    if (sliderNumber == 266)
+        return delayTimeToText (plainValue);
+
     for (const auto& descriptor : generated::parameters)
     {
         if (descriptor.sliderNumber != sliderNumber)
@@ -60,9 +103,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
                 {
                     return valueToText (sliderNumber, value);
                 })
-                .withValueFromStringFunction ([] (const juce::String& text)
+                .withValueFromStringFunction ([sliderNumber] (const juce::String& text)
                 {
-                    return text.getFloatValue();
+                    return sliderNumber == 266 ? static_cast<float> (delayTimeFromText (text))
+                                               : text.getFloatValue();
                 })));
     }
     juce::StringArray engines;

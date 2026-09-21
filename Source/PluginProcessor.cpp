@@ -8,13 +8,13 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 4;
+constexpr int slotEngineArchitectureVersion = 5;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
     "slotDelayDry", "slotDelayWet", "slotDelayVolume", "slotDelayDivision", "slotDelayFeedback",
     "slotDelayGlide", "slotDelayFilter", "slotDelayLeftOffset", "slotDelayRightOffset",
-    "slider250", "slider251"
+    "slotDelayFilterResonance", "slider250", "slider251"
 };
 
 int migrateLegacyEngineIndex (int oldIndex)
@@ -40,6 +40,25 @@ int migrateVersion3EngineIndex(int oldIndex)
     return lr608::offEngineIndex;
 }
 
+int migrateVersion4DelayTimeIndex (int oldIndex)
+{
+    static constexpr int oldDelayTimeToNew[] {
+        1035, // 4 Bars
+        1031, // 3 Bars
+        1027, // 2 Bars
+        1023, // 1 Bar
+        1016, // 1/8
+        1008, // 1/16
+        992,  // 1/32
+        960,  // 1/64
+        896,  // 1/128
+        768,  // 1/256
+        512,  // 1/512
+        0     // 1/1024
+    };
+    return oldDelayTimeToNew[juce::jlimit (0, 11, oldIndex)];
+}
+
 juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
 {
     auto state = source.createCopy();
@@ -50,7 +69,8 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
     {
         if(sourceVersion<=1)return migrateLegacyEngineIndex(engine);
         if(sourceVersion==2)return migrateVersion3EngineIndex(migrateVersion2EngineIndex(engine));
-        return migrateVersion3EngineIndex(engine);
+        if(sourceVersion==3)return migrateVersion3EngineIndex(engine);
+        return engine; // Version 4 -> 5 only changes the delay time encoding.
     };
 
     for (int slot = 0; slot < lr608::slotCount; ++slot)
@@ -65,6 +85,21 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
                 parameter.setProperty ("value", migrate (juce::roundToInt (double (parameter.getProperty ("value")))), nullptr);
         }
     }
+    if (sourceVersion == 4)
+    {
+        // Version 4 stored Delay Time as 12 fixed choices. Version 5 keeps
+        // those exact musical times while changing to the continuous code.
+        if (auto slots = state.getChildWithName ("SlotStates"); slots.isValid())
+            for (int child = 0; child < slots.getNumChildren(); ++child)
+            {
+                auto slot = slots.getChild (child);
+                if (! slot.hasProperty ("slotDelayDivision"))
+                    continue;
+                const auto oldIndex = juce::jlimit (0, 11, juce::roundToInt (double (slot.getProperty ("slotDelayDivision"))));
+                slot.setProperty ("slotDelayDivision", migrateVersion4DelayTimeIndex (oldIndex), nullptr);
+            }
+    }
+
     state.setProperty ("slotEngineArchitectureVersion", slotEngineArchitectureVersion, nullptr);
     return state;
 }
@@ -296,6 +331,8 @@ juce::Result LR608AudioProcessor::pasteMidiKeyFromText(int note,const juce::Stri
             const auto value=float(node.getProperty(id));if(!std::isfinite(value))return juce::Result::fail("Invalid LR-608 clipboard value");
             layer.sound.values[std::size_t(p)]=value;
         }
+        if(clipboardVersion==4)
+            layer.sound.values[std::size_t(lr608::slotDelayDivisionParameterIndex)]=float(migrateVersion4DelayTimeIndex(juce::roundToInt(layer.sound.values[std::size_t(lr608::slotDelayDivisionParameterIndex)])));
         layers.push_back(layer);
     }
     const auto existingLayers=getActiveSlotCountForMidiNote(note);
@@ -537,10 +574,11 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             const auto insertNeeded=settings.wetPercent>1.0e-9||std::abs(settings.dryPercent-100.0)>1.0e-9||std::abs(settings.outputDb)>1.0e-9;
             slotInsertNeeded[std::size_t(slot)]=insertNeeded;
             delayInsertNeeded=delayInsertNeeded||insertNeeded;
-            settings.divisionIndex=juce::roundToInt(slotValues[slot][lr608::slotDelayDivisionParameterIndex].load(std::memory_order_relaxed));
+            settings.timeIndex=juce::roundToInt(slotValues[slot][lr608::slotDelayDivisionParameterIndex].load(std::memory_order_relaxed));
             settings.feedbackPercent=slotValues[slot][lr608::slotDelayFeedbackParameterIndex].load(std::memory_order_relaxed);
             settings.glideMs=slotValues[slot][lr608::slotDelayGlideParameterIndex].load(std::memory_order_relaxed);
             settings.filter=slotValues[slot][lr608::slotDelayFilterParameterIndex].load(std::memory_order_relaxed);
+            settings.filterResonance=slotValues[slot][lr608::slotDelayFilterResonanceParameterIndex].load(std::memory_order_relaxed);
             settings.leftOffsetMs=slotValues[slot][lr608::slotDelayLeftOffsetParameterIndex].load(std::memory_order_relaxed);
             settings.rightOffsetMs=slotValues[slot][lr608::slotDelayRightOffsetParameterIndex].load(std::memory_order_relaxed);
             settings.tempo=timing.tempo;

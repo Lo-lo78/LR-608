@@ -699,7 +699,6 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         }
         return;
     }
-}
 
 #if 0 // Superseded by the slot-specific 128-voice renderer above.
     lr608::TimingSettings timing;

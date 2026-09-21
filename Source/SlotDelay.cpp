@@ -162,6 +162,7 @@ void SlotDelay::setSettings (const Settings& settings)
         }
     }
 
+    filterFeedbackCompensation = 1.0;
     if (std::abs (filterPosition - 0.5) > 1.0e-9)
     {
         double cutoff = 1000.0;
@@ -176,14 +177,31 @@ void SlotDelay::setSettings (const Settings& settings)
             cutoff = 20.0 * std::pow (8000.0 / 20.0, std::pow (strength, 1.25));
         }
 
-        // Topology-preserving state-variable filter. One Q parameter controls
-        // resonance for both low-pass and high-pass sides of the bipolar tone control.
+        // Topology-preserving state-variable filter. The user control still
+        // keeps its historical Q-style range, but the actual resonant peak is
+        // hard-capped at +12 dB. The reciprocal peak gain is applied only to
+        // the feedback path, so resonance colours the repeats without ever
+        // making the delay loop greater than unity and self-oscillating.
         const auto safeCutoff = std::clamp (cutoff, 20.0, sr * 0.45);
         const auto g = std::tan (pi * safeCutoff / sr);
-        filterK = 1.0 / filterResonance;
+        constexpr auto butterworthQ = 0.7071067811865476;
+        constexpr auto maxResonanceDb = 12.0;
+        const auto maxPeakGain = std::pow (10.0, maxResonanceDb / 20.0);
+        const auto maxQ = std::sqrt ((maxPeakGain * maxPeakGain
+                                   + maxPeakGain * std::sqrt (maxPeakGain * maxPeakGain - 1.0)) * 0.5);
+        const auto effectiveQ = std::clamp (filterResonance, 0.5, maxQ);
+        filterK = 1.0 / effectiveQ;
         filterA1 = 1.0 / (1.0 + g * (g + filterK));
         filterA2 = g * filterA1;
         filterA3 = g * filterA2;
+
+        auto resonantPeakGain = 1.0;
+        if (effectiveQ > butterworthQ)
+        {
+            const auto q2 = effectiveQ * effectiveQ;
+            resonantPeakGain = (2.0 * q2) / std::sqrt (4.0 * q2 - 1.0);
+        }
+        filterFeedbackCompensation = 1.0 / resonantPeakGain;
     }
 }
 
@@ -255,8 +273,14 @@ StereoSample SlotDelay::process (StereoSample input)
     updateDelayGlide();
     const auto delayedL = readFractional (leftBuffer, currentDelayL);
     const auto delayedR = readFractional (rightBuffer, currentDelayR);
-    const auto feedbackL = filterFeedback (delayedL, false) * feedbackGain;
-    const auto feedbackR = filterFeedback (delayedR, true) * feedbackGain;
+    auto compensatedFeedbackGain = feedbackGain * filterFeedbackCompensation;
+    // At 100% feedback the unfiltered delay uses a tiny over-unity correction
+    // for fractional-read losses. Do not carry that correction through a
+    // resonant filter: its loudest frequency is held exactly at unity instead.
+    if (filterFeedbackCompensation < 1.0 && feedbackGain > 1.0)
+        compensatedFeedbackGain = filterFeedbackCompensation;
+    const auto feedbackL = filterFeedback (delayedL, false) * compensatedFeedbackGain;
+    const auto feedbackR = filterFeedback (delayedR, true) * compensatedFeedbackGain;
     const auto writeL = tapeLimit (input.left + feedbackL);
     const auto writeR = tapeLimit (input.right + feedbackR);
     leftBuffer[writeIndex] = float (writeL);

@@ -44,6 +44,7 @@ private:
     double feedbackGain = 0.5;
     double filterPosition = 0.5;
     double filterResonance = 0.707;
+    double filterFeedbackCompensation = 1.0;
     double filterA1 = 1.0, filterA2 = 0.0, filterA3 = 0.0, filterK = 1.0 / 0.707;
     double filterIc1L = 0.0, filterIc2L = 0.0;
     double filterIc1R = 0.0, filterIc2R = 0.0;

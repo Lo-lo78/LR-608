@@ -126,7 +126,9 @@ int main()
     }
 
 
-    // Resonant LP/HP feedback must remain stable and finite even at the extreme Q.
+    // Resonant LP/HP feedback is capped at a +12 dB peak and gain-compensated
+    // inside the loop. Even at 100% feedback it may sustain existing material,
+    // but it must never grow into a resonant self-oscillation.
     for (double filter : { 0.0, 1.0 })
     {
         lr608::SlotDelay delay;
@@ -139,14 +141,20 @@ int main()
         settings.filterResonance = 10.0;
         delay.setSettings (settings);
         delay.process ({ 0.35, -0.2 });
-        for (int i = 0; i < int (sampleRate); ++i)
+        double earlyPeak = 0.0, latePeak = 0.0;
+        const auto totalSamples = int (sampleRate * 4.0);
+        for (int i = 0; i < totalSamples; ++i)
         {
             const auto out = delay.process ({ 0.0, 0.0 });
             require (std::isfinite (out.left) && std::isfinite (out.right),
                      "resonant feedback filter produced NaN/Inf");
-            require (std::abs (out.left) < 2.0 && std::abs (out.right) < 2.0,
-                     "resonant feedback escaped the tape limiter");
+            const auto peak = std::max (std::abs (out.left), std::abs (out.right));
+            require (peak < 1.0, "12 dB resonant feedback grew into self-oscillation");
+            if (i < int (sampleRate)) earlyPeak = std::max (earlyPeak, peak);
+            if (i >= totalSamples - int (sampleRate)) latePeak = std::max (latePeak, peak);
         }
+        require (latePeak <= earlyPeak * 1.01 + 1.0e-9,
+                 "resonant feedback accumulated energy instead of remaining bounded");
     }
 
     std::cout << "SlotDelay audit passed: pure send return, continuous musical time, stereo/pan preservation, L/R offsets, resonant filters, infinite bounded feedback.\n";

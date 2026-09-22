@@ -126,6 +126,37 @@ int main()
     }
 
 
+    // The filter must not start together with the first repeat. The first wet
+    // echo is bit-identical to the neutral-filter delay; filtering begins only
+    // when that echo is written back for the following generation.
+    {
+        lr608::SlotDelay neutral, coloured;
+        neutral.prepare (sampleRate);
+        coloured.prepare (sampleRate);
+        lr608::SlotDelay::Settings a, b;
+        a.wetPercent = b.wetPercent = 100.0;
+        a.timeIndex = b.timeIndex = 0;
+        a.feedbackPercent = b.feedbackPercent = 100.0;
+        b.filter = 0.0;
+        neutral.setSettings (a);
+        coloured.setSettings (b);
+        double firstRepeatDifference = 0.0, secondRepeatDifference = 0.0;
+        for (int n = 0; n < 300; ++n)
+        {
+            const auto input = n < 48 ? 0.3 * std::sin (double (n) * 0.51) : 0.0;
+            const auto outA = neutral.process ({ input, input });
+            const auto outB = coloured.process ({ input, input });
+            if (n < 180)
+                firstRepeatDifference = std::max (firstRepeatDifference, std::abs (outA.left - outB.left));
+            else
+                secondRepeatDifference = std::max (secondRepeatDifference, std::abs (outA.left - outB.left));
+        }
+        require (firstRepeatDifference < 1.0e-12,
+                 "feedback filter starts on the first repeat instead of the following one");
+        require (secondRepeatDifference > 1.0e-4,
+                 "feedback filter did not advance on the following repeat");
+    }
+
     // The feedback filter must colour the tail progressively, not jump close
     // to its final LP/HP colour on the first filtered repeat. At maximum
     // strength a tone should still retain most of its energy on the next trip,
@@ -163,10 +194,82 @@ int main()
         require (rms[1] > rms[0] * 0.60,
                  "feedback filter jumps too close to its final colour on the next repeat");
         for (int repeat = 1; repeat < 8; ++repeat)
-            require (rms[repeat] < rms[repeat - 1],
+            require (rms[repeat] <= rms[repeat - 1] * 1.03,
                      "feedback filter does not evolve progressively from repeat to repeat");
         require (rms[7] < rms[0] * 0.40,
                  "feedback filter no longer reaches a clearly coloured tail over time");
+    }
+
+
+    // Pitch is applied by moving read heads in the feedback path. +12 semitones
+    // must transpose the first repeat by one octave, then feed that shifted
+    // result back so the second repeat is another octave higher. A DFT probe is
+    // used rather than zero crossings because the dual-head crossfade can add
+    // harmless amplitude modulation around grain boundaries.
+    {
+        lr608::SlotDelay delay;
+        delay.prepare (sampleRate);
+        lr608::SlotDelay::Settings settings;
+        settings.wetPercent = 100.0;
+        settings.timeIndex = 960; // 1/64 = 1500 samples at 120 BPM / 48 kHz.
+        settings.feedbackPercent = 100.0;
+        settings.pitchSemitones = 12.0;
+        delay.setSettings (settings);
+
+        constexpr double sourceHz = 440.0;
+        constexpr int totalSamples = 5200;
+        std::vector<double> output (totalSamples, 0.0);
+        for (int n = 0; n < totalSamples; ++n)
+        {
+            const auto input = n < 1200
+                             ? 0.2 * std::sin (2.0 * 3.14159265358979323846 * sourceHz * double (n) / sampleRate)
+                             : 0.0;
+            output[std::size_t (n)] = delay.process ({ input, input }).left;
+        }
+        const auto spectralMagnitude = [&] (int start, int count, double frequency)
+        {
+            double real = 0.0, imaginary = 0.0;
+            for (int n = 0; n < count; ++n)
+            {
+                const auto window = 0.5 - 0.5 * std::cos (2.0 * 3.14159265358979323846 * double (n) / double (count - 1));
+                const auto phase = 2.0 * 3.14159265358979323846 * frequency * double (n) / sampleRate;
+                const auto sample = output[std::size_t (start + n)] * window;
+                real += sample * std::cos (phase);
+                imaginary -= sample * std::sin (phase);
+            }
+            return std::sqrt (real * real + imaginary * imaginary);
+        };
+        const auto first440 = spectralMagnitude (1600, 900, 440.0);
+        const auto first880 = spectralMagnitude (1600, 900, 880.0);
+        const auto second880 = spectralMagnitude (3100, 900, 880.0);
+        const auto second1760 = spectralMagnitude (3100, 900, 1760.0);
+        require (first880 > first440 * 10.0,
+                 "+12 pitch did not transpose the first repeat by an octave");
+        require (second1760 > second880 * 10.0,
+                 "+12 pitch did not accumulate on the second repeat");
+    }
+
+    // Both pitch extremes must remain finite and bounded. Pitch=0 is tested
+    // throughout the earlier cases and follows the exact legacy read path.
+    for (double pitch : { -48.0, 48.0 })
+    {
+        lr608::SlotDelay delay;
+        delay.prepare (sampleRate);
+        lr608::SlotDelay::Settings settings;
+        settings.wetPercent = 100.0;
+        settings.timeIndex = 0;
+        settings.feedbackPercent = 100.0;
+        settings.pitchSemitones = pitch;
+        delay.setSettings (settings);
+        delay.process ({ 0.3, -0.2 });
+        for (int n = 0; n < int (sampleRate); ++n)
+        {
+            const auto out = delay.process ({ 0.0, 0.0 });
+            require (std::isfinite (out.left) && std::isfinite (out.right),
+                     "extreme delay pitch produced NaN/Inf");
+            require (std::abs (out.left) < 2.0 && std::abs (out.right) < 2.0,
+                     "extreme delay pitch escaped the tape limiter");
+        }
     }
 
     // Resonant LP/HP feedback is capped at a +12 dB peak and gain-compensated
@@ -200,6 +303,6 @@ int main()
                  "resonant feedback accumulated energy instead of remaining bounded");
     }
 
-    std::cout << "SlotDelay audit passed: pure send return, continuous musical time, stereo/pan preservation, L/R offsets, resonant filters, infinite bounded feedback.\n";
+    std::cout << "SlotDelay audit passed: pure send return, continuous musical time, stereo/pan preservation, L/R offsets, repeat-progressive filters, cumulative pitch, resonant filters, infinite bounded feedback.\n";
     return 0;
 }

@@ -25,6 +25,7 @@ void SlotDelay::reset()
     std::fill (rightBuffer.begin(), rightBuffer.end(), 0.0f);
     writeIndex = 0;
     filterIc1L = filterIc2L = filterIc1R = filterIc2R = 0.0;
+    pitchPhase = 0.0;
     currentDelayL = targetDelayL = std::max (1.0, currentDelayL);
     currentDelayR = targetDelayR = std::max (1.0, currentDelayR);
     delayStepL = delayStepR = 0.0;
@@ -92,6 +93,7 @@ void SlotDelay::setSettings (const Settings& settings)
         && settings.glideMs == lastSettings.glideMs
         && settings.filter == lastSettings.filter
         && settings.filterResonance == lastSettings.filterResonance
+        && settings.pitchSemitones == lastSettings.pitchSemitones
         && settings.leftOffsetMs == lastSettings.leftOffsetMs
         && settings.rightOffsetMs == lastSettings.rightOffsetMs
         && settings.tempo == lastSettings.tempo)
@@ -120,6 +122,8 @@ void SlotDelay::setSettings (const Settings& settings)
     glideMs = std::clamp (settings.glideMs, 0.0, 10000.0);
     filterPosition = std::clamp (settings.filter, 0.0, 1.0);
     filterResonance = std::clamp (settings.filterResonance, 0.5, 10.0);
+    pitchSemitones = std::clamp (settings.pitchSemitones, -48.0, 48.0);
+    pitchRatio = std::pow (2.0, pitchSemitones / 12.0);
     const auto bpm = std::clamp (settings.tempo, 20.0, 999.0);
     const auto baseSeconds = (60.0 / bpm) * quarterNotesForTimeIndex (settings.timeIndex);
     const auto baseSamples = std::max (1.0, baseSeconds * sr);
@@ -132,7 +136,12 @@ void SlotDelay::setSettings (const Settings& settings)
                                    maximumOffsetSamples);
     const auto newTargetL = baseSamples + offsetL;
     const auto newTargetR = baseSamples + offsetR;
-    ensureCapacity (std::size_t (std::ceil (std::max (newTargetL, newTargetR))) + 8);
+    // Pitch shifting uses two moving read heads around the nominal echo
+    // position. Reserve enough history ahead of the target so their crossfade
+    // never clips against the circular-buffer boundary. At Pitch=0 the
+    // original single-head path remains untouched.
+    const auto pitchHeadroom = std::abs (pitchSemitones) > 1.0e-9 ? 520.0 : 8.0;
+    ensureCapacity (std::size_t (std::ceil (std::max (newTargetL, newTargetR) + pitchHeadroom)) + 8);
 
     if (! wasEnabled || currentDelayL <= 1.0 || currentDelayR <= 1.0)
     {
@@ -162,33 +171,24 @@ void SlotDelay::setSettings (const Settings& settings)
         }
     }
 
-    filterMorph = 0.0;
     filterFeedbackCompensation = 1.0;
     if (std::abs (filterPosition - 0.5) > 1.0e-9)
     {
-        double cutoff = 1000.0;
         const auto strength = std::abs (filterPosition - 0.5) * 2.0;
+        const auto shapedStrength = std::pow (strength, 1.15);
+
+        // Do not jump directly to an extreme destination cutoff. Instead each
+        // journey around the feedback loop applies one deliberately mild filter
+        // step. The first wet repeat is unfiltered; the second has passed this
+        // filter once, the third twice, and so on. The spectral slope therefore
+        // advances repeat-by-repeat instead of starting at the same time as the
+        // first echo or settling almost immediately.
+        double cutoff = 1000.0;
         if (filterPosition < 0.5)
-            cutoff = 20000.0 * std::pow (80.0 / 20000.0, std::pow (strength, 1.25));
+            cutoff = 20000.0 * std::pow (10000.0 / 20000.0, shapedStrength);
         else
-            cutoff = 20.0 * std::pow (8000.0 / 20.0, std::pow (strength, 1.25));
+            cutoff = 20.0 * std::pow (800.0 / 20.0, shapedStrength);
 
-        // The cutoff above is the eventual colour of the echo tail, not a
-        // filter that should be imposed almost completely on the very next
-        // repeat. Only a controlled fraction of the filtered signal is folded
-        // back on each trip through the loop. Repeated trips therefore trace a
-        // smooth descending (LP) or ascending (HP) spectral curve and settle
-        // progressively instead of jumping close to the final colour at once.
-        // At maximum strength roughly 18% of the destination filter is applied
-        // per repeat; gentler settings move even more slowly.
-        filterMorph = 0.035 + 0.145 * std::pow (strength, 0.85);
-
-        // Topology-preserving state-variable filter. The user control still
-        // keeps its historical Q-style range, but the actual resonant peak is
-        // hard-capped at +12 dB. Because the filter is now blended per repeat,
-        // compensate the maximum possible peak of that blend rather than the
-        // full filter. This keeps 100% feedback bounded without flattening the
-        // gradual tonal evolution.
         const auto safeCutoff = std::clamp (cutoff, 20.0, sr * 0.45);
         const auto g = std::tan (pi * safeCutoff / sr);
         constexpr auto butterworthQ = 0.7071067811865476;
@@ -202,14 +202,16 @@ void SlotDelay::setSettings (const Settings& settings)
         filterA2 = g * filterA1;
         filterA3 = g * filterA2;
 
+        // A resonant peak is allowed to reach +12 dB in shape, but its peak is
+        // normalised to unity inside the feedback loop. This preserves the
+        // resonance without letting repeated passes turn it into an oscillator.
         auto resonantPeakGain = 1.0;
         if (effectiveQ > butterworthQ)
         {
             const auto q2 = effectiveQ * effectiveQ;
             resonantPeakGain = (2.0 * q2) / std::sqrt (4.0 * q2 - 1.0);
         }
-        const auto blendedPeakGain = (1.0 - filterMorph) + filterMorph * resonantPeakGain;
-        filterFeedbackCompensation = 1.0 / std::max (1.0, blendedPeakGain);
+        filterFeedbackCompensation = 1.0 / std::max (1.0, resonantPeakGain);
     }
 }
 
@@ -239,6 +241,31 @@ double SlotDelay::readFractional (const std::vector<float>& buffer, double delay
     return ((a0 * frac + a1) * frac + a2) * frac + y1;
 }
 
+double SlotDelay::readPitchShifted (const std::vector<float>& buffer, double baseDelaySamples,
+                                    double phase, double windowSamples) const noexcept
+{
+    if (windowSamples < 4.0 || std::abs (pitchSemitones) <= 1.0e-9)
+        return readFractional (buffer, baseDelaySamples);
+
+    const auto wrap = [] (double value) noexcept
+    {
+        value -= std::floor (value);
+        return value;
+    };
+    const auto p1 = wrap (phase);
+    const auto p2 = wrap (phase + 0.5);
+    const auto delay1 = baseDelaySamples + (p1 - 0.5) * windowSamples;
+    const auto delay2 = baseDelaySamples + (p2 - 0.5) * windowSamples;
+
+    // Two complementary Hann read heads hide the discontinuity whenever the
+    // moving tape head wraps. Their weights sum to one, so stereo balance and
+    // nominal level stay stable while the read speed supplies the pitch shift.
+    const auto weight1 = 0.5 - 0.5 * std::cos (2.0 * pi * p1);
+    const auto weight2 = 0.5 - 0.5 * std::cos (2.0 * pi * p2);
+    return readFractional (buffer, delay1) * weight1
+         + readFractional (buffer, delay2) * weight2;
+}
+
 double SlotDelay::filterFeedback (double input, bool right) noexcept
 {
     if (std::abs (filterPosition - 0.5) <= 1.0e-9)
@@ -252,8 +279,7 @@ double SlotDelay::filterFeedback (double input, bool right) noexcept
     ic1 = 2.0 * v1 - ic1;
     ic2 = 2.0 * v2 - ic2;
 
-    const auto filtered = filterPosition < 0.5 ? v2 : input - filterK * v1 - v2;
-    return input + (filtered - input) * filterMorph;
+    return filterPosition < 0.5 ? v2 : input - filterK * v1 - v2;
 }
 
 void SlotDelay::updateDelayGlide() noexcept
@@ -278,8 +304,26 @@ StereoSample SlotDelay::process (StereoSample input)
         return {};
 
     updateDelayGlide();
-    const auto delayedL = readFractional (leftBuffer, currentDelayL);
-    const auto delayedR = readFractional (rightBuffer, currentDelayR);
+
+    double delayedL = 0.0, delayedR = 0.0;
+    if (std::abs (pitchSemitones) <= 1.0e-9)
+    {
+        // Exact legacy path: Pitch=0 does not even enter the moving-head code.
+        delayedL = readFractional (leftBuffer, currentDelayL);
+        delayedR = readFractional (rightBuffer, currentDelayR);
+    }
+    else
+    {
+        // Keep the moving heads safely behind the write position. Long musical
+        // delays use a ~21 ms grain at 48 kHz; extremely short 1/1024 delays
+        // automatically shorten the grain rather than crossing the write head.
+        const auto shortestDelay = std::max (4.0, std::min (currentDelayL, currentDelayR));
+        const auto windowSamples = std::max (4.0, std::min (1024.0, 2.0 * (shortestDelay - 3.0)));
+        delayedL = readPitchShifted (leftBuffer, currentDelayL, pitchPhase, windowSamples);
+        delayedR = readPitchShifted (rightBuffer, currentDelayR, pitchPhase, windowSamples);
+        pitchPhase += (1.0 - pitchRatio) / windowSamples;
+        pitchPhase -= std::floor (pitchPhase);
+    }
     auto compensatedFeedbackGain = feedbackGain * filterFeedbackCompensation;
     // At 100% feedback the unfiltered delay uses a tiny over-unity correction
     // for fractional-read losses. Do not carry that correction through a

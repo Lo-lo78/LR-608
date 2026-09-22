@@ -9,12 +9,12 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 6;
+constexpr int slotEngineArchitectureVersion = 7;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
     "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
-    "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slider250", "slider251"
+    "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch", "slider250", "slider251"
 };
 
 int migrateLegacyEngineIndex (int oldIndex)
@@ -622,6 +622,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             settings.glideMs=slotValues[slot][lr608::slotDelayGlideParameterIndex].load(std::memory_order_relaxed);
             settings.filter=slotValues[slot][lr608::slotDelayFilterParameterIndex].load(std::memory_order_relaxed);
             settings.filterResonance=slotValues[slot][lr608::slotDelayFilterResonanceParameterIndex].load(std::memory_order_relaxed);
+            settings.pitchSemitones=slotValues[slot][lr608::slotDelayPitchParameterIndex].load(std::memory_order_relaxed);
             settings.leftOffsetMs=slotValues[slot][lr608::slotDelayLeftOffsetParameterIndex].load(std::memory_order_relaxed);
             settings.rightOffsetMs=slotValues[slot][lr608::slotDelayRightOffsetParameterIndex].load(std::memory_order_relaxed);
             settings.tempo=timing.tempo;

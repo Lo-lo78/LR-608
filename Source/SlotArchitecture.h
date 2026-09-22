@@ -7,7 +7,7 @@ inline constexpr int slotCount=128;
 inline constexpr int maxMidiNoteLayers=8;
 inline constexpr int slotEngineCount=90;
 inline constexpr int offEngineIndex=89;
-inline constexpr int slotParameterValueCount=284;
+inline constexpr int slotParameterValueCount=285;
 inline constexpr int slotPanParameterIndex=270;
 inline constexpr int slotVoiceOverlapParameterIndex=271;
 inline constexpr int slotLowPassCutoffParameterIndex=272;
@@ -22,6 +22,7 @@ inline constexpr int slotDelayFilterParameterIndex=280;
 inline constexpr int slotDelayLeftOffsetParameterIndex=281;
 inline constexpr int slotDelayRightOffsetParameterIndex=282;
 inline constexpr int slotDelayFilterResonanceParameterIndex=283;
+inline constexpr int slotDelayPitchParameterIndex=284;
 enum class SlotFamily{kick,snare1,snare2,clap,rim,lowTom,midTom,highTom,hatClosed,hatOpen,crash,ride,maracas,cowbell,zap};
 struct SlotEngineInfo{const char*name;SlotFamily family;int subEngine;int page;int routeParameterIndex;};
 #define LR_ENG(n,f,s,p,r) {n,SlotFamily::f,s,p,r}

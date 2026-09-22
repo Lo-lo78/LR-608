@@ -17,6 +17,7 @@ public:
         double glideMs = 0.0;
         double filter = 0.5;
         double filterResonance = 0.707;
+        double pitchSemitones = 0.0;
         double leftOffsetMs = 0.0;
         double rightOffsetMs = 0.0;
         double tempo = 120.0;
@@ -33,6 +34,8 @@ private:
     static double tapeLimit (double x) noexcept;
     void ensureCapacity (std::size_t samples);
     double readFractional (const std::vector<float>& buffer, double delaySamples) const noexcept;
+    double readPitchShifted (const std::vector<float>& buffer, double baseDelaySamples,
+                             double phase, double windowSamples) const noexcept;
     double filterFeedback (double input, bool right) noexcept;
     void updateDelayGlide() noexcept;
 
@@ -44,7 +47,6 @@ private:
     double feedbackGain = 0.5;
     double filterPosition = 0.5;
     double filterResonance = 0.707;
-    double filterMorph = 0.0;
     double filterFeedbackCompensation = 1.0;
     double filterA1 = 1.0, filterA2 = 0.0, filterA3 = 0.0, filterK = 1.0 / 0.707;
     double filterIc1L = 0.0, filterIc2L = 0.0;
@@ -55,6 +57,10 @@ private:
     double delayStepL = 0.0, delayStepR = 0.0;
     int glideSamplesRemaining = 0;
     double glideMs = 0.0;
+
+    double pitchSemitones = 0.0;
+    double pitchRatio = 1.0;
+    double pitchPhase = 0.0;
 
     Settings lastSettings {};
     bool hasSettings = false;

@@ -126,6 +126,49 @@ int main()
     }
 
 
+    // The feedback filter must colour the tail progressively, not jump close
+    // to its final LP/HP colour on the first filtered repeat. At maximum
+    // strength a tone should still retain most of its energy on the next trip,
+    // then continue moving in the same direction over successive repeats.
+    for (const auto mode : { 0, 1 })
+    {
+        lr608::SlotDelay delay;
+        delay.prepare (sampleRate);
+        lr608::SlotDelay::Settings settings;
+        settings.wetPercent = 100.0;
+        settings.timeIndex = 0;
+        settings.feedbackPercent = 100.0;
+        settings.filter = mode == 0 ? 0.0 : 1.0;
+        settings.filterResonance = 0.707;
+        delay.setSettings (settings);
+
+        constexpr int repeatSamples = 94; // 1/1024 at 120 BPM / 48 kHz = 93.75 samples.
+        constexpr int toneSamples = 64;
+        const auto toneHz = mode == 0 ? 10000.0 : 1000.0;
+        double rms[8] {};
+        for (int n = 0; n < 1200; ++n)
+        {
+            const auto input = n < toneSamples
+                             ? 0.35 * std::sin (2.0 * 3.14159265358979323846 * toneHz * double (n) / sampleRate)
+                             : 0.0;
+            const auto out = delay.process ({ input, input });
+            for (int repeat = 0; repeat < 8; ++repeat)
+                if (n >= repeatSamples * (repeat + 1)
+                    && n < repeatSamples * (repeat + 1) + toneSamples)
+                    rms[repeat] += out.left * out.left;
+        }
+        for (auto& value : rms)
+            value = std::sqrt (value / double (toneSamples));
+
+        require (rms[1] > rms[0] * 0.60,
+                 "feedback filter jumps too close to its final colour on the next repeat");
+        for (int repeat = 1; repeat < 8; ++repeat)
+            require (rms[repeat] < rms[repeat - 1],
+                     "feedback filter does not evolve progressively from repeat to repeat");
+        require (rms[7] < rms[0] * 0.40,
+                 "feedback filter no longer reaches a clearly coloured tail over time");
+    }
+
     // Resonant LP/HP feedback is capped at a +12 dB peak and gain-compensated
     // inside the loop. Even at 100% feedback it may sustain existing material,
     // but it must never grow into a resonant self-oscillation.

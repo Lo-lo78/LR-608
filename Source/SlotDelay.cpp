@@ -162,26 +162,33 @@ void SlotDelay::setSettings (const Settings& settings)
         }
     }
 
+    filterMorph = 0.0;
     filterFeedbackCompensation = 1.0;
     if (std::abs (filterPosition - 0.5) > 1.0e-9)
     {
         double cutoff = 1000.0;
+        const auto strength = std::abs (filterPosition - 0.5) * 2.0;
         if (filterPosition < 0.5)
-        {
-            const auto strength = (0.5 - filterPosition) * 2.0;
             cutoff = 20000.0 * std::pow (80.0 / 20000.0, std::pow (strength, 1.25));
-        }
         else
-        {
-            const auto strength = (filterPosition - 0.5) * 2.0;
             cutoff = 20.0 * std::pow (8000.0 / 20.0, std::pow (strength, 1.25));
-        }
+
+        // The cutoff above is the eventual colour of the echo tail, not a
+        // filter that should be imposed almost completely on the very next
+        // repeat. Only a controlled fraction of the filtered signal is folded
+        // back on each trip through the loop. Repeated trips therefore trace a
+        // smooth descending (LP) or ascending (HP) spectral curve and settle
+        // progressively instead of jumping close to the final colour at once.
+        // At maximum strength roughly 18% of the destination filter is applied
+        // per repeat; gentler settings move even more slowly.
+        filterMorph = 0.035 + 0.145 * std::pow (strength, 0.85);
 
         // Topology-preserving state-variable filter. The user control still
         // keeps its historical Q-style range, but the actual resonant peak is
-        // hard-capped at +12 dB. The reciprocal peak gain is applied only to
-        // the feedback path, so resonance colours the repeats without ever
-        // making the delay loop greater than unity and self-oscillating.
+        // hard-capped at +12 dB. Because the filter is now blended per repeat,
+        // compensate the maximum possible peak of that blend rather than the
+        // full filter. This keeps 100% feedback bounded without flattening the
+        // gradual tonal evolution.
         const auto safeCutoff = std::clamp (cutoff, 20.0, sr * 0.45);
         const auto g = std::tan (pi * safeCutoff / sr);
         constexpr auto butterworthQ = 0.7071067811865476;
@@ -201,7 +208,8 @@ void SlotDelay::setSettings (const Settings& settings)
             const auto q2 = effectiveQ * effectiveQ;
             resonantPeakGain = (2.0 * q2) / std::sqrt (4.0 * q2 - 1.0);
         }
-        filterFeedbackCompensation = 1.0 / resonantPeakGain;
+        const auto blendedPeakGain = (1.0 - filterMorph) + filterMorph * resonantPeakGain;
+        filterFeedbackCompensation = 1.0 / std::max (1.0, blendedPeakGain);
     }
 }
 
@@ -244,9 +252,8 @@ double SlotDelay::filterFeedback (double input, bool right) noexcept
     ic1 = 2.0 * v1 - ic1;
     ic2 = 2.0 * v2 - ic2;
 
-    if (filterPosition < 0.5)
-        return v2;
-    return input - filterK * v1 - v2;
+    const auto filtered = filterPosition < 0.5 ? v2 : input - filterK * v1 - v2;
+    return input + (filtered - input) * filterMorph;
 }
 
 void SlotDelay::updateDelayGlide() noexcept

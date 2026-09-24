@@ -932,7 +932,8 @@ void LR608AudioProcessorEditor::updateParameterList()
     }
     if(!globalOpen&&slotFxPage)
     {
-        for(const auto catalog:{lr608::slotLowPassCutoffParameterIndex,lr608::slotLowPassResonanceParameterIndex,lr608::slotHighPassCutoffParameterIndex,lr608::slotHighPassResonanceParameterIndex})
+        for(const auto catalog:{lr608::slotLowPassCutoffParameterIndex,lr608::slotLowPassResonanceParameterIndex,lr608::slotHighPassCutoffParameterIndex,lr608::slotHighPassResonanceParameterIndex,
+                                lr608::slotFilterEnvelopeDepthParameterIndex,lr608::slotFilterEnvelopeDecayParameterIndex})
         {
             visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back(lr608::generated::parameters[catalog].name);
             auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();

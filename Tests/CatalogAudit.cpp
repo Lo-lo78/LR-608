@@ -34,7 +34,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 289
+    if (std::size (lr608::generated::parameters) != 291
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -138,7 +138,10 @@ int main()
         std::cerr<<"Degrade defaults are not backward-compatible\n";
         return EXIT_FAILURE;
     }
-    if (ids.size() != 289)
+    const std::array<const char*,2> filterEnvIds{"slotFilterEnvelopeDepth","slotFilterEnvelopeDecay"};
+    for(int index=289;index<291;++index){const auto&e=lr608::generated::parameters[index];if(std::string(e.id)!=filterEnvIds[std::size_t(index-289)]||e.step<=0||e.minimum>e.defaultValue||e.defaultValue>e.maximum){std::cerr<<"Invalid filter envelope descriptor\n";return EXIT_FAILURE;}ids.emplace(e.id);}
+    if(lr608::generated::parameters[lr608::slotFilterEnvelopeDepthParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::slotFilterEnvelopeDecayParameterIndex].defaultValue!=0.0){std::cerr<<"Filter envelope defaults are not backward-compatible\n";return EXIT_FAILURE;}
+    if (ids.size() != 291)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;

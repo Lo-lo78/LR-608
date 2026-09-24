@@ -306,5 +306,7 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 275, "slotDegradeBits", "Degrade Bits", 1.0, 16.0, 1.0, 8.0, "" },
     { 276, "slotDegradeHold", "Degrade Hold (samples)", 1.0, 64.0, 1.0, 4.0, "" },
     { 277, "slotDegradeJitter", "Degrade Jitter (%)", 0.0, 100.0, 0.1, 0.0, "" },
+    { 278, "slotFilterEnvelopeDepth", "Filter Envelope Depth (%)", 0.0, 100.0, 0.1, 0.0, "" },
+    { 279, "slotFilterEnvelopeDecay", "Filter Envelope Decay (s)", 0.0, 10.0, 0.01, 0.0, "" },
 };
 }

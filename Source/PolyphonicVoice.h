@@ -23,7 +23,7 @@ public:
 private:
  struct Biquad
  {
-  double b0=1,b1=0,b2=0,a1=0,a2=0,z1L=0,z2L=0,z1R=0,z2R=0;bool bypass=true;
+  double g=0,k=1.4142135623730951,a1=1,a2=0,a3=0,ic1L=0,ic2L=0,ic1R=0,ic2R=0;bool highPassMode=false,bypass=true;
   void reset();void configure(bool highPass,double cutoff,double resonance,double sampleRate,bool neutral);double process(double input,bool right);bool hasTail()const;
  };
  Kick808Voice kick808;KickOtherVoices kickOther;SnareVoice snare;ClapVoice clap;RimVoice rim;TomVoice low{2},mid{1},high{0};HatVoice hat;CymbalVoice crash{true},ride{false};MaracasVoice maracas;CowbellVoice cowbell;ZapVoice zap;

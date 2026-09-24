@@ -185,21 +185,39 @@ void SlotDelay::setSettings (const Settings& settings)
         // first echo or settling almost immediately.
         double cutoff = 1000.0;
         if (filterPosition < 0.5)
-            cutoff = 18000.0 * std::pow (1200.0 / 18000.0, shapedStrength);
+            cutoff = 20000.0 * std::pow (10000.0 / 20000.0, shapedStrength);
         else
-            cutoff = 20.0 * std::pow (2500.0 / 20.0, shapedStrength);
+            cutoff = 20.0 * std::pow (800.0 / 20.0, shapedStrength);
 
         const auto safeCutoff = std::clamp (cutoff, 20.0, sr * 0.45);
         const auto g = std::tan (pi * safeCutoff / sr);
-        // Synth-style resonance: preserve the peak instead of normalising it
-        // away.  The tape limiter in the feedback write path provides the
-        // safety ceiling, so resonance remains audible without muting echoes.
-        const auto effectiveQ = std::clamp (filterResonance, 0.55, 6.0);
+        constexpr auto butterworthQ = 0.7071067811865476;
+        constexpr auto maxResonanceDb = 12.0;
+        const auto maxPeakGain = std::pow (10.0, maxResonanceDb / 20.0);
+        const auto maxQ = std::sqrt ((maxPeakGain * maxPeakGain
+                                   + maxPeakGain * std::sqrt (maxPeakGain * maxPeakGain - 1.0)) * 0.5);
+        const auto effectiveQ = std::clamp (filterResonance, 0.5, maxQ);
         filterK = 1.0 / effectiveQ;
         filterA1 = 1.0 / (1.0 + g * (g + filterK));
         filterA2 = g * filterA1;
         filterA3 = g * filterA2;
-        filterFeedbackCompensation = 1.0;
+
+        // A resonant peak is allowed to reach +12 dB in shape, but its peak is
+        // normalised to unity inside the feedback loop. This preserves the
+        // resonance without letting repeated passes turn it into an oscillator.
+        auto resonantPeakGain = 1.0;
+        if (effectiveQ > butterworthQ)
+        {
+            const auto q2 = effectiveQ * effectiveQ;
+            resonantPeakGain = (2.0 * q2) / std::sqrt (4.0 * q2 - 1.0);
+        }
+        const auto resonanceTravel = std::clamp ((effectiveQ - butterworthQ) / std::max (1.0e-9, maxQ - butterworthQ), 0.0, 1.0);
+        // Keep much more of the echo level through the musically useful part
+        // of the resonance control.  Only the last part of the knob moves
+        // toward full peak compensation, where a feedback loop genuinely
+        // needs the extra protection against self-oscillation.
+        const auto compensationExponent = 0.45 + 0.55 * std::pow (resonanceTravel, 3.0);
+        filterFeedbackCompensation = 1.0 / std::pow (std::max (1.0, resonantPeakGain), compensationExponent);
     }
 }
 
@@ -312,10 +330,14 @@ StereoSample SlotDelay::process (StereoSample input)
         pitchPhase += (1.0 - pitchRatio) / windowSamples;
         pitchPhase -= std::floor (pitchPhase);
     }
-    // Keep the requested feedback level independent of resonance.  Resonance
-    // is now a true synth-like peak; tapeLimit() catches excess loop energy.
-    const auto feedbackL = filterFeedback (delayedL, false) * feedbackGain;
-    const auto feedbackR = filterFeedback (delayedR, true) * feedbackGain;
+    auto compensatedFeedbackGain = feedbackGain * filterFeedbackCompensation;
+    // At 100% feedback the unfiltered delay uses a tiny over-unity correction
+    // for fractional-read losses. Do not carry that correction through a
+    // resonant filter: its loudest frequency is held exactly at unity instead.
+    if (filterFeedbackCompensation < 1.0 && feedbackGain > 1.0)
+        compensatedFeedbackGain = filterFeedbackCompensation;
+    const auto feedbackL = filterFeedback (delayedL, false) * compensatedFeedbackGain;
+    const auto feedbackR = filterFeedback (delayedR, true) * compensatedFeedbackGain;
     const auto writeL = tapeLimit (input.left + feedbackL);
     const auto writeR = tapeLimit (input.right + feedbackR);
     leftBuffer[writeIndex] = float (writeL);

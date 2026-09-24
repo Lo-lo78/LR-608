@@ -14,7 +14,8 @@ constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
     "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
-    "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch", "slider250", "slider251"
+    "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch",
+    "slotDegradeAmount", "slotDegradeBits", "slotDegradeHold", "slotDegradeJitter", "slider250", "slider251"
 };
 
 int migrateLegacyEngineIndex (int oldIndex)

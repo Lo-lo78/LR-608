@@ -302,5 +302,9 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 271, "slotDelayRightOffset", "Delay Right Offset (ms)", 0.0, 60000.0, 1.0, 0.0, "" },
     { 272, "slotDelayFilterResonance", "Delay Filter Resonance", 0.5, 10.0, 0.01, 0.707, "" },
     { 273, "slotDelayPitch", "Delay Pitch Per Repeat (semitones)", -48.0, 48.0, 0.1, 0.0, "" },
+    { 274, "slotDegradeAmount", "Degrade Amount (%)", 0.0, 100.0, 0.1, 0.0, "" },
+    { 275, "slotDegradeBits", "Degrade Bits", 1.0, 16.0, 1.0, 8.0, "" },
+    { 276, "slotDegradeHold", "Degrade Hold (samples)", 1.0, 64.0, 1.0, 4.0, "" },
+    { 277, "slotDegradeJitter", "Degrade Jitter (%)", 0.0, 100.0, 0.1, 0.0, "" },
 };
 }

@@ -34,7 +34,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 285
+    if (std::size (lr608::generated::parameters) != 289
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -119,7 +119,26 @@ int main()
         std::cerr<<"Clap Linn engine is missing or misplaced\n";
         return EXIT_FAILURE;
     }
-    if (ids.size() != 285)
+    const std::array<const char*,4> degradeIds{"slotDegradeAmount","slotDegradeBits","slotDegradeHold","slotDegradeJitter"};
+    for(int index=285;index<289;++index)
+    {
+        const auto&degrade=lr608::generated::parameters[index];
+        if(std::string(degrade.id)!=degradeIds[std::size_t(index-285)]||degrade.step<=0||degrade.minimum>degrade.defaultValue||degrade.defaultValue>degrade.maximum)
+        {
+            std::cerr<<"Invalid per-Slot Degrade descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(degrade.id);
+    }
+    if(lr608::generated::parameters[lr608::slotDegradeAmountParameterIndex].defaultValue!=0.0
+       ||lr608::generated::parameters[lr608::slotDegradeBitsParameterIndex].defaultValue!=8.0
+       ||lr608::generated::parameters[lr608::slotDegradeHoldParameterIndex].defaultValue!=4.0
+       ||lr608::generated::parameters[lr608::slotDegradeJitterParameterIndex].defaultValue!=0.0)
+    {
+        std::cerr<<"Degrade defaults are not backward-compatible\n";
+        return EXIT_FAILURE;
+    }
+    if (ids.size() != 289)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -147,6 +166,6 @@ int main()
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters and nine stereo delay controls, 12 pages, 265 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 265 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

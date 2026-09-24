@@ -383,7 +383,7 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     chokeTargetSelector.setDescription("MIDI Note whose active voices are choked. Off disables it");
     outputSelector.setDescription("Stereo output belonging to the current slot");
     slotSelector.setExplicitFocusOrder(1);engineSelector.setExplicitFocusOrder(2);noteSelector.setExplicitFocusOrder(3);chokeTriggerSelector.setExplicitFocusOrder(4);chokeTargetSelector.setExplicitFocusOrder(5);outputSelector.setExplicitFocusOrder(6);
-    slotSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.captureSlotFromProxy(selectedSlot);const auto item=parameterSelector.getSelectedItemIndex();if(item>=0){rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}selectedSlot=juce::jlimit(0,lr608::slotCount-1,slotSelector.getSelectedId()-1);saveUiPosition(false);syncSlotBar(true);};
+    slotSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.captureSlotFromProxy(selectedSlot);const auto item=parameterSelector.getSelectedItemIndex();if(item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}selectedSlot=juce::jlimit(0,lr608::slotCount-1,slotSelector.getSelectedId()-1);saveUiPosition(false);syncSlotBar(true);};
     engineSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.captureSlotFromProxy(selectedSlot);processor.setSlotEngine(selectedSlot,engineSelector.getSelectedId()-1);syncSlotBar(true);saveUiPosition(false);};
     noteSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;const auto note=noteSelector.getSelectedItemIndex();if(!processor.canAssignSlotToMidiNote(selectedSlot,note)){syncSlotBar(false);announce("MIDI Note "+juce::String(note)+" already has 8 layers");return;}if(auto*p=processor.parameters.getParameter(lr608::slotNoteId(selectedSlot))){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(float(note)));p->endChangeGesture();}saveUiPosition(false);};
     chokeTriggerSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;if(auto*p=processor.parameters.getParameter(lr608::slotChokeTriggerId(selectedSlot))){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(float(chokeTriggerSelector.getSelectedItemIndex())));p->endChangeGesture();}saveUiPosition(false);};
@@ -777,7 +777,7 @@ void LR608AudioProcessorEditor::saveUiPosition(bool inGrid)
     processor.parameters.state.setProperty("uiSelectedColumn",selectedSlotColumn,nullptr);
     processor.parameters.state.setProperty("uiInGrid",inGrid,nullptr);
     const auto item=parameterSelector.getSelectedItemIndex();
-    if(!globalOpen&&item>=0){rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}
+    if(!globalOpen&&item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}
 }
 
 void LR608AudioProcessorEditor::syncSlotBar(bool updateGrid, bool notifyGrid)
@@ -794,7 +794,7 @@ void LR608AudioProcessorEditor::syncSlotBar(bool updateGrid, bool notifyGrid)
     chokeTriggerSelector.setSelectedItemIndex(chokeTrigger,juce::dontSendNotification);
     chokeTargetSelector.setSelectedItemIndex(chokeTarget,juce::dontSendNotification);
     outputSelector.setSelectedId(output+1,juce::dontSendNotification);
-    if(updateGrid&&!globalOpen){if(!lr608::isOffEngine(engine)){processor.loadSlotToProxy(selectedSlot);pageSelector.setSelectedItemIndex(lr608::slotEngines[engine].page,juce::dontSendNotification);}updateParameterList();setListIndex(rememberedGridIndices[selectedSlot],notifyGrid);}
+    if(updateGrid&&!globalOpen){if(!lr608::isOffEngine(engine)){processor.loadSlotToProxy(selectedSlot);pageSelector.setSelectedItemIndex(lr608::slotEngines[engine].page,juce::dontSendNotification);}updateParameterList();setListIndex(slotFxPage?rememberedFxGridIndices[selectedSlot]:rememberedGridIndices[selectedSlot],notifyGrid);}
 }
 
 void LR608AudioProcessorEditor::focusSlotColumn(int column)
@@ -861,12 +861,40 @@ void LR608AudioProcessorEditor::announcePage()
     announce (juce::String (lr608::generated::pages[index].name));
 }
 
+void LR608AudioProcessorEditor::toggleSlotParameterPage()
+{
+    if(globalOpen)return;
+    const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,engineSelector.getSelectedId()-1);
+    if(lr608::isOffEngine(engine)){announce("No parameters. Engine Off");return;}
+    const auto item=parameterSelector.getSelectedItemIndex();
+    if(item>=0)
+    {
+        if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;
+        else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}
+    }
+    slotFxPage=!slotFxPage;
+    updateParameterList();
+    setListIndex(slotFxPage?rememberedFxGridIndices[selectedSlot]:rememberedGridIndices[selectedSlot],false);
+    requestShortcutFocus(parameterSelector);
+    announce(slotFxPage?"FX parameters":"Sound parameters");
+}
+
+int LR608AudioProcessorEditor::currentGridRows() const
+{
+    if(!globalOpen&&slotFxPage)return 8;
+    const auto pageIndex=pageSelector.getSelectedItemIndex();
+    return juce::isPositiveAndBelow(pageIndex,static_cast<int>(std::size(lr608::generated::pages)))
+        ? lr608::generated::pages[pageIndex].rowsPerColumn : 8;
+}
+
 void LR608AudioProcessorEditor::updateParameterList()
 {
     attachment.reset();
     visibleCatalogIndices.clear();
     visibleNames.clear();
     parameterSelector.clear (juce::dontSendNotification);
+    parameterSelector.setTitle(globalOpen?"Global":(slotFxPage?"FX":"Sound"));
+    parameterSelector.setDescription(globalOpen?"Global parameters":(slotFxPage?"FX and Slot parameters. Alt F returns to Sound parameters":"Sound parameters for the current Engine. Alt F opens FX and Slot parameters"));
     const auto selectedEngine=juce::jlimit(0,lr608::slotEngineCount-1,engineSelector.getSelectedId()-1);
     if(!globalOpen&&lr608::isOffEngine(selectedEngine))
     {
@@ -881,21 +909,28 @@ void LR608AudioProcessorEditor::updateParameterList()
     const auto& page = lr608::generated::pages[pageIndex];
     const auto family=!globalOpen?lr608::slotEngines[selectedEngine].family:lr608::SlotFamily::kick;
     const auto tomFamily=family==lr608::SlotFamily::lowTom||family==lr608::SlotFamily::midTom||family==lr608::SlotFamily::highTom;
-    if(!globalOpen&&!tomFamily)
+    if(!globalOpen&&slotFxPage&&!tomFamily)
     {
         const auto catalog=lr608::slotPanParameterIndex;
         visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Pan");
         auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter("slotPan"))label+=", "+parameter->getCurrentValueAsText();
         parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
     }
-    if(!globalOpen)
+    if(!globalOpen&&slotFxPage&&tomFamily)
+    {
+        const auto catalog=family==lr608::SlotFamily::lowTom?40:family==lr608::SlotFamily::midTom?48:56;
+        visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Pan");
+        auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();
+        parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
+    }
+    if(!globalOpen&&slotFxPage)
     {
         const auto catalog=lr608::slotVoiceOverlapParameterIndex;
         visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Voice Overlap");
         auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter("slotVoiceOverlap"))label+=", "+parameter->getCurrentValueAsText();
         parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
     }
-    if(!globalOpen)
+    if(!globalOpen&&slotFxPage)
     {
         for(const auto catalog:{lr608::slotLowPassCutoffParameterIndex,lr608::slotLowPassResonanceParameterIndex,lr608::slotHighPassCutoffParameterIndex,lr608::slotHighPassResonanceParameterIndex})
         {
@@ -904,7 +939,7 @@ void LR608AudioProcessorEditor::updateParameterList()
             parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
         }
     }
-    if(!globalOpen)
+    if(!globalOpen&&slotFxPage)
     {
         for(const auto catalog:{lr608::slotDelayWetParameterIndex,lr608::slotDelayDivisionParameterIndex,lr608::slotDelayFeedbackParameterIndex,
                                 lr608::slotDelayGlideParameterIndex,lr608::slotDelayPitchParameterIndex,lr608::slotDelayFilterParameterIndex,
@@ -915,7 +950,7 @@ void LR608AudioProcessorEditor::updateParameterList()
             parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
         }
     }
-    if(!globalOpen)
+    if(!globalOpen&&slotFxPage)
     {
         for(const auto catalog:{lr608::slotDegradeAmountParameterIndex,lr608::slotDegradeBitsParameterIndex,
                                 lr608::slotDegradeHoldParameterIndex,lr608::slotDegradeJitterParameterIndex})
@@ -925,15 +960,16 @@ void LR608AudioProcessorEditor::updateParameterList()
             parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
         }
     }
-    if(!globalOpen)
+    if(!globalOpen&&slotFxPage)
     {
-        for(const auto catalog:{249,250})
+        for(const auto catalog:{249,250,251})
         {
             visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back(lr608::generated::parameters[catalog].name);
             auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();
             parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
         }
     }
+    if(globalOpen||!slotFxPage)
     for (std::size_t item = 0; item < page.parameterCount; ++item)
     {
         for (int catalog = 0; catalog < static_cast<int> (std::size (lr608::generated::parameters)); ++catalog)
@@ -951,6 +987,7 @@ void LR608AudioProcessorEditor::updateParameterList()
                 const auto mid=structuralName.startsWith("Mid Tom")||structuralName.startsWith("MidTom");
                 const auto high=structuralName.startsWith("High Tom")||structuralName.startsWith("HighTom");
                 if((family==lr608::SlotFamily::lowTom&&!low)||(family==lr608::SlotFamily::midTom&&!mid)||(family==lr608::SlotFamily::highTom&&!high))continue;
+                if(!slotFxPage&&structuralName.endsWith(" Pan"))continue;
             }
             if(pageIndex==7)
             {
@@ -1059,7 +1096,7 @@ void LR608AudioProcessorEditor::moveInGrid (int rowDelta, int columnDelta)
     const auto count = static_cast<int> (visibleCatalogIndices.size());
     if (! juce::isPositiveAndBelow (current, count))
         return;
-    const auto rows = lr608::generated::pages[pageSelector.getSelectedItemIndex()].rowsPerColumn;
+    const auto rows = currentGridRows();
     const auto row = current % rows;
     auto target = current;
     if (rowDelta < 0 && row > 0) --target;
@@ -1380,7 +1417,7 @@ void LR608AudioProcessorEditor::activateSlotReportEntry(bool filled,int row)
 {
     const auto&entries=filled?slotReportFilledEntries:slotReportEmptyEntries;
     if(!juce::isPositiveAndBelow(row,int(entries.size())))return;const auto destination=entries[std::size_t(row)].destinationSlot;
-    processor.captureSlotFromProxy(selectedSlot);const auto item=parameterSelector.getSelectedItemIndex();if(item>=0){rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}
+    processor.captureSlotFromProxy(selectedSlot);const auto item=parameterSelector.getSelectedItemIndex();if(item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}
     selectedSlot=destination;selectedSlotColumn=0;saveUiPosition(false);syncSlotBar(true);closeSlotReport();
     const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotEngineId(destination))->load()));
     announce("Slot, "+slotDisplayName(destination)+(lr608::isOffEngine(engine)?". Empty":". Engine, "+juce::String(lr608::slotEngines[engine].name)));
@@ -1410,7 +1447,7 @@ void LR608AudioProcessorEditor::timerCallback()
         if(inGrid)
         {
             const auto item=parameterSelector.getSelectedItemIndex();
-            if(item>=0){rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}
+            if(item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}
         }
         selectedSlot=slot;syncSlotBar(true,false);
         if(inGrid)
@@ -1825,6 +1862,7 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if(count>0&&code==juce::KeyPress::endKey){selectPresetBrowserRow(count-1);return true;}
         return false;
     }
+    if(alt&&!key.getModifiers().isShiftDown()&&character=='f'&&!globalOpen){toggleSlotParameterPage();return true;}
     if(alt&&character=='r'){if(globalOpen)announce("Slot report is available in the Slot area");else handleSlotReportShortcut();return true;}
     if(alt&&key.getModifiers().isShiftDown()&&code==juce::KeyPress::deleteKey&&!globalOpen){clearMidiKey();return true;}
     if(alt&&code==juce::KeyPress::deleteKey&&!globalOpen){clearCurrentMidiLayer();return true;}
@@ -1932,7 +1970,7 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if(code==juce::KeyPress::escapeKey){focusSlotColumn(selectedSlotColumn);return true;}
         if (code == juce::KeyPress::homeKey || code == juce::KeyPress::endKey)
         {
-            const auto rows = lr608::generated::pages[pageSelector.getSelectedItemIndex()].rowsPerColumn;
+            const auto rows = currentGridRows();
             const auto current = parameterSelector.getSelectedItemIndex();
             const auto first = (current / rows) * rows;
             setListIndex (code == juce::KeyPress::homeKey ? first : std::min (first + rows - 1,

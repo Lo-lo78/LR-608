@@ -96,9 +96,11 @@ private:
     int selectedSlot = 0;
     int selectedSlotColumn = 0;
     std::array<int, lr608::slotCount> rememberedGridIndices {};
+    std::array<int, lr608::slotCount> rememberedFxGridIndices {};
     int globalGridIndex = 0;
     bool updatingSlotBar = false;
     bool globalOpen = false;
+    bool slotFxPage = false;
     bool positionWasInGrid = false;
     int positionBeforeGlobalColumn = 0;
     int positionBeforeGlobalSlot = 0;
@@ -123,6 +125,8 @@ private:
     void selectRelativePage (int);
     void selectPageByInitial (juce::juce_wchar);
     void announcePage();
+    void toggleSlotParameterPage();
+    int currentGridRows() const;
     void announce (const juce::String&);
     void announceMidiNavigation (const juce::String&);
     void resetSelected();

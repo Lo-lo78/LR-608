@@ -443,7 +443,7 @@ double CowbellVoice::CapturedTimbale::tick(std::uint32_t &r) {
   y*=amp*preDrive;
   y=y/(1.0+std::abs(y)*saturation);
   const auto postVel=(1.0-postVelAmount)+postVelAmount*std::pow(std::max(velocity,.001),postVelCurve);
-  y*=postVel*outGain*finalLevel*1.9952623149688795; // +6 dB Captured Timbales output trim
+  y*=postVel*outGain*finalLevel*2.51188643150958; // +8 dB Captured Timbales output trim
   age+=1.0/sr;
   double maxDecay=0; for(auto d:decay)maxDecay=std::max(maxDecay,d);
   const auto stopTime=std::max({maxDecay*decayScale*7.0,metalDecay*7.0,.10});

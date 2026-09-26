@@ -255,7 +255,7 @@ jsfx_slider,vst3_id,jsfx_name,ui_name,default,minimum,maximum,step,choices,page,
 254,slider254,Roll Second Hit Velocity Reduction,Roll Second Hit Velocity Reduction,1.2,0,100,1,,Global,3
 255,slider255,Audio Output Mode,Audio Output Mode,0,0,1,1,"Stereo,Multichannel",Global,4
 256,slider256,Master Volume (dB),Master Volume (dB),0,-120,0,0.1,,Global,23
-301,capturedTimbale01,Transpose (semitones),Transpose (semitones),0,-24,24,0.01,,Clave / Cowbell,0
+301,capturedTimbale01,Transpose (semitones),Transpose (semitones),4,-24,24,0.01,,Clave / Cowbell,0
 302,capturedTimbale02,Body Level (%),Body Level (%),100,0,200,1,,Clave / Cowbell,0
 303,capturedTimbale03,Body Decay Scale (%),Body Decay Scale (%),100,20,300,1,,Clave / Cowbell,0
 304,capturedTimbale04,Tone,Tone,0,-1,1,0.01,,Clave / Cowbell,0

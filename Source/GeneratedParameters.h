@@ -308,7 +308,7 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 277, "slotDegradeJitter", "Degrade Jitter (%)", 0.0, 100.0, 0.1, 0.0, "" },
     { 278, "slotFilterEnvelopeDepth", "Filter Envelope Depth (%)", 0.0, 100.0, 0.1, 0.0, "" },
     { 279, "slotFilterEnvelopeDecay", "Filter Envelope Decay (s)", 0.0, 30.0, 0.01, 0.0, "" },
-    { 301, "capturedTimbale01", "Transpose (semitones)", -24.0, 24.0, 0.01, 0.0, "" },
+    { 301, "capturedTimbale01", "Transpose (semitones)", -24.0, 24.0, 0.01, 4.0, "" },
     { 302, "capturedTimbale02", "Body Level (%)", 0.0, 200.0, 1.0, 100.0, "" },
     { 303, "capturedTimbale03", "Body Decay Scale (%)", 20.0, 300.0, 1.0, 100.0, "" },
     { 304, "capturedTimbale04", "Tone", -1.0, 1.0, 0.01, 0.0, "" },

@@ -85,7 +85,7 @@ UNIVERSAL_SLOT_PARAMETERS = [
 # Native parameters for the Sample Captured Timbales engine.  These mirror
 # LR-608_Timbales03_SampleCaptured_TEST4_PostSaturationVelocity.jsfx 1:1.
 CAPTURED_TIMBALE_PARAMETERS = [
-    (301, "capturedTimbale01", "Transpose (semitones)", -24, 24, 0.01, 0, ""),
+    (301, "capturedTimbale01", "Transpose (semitones)", -24, 24, 0.01, 4, ""),
     (302, "capturedTimbale02", "Body Level (%)", 0, 200, 1, 100, ""),
     (303, "capturedTimbale03", "Body Decay Scale (%)", 20, 300, 1, 100, ""),
     (304, "capturedTimbale04", "Tone", -1, 1, 0.01, 0, ""),

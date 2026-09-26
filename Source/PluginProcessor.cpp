@@ -9,7 +9,7 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 9;
+constexpr int slotEngineArchitectureVersion = 10;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
@@ -73,8 +73,13 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
         int migrated=engine;
         if(sourceVersion==2) migrated=migrateVersion3EngineIndex(migrateVersion2EngineIndex(engine));
         else if(sourceVersion==3) migrated=migrateVersion3EngineIndex(engine);
-        // Architecture v9 inserts Timbales Sample Captured at index 78.
-        if(sourceVersion<=8 && migrated>=78) ++migrated;
+        // Architecture v10 restores all historical Zap indices and keeps
+        // Timbales Sample Captured outside the factory/default slot cycle.
+        // Version 9 temporarily inserted Captured at 78, shifting Zap 78..88 to 79..89.
+        if(sourceVersion==9) {
+            if(migrated==78) return 89;      // Captured Timbales
+            if(migrated>=79 && migrated<=89) return migrated-1; // restore Zap indices
+        }
         return migrated;
     };
 

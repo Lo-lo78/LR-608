@@ -9,7 +9,7 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 8;
+constexpr int slotEngineArchitectureVersion = 9;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
@@ -69,10 +69,13 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
         return state;
     const auto migrate=[sourceVersion](int engine)
     {
-        if(sourceVersion<=1)return migrateLegacyEngineIndex(engine);
-        if(sourceVersion==2)return migrateVersion3EngineIndex(migrateVersion2EngineIndex(engine));
-        if(sourceVersion==3)return migrateVersion3EngineIndex(engine);
-        return engine; // Versions 4+ keep the current engine ordering.
+        if(sourceVersion<=1) return migrateLegacyEngineIndex(engine);
+        int migrated=engine;
+        if(sourceVersion==2) migrated=migrateVersion3EngineIndex(migrateVersion2EngineIndex(engine));
+        else if(sourceVersion==3) migrated=migrateVersion3EngineIndex(engine);
+        // Architecture v9 inserts Timbales Sample Captured at index 78.
+        if(sourceVersion<=8 && migrated>=78) ++migrated;
+        return migrated;
     };
 
     for (int slot = 0; slot < lr608::slotCount; ++slot)

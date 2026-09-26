@@ -222,11 +222,20 @@ juce::String contextualParameterName (int engine, juce::String structuralName)
     }
     if (info.family == lr608::SlotFamily::cowbell)
     {
-        static constexpr const char* prefixes[]{"LR-608","Saike Type 0","Saike Type 1","Saike Type 2","Saike Type 3","Timbales Physical","Timbales Wave Mesh"};
+        static constexpr const char* prefixes[]{"LR-608","Saike Type 0","Saike Type 1","Saike Type 2","Saike Type 3","Timbales Physical","Timbales Wave Mesh","Timbales Sample Captured"};
         auto semantic = mappedName (structuralName, {{"Clave/Cowbell Level","Level"},{"Clave/Cowbell Decay","Decay"},{"Clave/Cowbell Base Pitch","Tune"},{"Clave/Cowbell Inharmonic Ratio","Inharmonic Ratio"},{"Clave/Cowbell Click Amount","Click Amount"},{"Clave/Cowbell Click Sharpness","Click Sharpness"},{"Clave/Cowbell Metal Body Balance","Metal Body Balance"},{"Clave/Cowbell Ring Mod Amount","Ring Mod Amount"},{"Clave/Cowbell Accent Bite","Accent Bite"},{"Clave/Cowbell Pitch Snap Amount","Pitch Snap Amount"},{"Clave/Cowbell Saturation Mix","Saturation Mix"}});
         if (sub == 5 && structuralName == "Clave/Cowbell Click Amount") semantic = "Pitch Env Amount";
         if (sub == 5 && structuralName == "Clave/Cowbell Click Sharpness") semantic = "Pitch Env Velocity Time";
-        return prefixed (prefixes, 7, semantic.isNotEmpty() ? semantic : commonName);
+        if (sub == 7) {
+            const auto captured = mappedName (structuralName, {
+                {"Clave/Cowbell Level","Level"},{"Clave/Cowbell Decay","Body Decay"},{"Clave/Cowbell Base Pitch","Tune"},
+                {"Clave/Cowbell Inharmonic Ratio","Tone"},{"Clave/Cowbell Click Amount","Attack Level"},{"Clave/Cowbell Click Sharpness","Attack Sharpness"},
+                {"Clave/Cowbell Metal Body Balance","Metal Level"},{"Clave/Cowbell Ring Mod Amount","Body Level"},{"Clave/Cowbell Accent Bite","Velocity Dynamics"},
+                {"Clave/Cowbell Pitch Snap Amount","Velocity Pitch Flex"},{"Clave/Cowbell Saturation Mix","Saturation"}
+            });
+            return "Timbales Sample Captured " + (captured.isNotEmpty() ? captured : commonName);
+        }
+        return prefixed (prefixes, 8, semantic.isNotEmpty() ? semantic : commonName);
     }
     if (info.family == lr608::SlotFamily::zap)
     {

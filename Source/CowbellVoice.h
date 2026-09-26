@@ -53,6 +53,18 @@ private:
     std::array<Mode, 12> m{};
     std::array<Mode, 3> shell{};
   };
+  struct CapturedTimbale {
+    void reset(const CowbellParameters &, double, double, double);
+    double tick(std::uint32_t &);
+    bool alive = false;
+    double sr = 44100, velocity = 1, age = 0, bodyLevel = 1, bodyDecayScale = 1,
+           tone = 0, attackLevel = 1, noiseEnv = 1, noiseK = 0, noisePrev = 0,
+           slapEnv = 1, slapK = 0, slapPhase = 0, slapStep = 0,
+           metalLevel = 1, metalEnv = 1, metalK = 0, metalPhase = 0, metalStep = 0,
+           saturation = .55, drive = 1.35, postVelocityAmount = .65,
+           postVelocityCurve = 1.20, outputGain = .72;
+    std::array<Mode, 10> modes{};
+  };
   struct Mesh {
     void reset(const CowbellParameters &, double, double, double);
     double tick();
@@ -83,5 +95,6 @@ private:
   SaikeCow saike;
   Timbale timbale;
   Mesh mesh;
+  CapturedTimbale captured;
 };
 } // namespace lr608

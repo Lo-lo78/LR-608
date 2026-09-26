@@ -9,7 +9,7 @@
 
 int main()
 {
-    if (lr608::slotCount != 128 || lr608::slotEngineCount != 90)
+    if (lr608::slotCount != 128 || lr608::slotEngineCount != 91)
     {
         std::cerr << "Unexpected Slot/engine architecture count\n";
         return EXIT_FAILURE;

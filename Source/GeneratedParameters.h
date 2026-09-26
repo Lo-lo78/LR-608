@@ -231,7 +231,7 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 212, "slider212", "Zap Ring Wave", 0.0, 5.0, 1.0, 0.0, "Sine|Triangle|Saw Up|Saw Down|Square|Noise" },
     { 213, "slider213", "Zap Ring Env Freq Mod", 0.0, 1.0, 0.001, 0.0, "" },
     { 214, "slider214", "Cymbal Engine", 0.0, 3.0, 1.0, 1.0, "LR-608|Saike Type 0|Saike Type 1|Saike Type 2" },
-    { 215, "slider215", "Cowbell Engine", 0.0, 6.0, 1.0, 2.0, "LR-608|Saike Type 0|Saike Type 1|Saike Type 2|Saike Type 3|Timbales Physical|Timbales Wave Mesh" },
+    { 215, "slider215", "Cowbell Engine", 0.0, 7.0, 1.0, 2.0, "LR-608|Saike Type 0|Saike Type 1|Saike Type 2|Saike Type 3|Timbales Physical|Timbales Wave Mesh|Timbales Sample Captured" },
     { 216, "slider216", "Maracas Engine", 0.0, 3.0, 1.0, 3.0, "LR-608|Saike Type 0|Saike Type 1|Saike Type 2" },
     { 217, "slider217", "HiHat Engine", 0.0, 6.0, 1.0, 0.0, "LR-608|Ring Alloy|Noise PM|Modal Shell|Saike Type 0|Saike Type 1|Saike Type 2" },
     { 218, "slider218", "HiHat Structure", 0.0, 1.0, 0.01, 0.5, "" },

@@ -213,7 +213,7 @@ jsfx_slider,vst3_id,jsfx_name,ui_name,default,minimum,maximum,step,choices,page,
 212,slider212,Zap Ring Wave,Zap Ring Wave,0,0,5,1,"Sine,Triangle,Saw Up,Saw Down,Square,Noise",Zap,9
 213,slider213,Zap Ring Env Freq Mod,Zap Ring Env Freq Mod,0,0,1,0.001,,Zap,5
 214,slider214,Cymbal Engine,Cymbal Engine,1,0,3,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2",Cymbal,22
-215,slider215,Cowbell Engine,Cowbell Engine,2,0,6,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2,Saike Type 3,Timbales Physical,Timbales Wave Mesh",Clave / Cowbell,27
+215,slider215,Cowbell Engine,Cowbell Engine,2,0,7,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2,Saike Type 3,Timbales Physical,Timbales Wave Mesh,Timbales Sample Captured",Clave / Cowbell,27
 216,slider216,Maracas Engine,Maracas Engine,3,0,3,1,"LR-608,Saike Type 0,Saike Type 1,Saike Type 2",Maracas,20
 217,slider217,HiHat Engine,HiHat Engine,0,0,6,1,"LR-608,Ring Alloy,Noise PM,Modal Shell,Saike Type 0,Saike Type 1,Saike Type 2",HiHat,22
 218,slider218,HiHat Structure,HiHat Structure,0.5,0,1,0.01,,HiHat,18

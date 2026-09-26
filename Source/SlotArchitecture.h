@@ -5,8 +5,8 @@
 namespace lr608 {
 inline constexpr int slotCount=128;
 inline constexpr int maxMidiNoteLayers=8;
-inline constexpr int slotEngineCount=90;
-inline constexpr int offEngineIndex=89;
+inline constexpr int slotEngineCount=91;
+inline constexpr int offEngineIndex=90;
 inline constexpr int slotParameterValueCount=291;
 inline constexpr int slotPanParameterIndex=270;
 inline constexpr int slotVoiceOverlapParameterIndex=271;
@@ -45,7 +45,7 @@ inline constexpr SlotEngineInfo slotEngines[]{
  LR_ENG("Crash LR-608",crash,0,7,265),LR_ENG("Crash Saike Type 0",crash,1,7,265),LR_ENG("Crash Saike Type 1",crash,2,7,265),LR_ENG("Crash Saike Type 2",crash,3,7,265),
  LR_ENG("Ride LR-608",ride,0,7,266),LR_ENG("Ride Saike Type 0",ride,1,7,266),LR_ENG("Ride Saike Type 1",ride,2,7,266),LR_ENG("Ride Saike Type 2",ride,3,7,266),
  LR_ENG("Maracas LR-608",maracas,0,8,267),LR_ENG("Maracas Saike Type 0",maracas,1,8,267),LR_ENG("Maracas Saike Type 1",maracas,2,8,267),LR_ENG("Maracas Saike Type 2",maracas,3,8,267),
- LR_ENG("Clave Cowbell LR-608",cowbell,0,9,268),LR_ENG("Clave Cowbell Saike Type 0",cowbell,1,9,268),LR_ENG("Clave Cowbell Saike Type 1",cowbell,2,9,268),LR_ENG("Clave Cowbell Saike Type 2",cowbell,3,9,268),LR_ENG("Clave Cowbell Saike Type 3",cowbell,4,9,268),LR_ENG("Timbales Physical",cowbell,5,9,268),LR_ENG("Timbales Wave Mesh",cowbell,6,9,268),
+ LR_ENG("Clave Cowbell LR-608",cowbell,0,9,268),LR_ENG("Clave Cowbell Saike Type 0",cowbell,1,9,268),LR_ENG("Clave Cowbell Saike Type 1",cowbell,2,9,268),LR_ENG("Clave Cowbell Saike Type 2",cowbell,3,9,268),LR_ENG("Clave Cowbell Saike Type 3",cowbell,4,9,268),LR_ENG("Timbales Physical",cowbell,5,9,268),LR_ENG("Timbales Wave Mesh",cowbell,6,9,268),LR_ENG("Timbales Sample Captured",cowbell,7,9,268),
  LR_ENG("Zap LR-608",zap,0,10,269),LR_ENG("Zap Clocked Alarm",zap,1,10,269),LR_ENG("Zap Particle Beacon",zap,2,10,269),LR_ENG("Zap Modal UFO",zap,3,10,269),LR_ENG("Zap Karplus Wire",zap,4,10,269),LR_ENG("Zap FM Siren",zap,5,10,269),LR_ENG("Zap Grain Laser",zap,6,10,269),LR_ENG("Zap Chaos Relay",zap,7,10,269),LR_ENG("Zap Hyper Spring",zap,8,10,269),LR_ENG("Zap Bouncing Coin",zap,9,10,269),LR_ENG("Zap Karplus Wire Tune -",zap,10,10,269),
  LR_ENG("Off - No sound",kick,0,0,256)
 };
@@ -55,18 +55,21 @@ inline juce::String slotEngineId(int slot){return "slot"+juce::String(slot+1).pa
 inline juce::String slotNoteId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"Note";}
 inline juce::String slotChokeTriggerId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"ChokeTrigger";}
 inline juce::String slotChokeTargetId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"ChokeTarget";}
-inline constexpr int primarySlotEngines[]{0,8,8,17,24,30,35,40,45,52,59,63,67,71,78};
+inline constexpr int primarySlotEngines[]{0,8,8,17,24,30,35,40,45,52,59,63,67,71,79};
 inline constexpr int primarySlotNotes[]{36,38,40,39,37,41,45,48,42,46,49,51,58,56,52};
 // Slots beyond the original fixed kit retain the exact pre-expansion cycle.
 // The historical bank contained 84 sound engines. New Kick Linn, Snare Linn,
 // Clap Linn and the two acoustic Rim engines must not shift existing sounds.
 inline int historicalEngineToCurrent(int engine)
 {
- if(engine<=6)return engine;
- if(engine<=14)return engine+1;
- if(engine<=20)return engine+2;
- if(engine<=24)return engine+3;
- return engine+5;
+ int current=engine;
+ if(engine<=6)current=engine;
+ else if(engine<=14)current=engine+1;
+ else if(engine<=20)current=engine+2;
+ else if(engine<=24)current=engine+3;
+ else current=engine+5;
+ // Architecture v9 inserted Timbales Sample Captured before the Zap family.
+ return current>=78?current+1:current;
 }
 inline int defaultSlotEngine(int slot){return slot<15?primarySlotEngines[slot]:historicalEngineToCurrent((slot-15)%84);}
 inline bool isOffEngine(int engine){return engine==offEngineIndex;}

@@ -526,7 +526,11 @@ void LR608AudioProcessor::restorePresetState(const juce::ValueTree&complete)
 
 void LR608AudioProcessor::importLegacyPresetAsKit()
 {
-    static constexpr int bases[]{0,8,8,17,24,30,35,40,45,52,59,63,67,71,79};
+    // Keep the legacy Factory preset bases exactly as they were before the
+    // Sample Captured Timbales engine was inserted. MIDI note 52 (slot 15)
+    // belongs to the Zap family; its historical engine index is shifted by +1
+    // below so the new Timbales at index 78 is skipped explicitly.
+    static constexpr int bases[]{0,8,8,17,24,30,35,40,45,52,59,63,67,71,78};
     static constexpr const char*selectors[]{"slider247","slider248","slider198","slider207","slider209","slider219","slider219","slider219","slider217","slider217","slider214","slider214","slider216","slider215","slider199"};
     static constexpr const char*snare1Ids[]{"slider020","slider021","slider022","slider023","slider024","slider029","slider116","slider117","slider026","slider025","slider027","slider028","slider019","slider092","slider094","slider096","slider098","slider108","slider139","slider132","slider133","slider134","slider135","slider136","slider137","slider156","slider157","slider158","slider159","slider160","slider161"};
     static constexpr const char*snare2Ids[]{"slider221","slider222","slider223","slider224","slider225","slider230","slider232","slider233","slider227","slider226","slider228","slider229","slider220","slider093","slider095","slider097","slider099","slider231","slider240","slider234","slider235","slider236","slider237","slider238","slider239","slider241","slider242","slider243","slider244","slider245","slider246"};
@@ -538,7 +542,9 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
     for(int slot=0;slot<15;++slot)
     {
         const auto sub=juce::roundToInt(parameters.getRawParameterValue(selectors[slot])->load());
-        const auto engine=bases[slot]+sub;setSlotEngine(slot,engine);
+        auto engine=bases[slot]+sub;
+        if(slot==14) ++engine; // MIDI 52: skip newly inserted Timbales Sample Captured.
+        setSlotEngine(slot,engine);
         const auto routeParameter=slot==2?"routeSnare2":lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id;
         setSlotOutput(slot,juce::roundToInt(parameters.getRawParameterValue(routeParameter)->load()));
         if(auto*p=parameters.getParameter(lr608::slotNoteId(slot)))p->setValueNotifyingHost(p->convertTo0to1(float(lr608::defaultSlotNote(slot))));

@@ -17,7 +17,10 @@ int main()
     for(int slot=15;slot<lr608::slotCount;++slot)
     {
         const auto oldEngine=(slot-15)%84;
-        const auto expected=oldEngine<=6?oldEngine:oldEngine<=14?oldEngine+1:oldEngine<=20?oldEngine+2:oldEngine<=24?oldEngine+3:oldEngine+5;
+        const auto historicalExpected=oldEngine<=6?oldEngine:oldEngine<=14?oldEngine+1:oldEngine<=20?oldEngine+2:oldEngine<=24?oldEngine+3:oldEngine+5;
+        // Timbales Sample Captured was inserted immediately before the Zap family.
+        // Preserve the historical sound cycle while accounting for the new numeric index.
+        const auto expected=historicalExpected>=78?historicalExpected+1:historicalExpected;
         if(lr608::defaultSlotEngine(slot)!=expected)
         {
             std::cerr<<"Historical post-kit Slot cycle changed at Slot "<<slot+1<<'\n';

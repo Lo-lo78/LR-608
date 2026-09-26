@@ -365,98 +365,90 @@ double CowbellVoice::Timbale::tick(std::uint32_t &r) {
   return alive ? y : 0;
 }
 
-void CowbellVoice::CapturedTimbale::reset(const CowbellParameters &p, double ac,
-                                              double vel, double sampleRate) {
+void CowbellVoice::CapturedTimbale::reset(const CowbellParameters &p, double vel,
+                                              int midiNote, double sampleRate) {
   sr = sampleRate;
   velocity = std::clamp(vel, 0.0, 1.0);
   age = 0;
-  bodyLevel = std::clamp(p.v[7], 0.0, 1.0) * 2.0;
-  bodyDecayScale = .35 + std::clamp(p.v[1], 0.0, 1.0) * 1.30;
-  tone = (std::clamp(p.v[3], 0.0, 1.0) - .5) * 2.0;
-  attackLevel = std::clamp(p.v[4] / 5.0, 0.0, 2.0);
-  metalLevel = std::clamp(p.v[6], 0.0, 1.0) * 2.0;
-  saturation = std::clamp(p.v[10] / 100.0, 0.0, 1.0);
-
-  const auto tuneSemi = (std::clamp(p.v[2], 0.0, 4.0) - 2.0) * 6.0;
-  const auto velocityPitch = std::clamp(p.v[9], 0.0, 3.0) / 3.0;
-  const auto v2 = velocity * velocity;
-  const auto pitchFlex = 1.0 + v2 * velocityPitch * .018;
-  const auto tuneMul = std::pow(2.0, tuneSemi / 12.0) * pitchFlex;
-  const auto dynamics = std::clamp(p.v[8] / 10.0, 0.0, 1.0);
-  const auto velocityDecayAmount = std::min(1.0, dynamics * (0.22 / 0.65));
-  const auto velDecayScale = std::max(.60, 1.0 - v2 * velocityDecayAmount * .22);
-
-  static constexpr double hz[10]{193,388,560,732,889,1150,1490,1990,2150,2400};
-  static constexpr double level[10]{.10,.42,.58,.83,.34,.25,.16,.10,.085,.070};
-  static constexpr double decay[10]{.090,.115,.105,.185,.120,.082,.060,.043,.038,.030};
-  const auto highBoost = 1.0 + v2 * .35 * .75;
-  const auto lowSoften = 1.0 - v2 * .35 * .18;
+  const auto &q = p.captured;
+  const auto semis = (midiNote - q[12]) + q[0];
+  ratio = std::pow(2.0, semis / 12.0);
+  bodyLevel = q[1] / 100.0;
+  decayScale = std::max(.05, q[2] / 100.0);
+  tone = q[3];
+  attackLevel = q[4] / 100.0;
+  noiseDecay = std::max(.0001, q[5] / 1000.0);
+  slapDecay = std::max(.0001, q[6] / 1000.0);
+  metalLevel = q[7] / 100.0;
+  metalFreq = q[8];
+  metalDecay = std::max(.0001, q[9] / 1000.0);
+  saturation = q[10] / 100.0;
+  outGain = std::pow(10.0, q[11] / 20.0);
+  noiseMix = q[43] / 100.0;
+  slapMix = q[44] / 100.0;
+  metalMix = q[45] / 100.0;
+  velMin = q[46] / 100.0;
+  velSens = q[47] / 100.0;
+  preDrive = q[48] / 100.0;
+  finalLevel = q[49] / 100.0;
+  velTone = q[50] / 100.0;
+  velAttack = q[51] / 100.0;
+  velDecay = q[52] / 100.0;
+  velPitch = q[53] / 100.0;
+  velMetal = q[54] / 100.0;
+  postVelAmount = q[55] / 100.0;
+  postVelCurve = q[56];
   for (int i=0;i<10;++i) {
-    auto g = level[i] * bodyLevel;
-    if (i < 4) g *= lowSoften * (1.0 - std::max(0.0, tone) * .35);
-    else g *= highBoost * (1.0 + std::max(0.0, tone) * .85) *
-              (1.0 - std::max(0.0, -tone) * .65);
-    modes[i].init(hz[i] * tuneMul, decay[i] * bodyDecayScale * velDecayScale, g, sr);
+    freq[i] = q[13+i];
+    level[i] = q[23+i] / 100.0;
+    decay[i] = q[33+i] / 1000.0;
+    phase[i] = std::fmod(i*.071 + (velocity*127.0)*.00091 + midiNote*.0017, 1.0);
   }
-
-  const auto sharp = std::clamp(p.v[5] / 5.0, 0.0, 1.0);
-  const auto noiseDecay = .003 + .010 * (1.0 - sharp);
-  noiseEnv = 1;
-  noiseK = std::pow(.001, 1.0 / (std::max(.0005, noiseDecay) * sr));
-  noisePrev = 0;
-  slapEnv = 1;
-  slapK = std::pow(.001, 1.0 / (.0038 * sr));
-  slapPhase = 0;
-  slapStep = std::min(sr*.45, 732.0*tuneMul) / sr;
-  metalEnv = 1;
-  metalK = std::pow(.001, 1.0 / (.018 * sr));
-  metalPhase = 0;
-  metalStep = std::min(sr*.45, 3675.0*tuneMul) / sr;
-  postVelocityAmount = std::clamp(.10 + dynamics * .85 + .10 * std::clamp(ac, 0.0, 1.0), .0, 1.0);
-  postVelocityCurve = 1.20;
-  drive = 1.35;
-  outputGain = .72;
+  noiseEnv = 1; noisePrev = 0; slapPhase = 0; metalPhase = 0;
   alive = true;
 }
 
 double CowbellVoice::CapturedTimbale::tick(std::uint32_t &r) {
   if (!alive) return 0;
-  double body = 0;
-  for (auto &m : modes) body += m.tick();
-
-  const auto v2 = velocity * velocity;
-  const auto attackVel = 1.0 + v2 * .30 * 1.25;
-  const auto metalVel = 1.0 + v2 * .20;
-
-  const auto n = 2.0 * rnd(r) - 1.0;
-  const auto hp = n - noisePrev * .92;
-  noisePrev = n;
-  const auto transient = hp * noiseEnv * attackLevel * .24 * attackVel;
-  noiseEnv *= noiseK;
-
-  slapPhase += slapStep;
-  slapPhase -= std::floor(slapPhase);
-  const auto slap = std::sin(2*pi*slapPhase) * slapEnv * .22 * attackLevel * attackVel;
-  slapEnv *= slapK;
-
-  metalPhase += metalStep;
-  metalPhase -= std::floor(metalPhase);
-  const auto ping = std::sin(2*pi*metalPhase) * metalEnv * .075 * metalLevel * metalVel;
-  metalEnv *= metalK;
-
-  auto y = body + transient + slap + ping;
-  const auto preAmp = .30 + .70 * velocity;
-  y *= preAmp * drive;
-  y = y / (1.0 + std::abs(y) * saturation);
-  const auto postVel = (1.0-postVelocityAmount) + postVelocityAmount *
-                       std::pow(std::max(velocity, .001), postVelocityCurve);
-  y *= postVel * outputGain;
-
-  age += 1.0 / sr;
-  double energy = std::abs(y) + noiseEnv + slapEnv + metalEnv;
-  for (auto &m : modes) energy += std::abs(m.y1) + std::abs(m.y2);
-  alive = age < .08 || energy > 1.0e-5;
-  return alive ? y : 0;
+  const auto v2 = velocity*velocity;
+  const auto highBoost = 1.0 + v2*velTone*.75;
+  const auto lowSoften = 1.0 - v2*velTone*.18;
+  const auto attackVel = 1.0 + v2*velAttack*1.25;
+  const auto metalVel = 1.0 + v2*velMetal;
+  const auto velDecayScale = std::max(.60, 1.0-v2*velDecay*.22);
+  const auto pitchFlex = 1.0 + v2*velPitch*.018;
+  const auto toneLo = 1.0 - std::max(0.0,tone)*.35;
+  const auto toneHi = 1.0 + std::max(0.0,tone)*.85;
+  const auto toneDarkHi = 1.0 - std::max(0.0,-tone)*.65;
+  double low=0, high=0;
+  for(int i=0;i<10;++i){
+    const auto hz=freq[i]*ratio*pitchFlex;
+    phase[i]+=hz/sr; phase[i]-=std::floor(phase[i]);
+    const auto env=std::exp(-age/std::max(1.0e-6,decay[i]*decayScale*velDecayScale));
+    const auto y=std::sin(2*pi*phase[i])*level[i]*env;
+    if(i<4)low+=y;else high+=y;
+  }
+  auto body=(low*toneLo*lowSoften + high*toneHi*toneDarkHi*highBoost)*bodyLevel;
+  const auto n=2.0*rnd(r)-1.0;
+  const auto hp=n-noisePrev*.92; noisePrev=n;
+  const auto transient=hp*noiseEnv*attackLevel*noiseMix*attackVel;
+  noiseEnv*=std::exp(-1.0/(noiseDecay*sr));
+  const auto slapEnv=std::exp(-age/slapDecay);
+  const auto slap=std::sin(2*pi*phase[3])*slapEnv*slapMix*attackLevel*attackVel;
+  metalPhase+=(metalFreq*ratio)/sr; metalPhase-=std::floor(metalPhase);
+  const auto pingEnv=std::exp(-age/metalDecay);
+  const auto ping=std::sin(2*pi*metalPhase)*pingEnv*metalMix*metalLevel*metalVel;
+  auto y=body+transient+ping+slap;
+  const auto amp=velMin+velSens*velocity;
+  y*=amp*preDrive;
+  y=y/(1.0+std::abs(y)*saturation);
+  const auto postVel=(1.0-postVelAmount)+postVelAmount*std::pow(std::max(velocity,.001),postVelCurve);
+  y*=postVel*outGain*finalLevel;
+  age+=1.0/sr;
+  double maxDecay=0; for(auto d:decay)maxDecay=std::max(maxDecay,d);
+  const auto stopTime=std::max({maxDecay*decayScale*7.0,metalDecay*7.0,.10});
+  alive=age<=stopTime || noiseEnv>=.00001;
+  return alive?y:0;
 }
 
 void CowbellVoice::Mesh::reset(const CowbellParameters &p, double ac,
@@ -621,7 +613,7 @@ void CowbellVoice::reset() {
   env = pitchEnv = clickEnv = phase1 = phase2 = satMem = 0;
   saike.alive = timbale.alive = mesh.alive = captured.alive = false;
 }
-void CowbellVoice::trigger(int e, int vel, const CowbellParameters &p, std::uint32_t randomSeed) {
+void CowbellVoice::trigger(int e, int vel, const CowbellParameters &p, std::uint32_t randomSeed, int midiNote) {
   if (randomSeed != 0) rng = randomSeed;
   engine = std::clamp(e, 0, 7);
   velocity = vel / 127.0;
@@ -637,7 +629,7 @@ void CowbellVoice::trigger(int e, int vel, const CowbellParameters &p, std::uint
   else if (engine == 6)
     mesh.reset(p, accent, velocity, sr);
   else if (engine == 7)
-    captured.reset(p, accent, velocity, sr);
+    captured.reset(p, velocity, midiNote, sr);
   env = pitchEnv = clickEnv = 1;
   phase1 = phase2 = satMem = 0;
   active = true;
@@ -668,7 +660,7 @@ double CowbellVoice::render(const CowbellParameters &p) {
     return y;
   }
   if (engine == 7) {
-    auto y = captured.tick(rng) * p.v[0];
+    auto y = captured.tick(rng);
     if (!captured.alive)
       active = false;
     return y;

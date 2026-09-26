@@ -255,3 +255,60 @@ jsfx_slider,vst3_id,jsfx_name,ui_name,default,minimum,maximum,step,choices,page,
 254,slider254,Roll Second Hit Velocity Reduction,Roll Second Hit Velocity Reduction,1.2,0,100,1,,Global,3
 255,slider255,Audio Output Mode,Audio Output Mode,0,0,1,1,"Stereo,Multichannel",Global,4
 256,slider256,Master Volume (dB),Master Volume (dB),0,-120,0,0.1,,Global,23
+301,capturedTimbale01,Transpose (semitones),Transpose (semitones),0,-24,24,0.01,,Clave / Cowbell,0
+302,capturedTimbale02,Body Level (%),Body Level (%),100,0,200,1,,Clave / Cowbell,0
+303,capturedTimbale03,Body Decay Scale (%),Body Decay Scale (%),100,20,300,1,,Clave / Cowbell,0
+304,capturedTimbale04,Tone,Tone,0,-1,1,0.01,,Clave / Cowbell,0
+305,capturedTimbale05,Attack Level (%),Attack Level (%),100,0,200,1,,Clave / Cowbell,0
+306,capturedTimbale06,Noise Attack Decay (ms),Noise Attack Decay (ms),6.5,0.5,50,0.1,,Clave / Cowbell,0
+307,capturedTimbale07,Slap Decay (ms),Slap Decay (ms),3.8,0.5,30,0.1,,Clave / Cowbell,0
+308,capturedTimbale08,Metal Level (%),Metal Level (%),100,0,200,1,,Clave / Cowbell,0
+309,capturedTimbale09,Metal Frequency (Hz),Metal Frequency (Hz),3675,500,10000,1,,Clave / Cowbell,0
+310,capturedTimbale10,Metal Decay (ms),Metal Decay (ms),18,1,200,1,,Clave / Cowbell,0
+311,capturedTimbale11,Saturation (%),Saturation (%),55,0,200,1,,Clave / Cowbell,0
+312,capturedTimbale12,Output (dB),Output (dB),0,-24,24,0.1,,Clave / Cowbell,0
+313,capturedTimbale13,MIDI Root Note,MIDI Root Note,60,0,127,1,,Clave / Cowbell,0
+314,capturedTimbale14,Mode 1 Frequency (Hz),Mode 1 Frequency (Hz),193,50,5000,1,,Clave / Cowbell,0
+315,capturedTimbale15,Mode 2 Frequency (Hz),Mode 2 Frequency (Hz),388,50,5000,1,,Clave / Cowbell,0
+316,capturedTimbale16,Mode 3 Frequency (Hz),Mode 3 Frequency (Hz),560,50,5000,1,,Clave / Cowbell,0
+317,capturedTimbale17,Mode 4 Frequency (Hz),Mode 4 Frequency (Hz),732,50,5000,1,,Clave / Cowbell,0
+318,capturedTimbale18,Mode 5 Frequency (Hz),Mode 5 Frequency (Hz),889,50,5000,1,,Clave / Cowbell,0
+319,capturedTimbale19,Mode 6 Frequency (Hz),Mode 6 Frequency (Hz),1150,50,8000,1,,Clave / Cowbell,0
+320,capturedTimbale20,Mode 7 Frequency (Hz),Mode 7 Frequency (Hz),1490,50,10000,1,,Clave / Cowbell,0
+321,capturedTimbale21,Mode 8 Frequency (Hz),Mode 8 Frequency (Hz),1990,50,12000,1,,Clave / Cowbell,0
+322,capturedTimbale22,Mode 9 Frequency (Hz),Mode 9 Frequency (Hz),2150,50,12000,1,,Clave / Cowbell,0
+323,capturedTimbale23,Mode 10 Frequency (Hz),Mode 10 Frequency (Hz),2400,50,12000,1,,Clave / Cowbell,0
+324,capturedTimbale24,Mode 1 Level (%),Mode 1 Level (%),10,0,200,1,,Clave / Cowbell,0
+325,capturedTimbale25,Mode 2 Level (%),Mode 2 Level (%),42,0,200,1,,Clave / Cowbell,0
+326,capturedTimbale26,Mode 3 Level (%),Mode 3 Level (%),58,0,200,1,,Clave / Cowbell,0
+327,capturedTimbale27,Mode 4 Level (%),Mode 4 Level (%),83,0,200,1,,Clave / Cowbell,0
+328,capturedTimbale28,Mode 5 Level (%),Mode 5 Level (%),34,0,200,1,,Clave / Cowbell,0
+329,capturedTimbale29,Mode 6 Level (%),Mode 6 Level (%),25,0,200,1,,Clave / Cowbell,0
+330,capturedTimbale30,Mode 7 Level (%),Mode 7 Level (%),16,0,200,1,,Clave / Cowbell,0
+331,capturedTimbale31,Mode 8 Level (%),Mode 8 Level (%),10,0,200,1,,Clave / Cowbell,0
+332,capturedTimbale32,Mode 9 Level (%),Mode 9 Level (%),8.5,0,200,0.1,,Clave / Cowbell,0
+333,capturedTimbale33,Mode 10 Level (%),Mode 10 Level (%),7,0,200,0.1,,Clave / Cowbell,0
+334,capturedTimbale34,Mode 1 Decay (ms),Mode 1 Decay (ms),90,5,2000,1,,Clave / Cowbell,0
+335,capturedTimbale35,Mode 2 Decay (ms),Mode 2 Decay (ms),115,5,2000,1,,Clave / Cowbell,0
+336,capturedTimbale36,Mode 3 Decay (ms),Mode 3 Decay (ms),105,5,2000,1,,Clave / Cowbell,0
+337,capturedTimbale37,Mode 4 Decay (ms),Mode 4 Decay (ms),185,5,3000,1,,Clave / Cowbell,0
+338,capturedTimbale38,Mode 5 Decay (ms),Mode 5 Decay (ms),120,5,2000,1,,Clave / Cowbell,0
+339,capturedTimbale39,Mode 6 Decay (ms),Mode 6 Decay (ms),82,5,2000,1,,Clave / Cowbell,0
+340,capturedTimbale40,Mode 7 Decay (ms),Mode 7 Decay (ms),60,5,2000,1,,Clave / Cowbell,0
+341,capturedTimbale41,Mode 8 Decay (ms),Mode 8 Decay (ms),43,5,2000,1,,Clave / Cowbell,0
+342,capturedTimbale42,Mode 9 Decay (ms),Mode 9 Decay (ms),38,5,2000,1,,Clave / Cowbell,0
+343,capturedTimbale43,Mode 10 Decay (ms),Mode 10 Decay (ms),30,5,2000,1,,Clave / Cowbell,0
+344,capturedTimbale44,Noise Attack Mix (%),Noise Attack Mix (%),24,0,100,0.1,,Clave / Cowbell,0
+345,capturedTimbale45,Slap Mix (%),Slap Mix (%),22,0,100,0.1,,Clave / Cowbell,0
+346,capturedTimbale46,Metal Ping Mix (%),Metal Ping Mix (%),7.5,0,100,0.1,,Clave / Cowbell,0
+347,capturedTimbale47,Velocity Minimum Body (%),Velocity Minimum Body (%),30,0,100,1,,Clave / Cowbell,0
+348,capturedTimbale48,Velocity Sensitivity (%),Velocity Sensitivity (%),70,0,100,1,,Clave / Cowbell,0
+349,capturedTimbale49,Pre Saturation Drive (%),Pre Saturation Drive (%),135,0,300,1,,Clave / Cowbell,0
+350,capturedTimbale50,Final Level (%),Final Level (%),72,0,200,1,,Clave / Cowbell,0
+351,capturedTimbale51,Velocity Tone Amount (%),Velocity Tone Amount (%),35,0,100,1,,Clave / Cowbell,0
+352,capturedTimbale52,Velocity Attack Amount (%),Velocity Attack Amount (%),30,0,100,1,,Clave / Cowbell,0
+353,capturedTimbale53,Velocity Decay Amount (%),Velocity Decay Amount (%),22,0,100,1,,Clave / Cowbell,0
+354,capturedTimbale54,Velocity Pitch Flex Amount (%),Velocity Pitch Flex Amount (%),18,0,100,1,,Clave / Cowbell,0
+355,capturedTimbale55,Velocity Metal Amount (%),Velocity Metal Amount (%),20,0,100,1,,Clave / Cowbell,0
+356,capturedTimbale56,Post Saturation Velocity Amount (%),Post Saturation Velocity Amount (%),65,0,100,1,,Clave / Cowbell,0
+357,capturedTimbale57,Post Saturation Velocity Curve,Post Saturation Velocity Curve,1.2,0.3,3,0.01,,Clave / Cowbell,0

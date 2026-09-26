@@ -852,7 +852,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     const auto hatEngine=juce::roundToInt(value("slider217")),cymbalEngine=juce::roundToInt(value("slider214"));if(hatEngine!=lastHatEngine){hiHat.reset();lastHatEngine=hatEngine;}if(cymbalEngine!=lastCymbalEngine){crash.reset();ride.reset();lastCymbalEngine=cymbalEngine;}
     const int cymRoutes[]{juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeHiHat"))),juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeCrash"))),juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeRide")))};
     constexpr const char* maracasIds[]{"slider168","slider169","slider170","slider171","slider172","slider173","slider205","slider206"};lr608::MaracasParameters maracasParameters;for(int p=0;p<8;++p)maracasParameters.v[p]=value(maracasIds[p]);maracasParameters.accentThreshold=value("slider250");maracasParameters.accentCharacter=value("slider251");const auto maracasEngine=juce::roundToInt(value("slider216"));if(maracasEngine!=lastMaracasEngine){maracas.reset();lastMaracasEngine=maracasEngine;}const auto maracasRoute=juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeMaracas")));
-    constexpr const char* cowbellIds[]{"slider080","slider081","slider082","slider083","slider084","slider085","slider086","slider087","slider088","slider089","slider204"};lr608::CowbellParameters cowbellParameters;for(int p=0;p<11;++p)cowbellParameters.v[p]=value(cowbellIds[p]);cowbellParameters.accentThreshold=value("slider250");cowbellParameters.accentCharacter=value("slider251");const auto cowbellEngine=juce::roundToInt(value("slider215"));if(cowbellEngine!=lastCowbellEngine){cowbell.reset();lastCowbellEngine=cowbellEngine;}const auto cowbellRoute=juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeCowbell")));
+    constexpr const char* cowbellIds[]{"slider080","slider081","slider082","slider083","slider084","slider085","slider086","slider087","slider088","slider089","slider204"};lr608::CowbellParameters cowbellParameters;for(int p=0;p<11;++p)cowbellParameters.v[p]=value(cowbellIds[p]);cowbellParameters.accentThreshold=value("slider250");cowbellParameters.accentCharacter=value("slider251");constexpr const char* capturedTimbaleIds[]{"capturedTimbale01","capturedTimbale02","capturedTimbale03","capturedTimbale04","capturedTimbale05","capturedTimbale06","capturedTimbale07","capturedTimbale08","capturedTimbale09","capturedTimbale10","capturedTimbale11","capturedTimbale12","capturedTimbale13","capturedTimbale14","capturedTimbale15","capturedTimbale16","capturedTimbale17","capturedTimbale18","capturedTimbale19","capturedTimbale20","capturedTimbale21","capturedTimbale22","capturedTimbale23","capturedTimbale24","capturedTimbale25","capturedTimbale26","capturedTimbale27","capturedTimbale28","capturedTimbale29","capturedTimbale30","capturedTimbale31","capturedTimbale32","capturedTimbale33","capturedTimbale34","capturedTimbale35","capturedTimbale36","capturedTimbale37","capturedTimbale38","capturedTimbale39","capturedTimbale40","capturedTimbale41","capturedTimbale42","capturedTimbale43","capturedTimbale44","capturedTimbale45","capturedTimbale46","capturedTimbale47","capturedTimbale48","capturedTimbale49","capturedTimbale50","capturedTimbale51","capturedTimbale52","capturedTimbale53","capturedTimbale54","capturedTimbale55","capturedTimbale56","capturedTimbale57"};for(int p=0;p<57;++p)cowbellParameters.captured[p]=value(capturedTimbaleIds[p]);const auto cowbellEngine=juce::roundToInt(value("slider215"));if(cowbellEngine!=lastCowbellEngine){cowbell.reset();lastCowbellEngine=cowbellEngine;}const auto cowbellRoute=juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeCowbell")));
     constexpr const char* zapIds[]{"slider072","slider073","slider074","slider075","slider076","slider077","slider126","slider127","slider128","slider129","slider130","slider131","slider210","slider211","slider212","slider213","slider192","slider193","slider194","slider195","slider196","slider197"};lr608::ZapParameters zapParameters;for(int p=0;p<22;++p)zapParameters.v[p]=value(zapIds[p]);zapParameters.tempo=timing.tempo;const auto zapEngine=juce::roundToInt(value("slider199"));if(zapEngine!=lastZapEngine){zap.reset();lastZapEngine=zapEngine;}const auto zapRoute=juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeZap")));
     std::array<int,lr608::slotCount> slotEngines{},slotNotes{};
     for(int slot=0;slot<lr608::slotCount;++slot){slotEngines[slot]=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));slotNotes[slot]=juce::jlimit(0,127,juce::roundToInt(parameters.getRawParameterValue(lr608::slotNoteId(slot))->load()));}
@@ -866,7 +866,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Keep the original MIDI stream intact while dispatching synthesis at the
     // event's actual offset. Voice renderers are connected to this callback as
     // each authoritative JSFX family is ported.
-    auto triggerEngine = [&] (int selectedEngine, int velocity)
+    auto triggerEngine = [&] (int selectedEngine, int velocity, int midiNote)
     {
         if(selectedEngine==1){snare1.trigger(snareEngines[0],velocity,snareParameters[0]);return;}
         if(selectedEngine==2){snare2.trigger(snareEngines[1],velocity,snareParameters[1]);return;}
@@ -880,7 +880,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         if(selectedEngine==10){crash.trigger(cymbalEngine,velocity,cymbalParameters);return;}
         if(selectedEngine==11){ride.trigger(cymbalEngine,velocity,cymbalParameters);return;}
         if(selectedEngine==12){maracas.trigger(maracasEngine,velocity,maracasParameters);return;}
-        if(selectedEngine==13){cowbell.trigger(cowbellEngine,velocity,cowbellParameters);return;}
+        if(selectedEngine==13){cowbell.trigger(cowbellEngine,velocity,cowbellParameters,0,midiNote);return;}
         if(selectedEngine==14){zap.trigger(zapEngine,velocity,zapParameters);return;}
         if (kickEngine == 0)
         {
@@ -896,7 +896,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto triggerVoice = [&] (lr608::DrumTrigger hit)
     {
         for(int slot=0;slot<lr608::slotCount;++slot)
-            if(slotNotes[slot]==hit.note)triggerEngine(slotEngines[slot],hit.velocity);
+            if(slotNotes[slot]==hit.note)triggerEngine(slotEngines[slot],hit.velocity,hit.note);
     };
     auto iterator = midi.findNextSamplePosition (0);
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)

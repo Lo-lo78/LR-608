@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 291
+    if (std::size (lr608::generated::parameters) != 348
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -144,7 +144,8 @@ int main()
     const std::array<const char*,2> filterEnvIds{"slotFilterEnvelopeDepth","slotFilterEnvelopeDecay"};
     for(int index=289;index<291;++index){const auto&e=lr608::generated::parameters[index];if(std::string(e.id)!=filterEnvIds[std::size_t(index-289)]||e.step<=0||e.minimum>e.defaultValue||e.defaultValue>e.maximum){std::cerr<<"Invalid filter envelope descriptor\n";return EXIT_FAILURE;}ids.emplace(e.id);}
     if(lr608::generated::parameters[lr608::slotFilterEnvelopeDepthParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::slotFilterEnvelopeDecayParameterIndex].defaultValue!=0.0){std::cerr<<"Filter envelope defaults are not backward-compatible\n";return EXIT_FAILURE;}
-    if (ids.size() != 291)
+    for(int index=291;index<348;++index){const auto&c=lr608::generated::parameters[index];if(std::string(c.id).rfind("capturedTimbale",0)!=0||c.step<=0||c.minimum>c.defaultValue||c.defaultValue>c.maximum){std::cerr<<"Invalid captured Timbale descriptor\n";return EXIT_FAILURE;}ids.emplace(c.id);}
+    if (ids.size() != 348)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -167,11 +168,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 265)
+    if (exposed.size() != 322)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 265 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 322 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

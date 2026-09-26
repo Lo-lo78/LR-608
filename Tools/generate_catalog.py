@@ -82,6 +82,68 @@ UNIVERSAL_SLOT_PARAMETERS = [
     (273, "slotDelayPitch", "Delay Pitch Per Repeat (semitones)", -48.0, 48.0, 0.1, 0.0, ""),
 ]
 
+# Native parameters for the Sample Captured Timbales engine.  These mirror
+# LR-608_Timbales03_SampleCaptured_TEST4_PostSaturationVelocity.jsfx 1:1.
+CAPTURED_TIMBALE_PARAMETERS = [
+    (301, "capturedTimbale01", "Transpose (semitones)", -24, 24, 0.01, 0, ""),
+    (302, "capturedTimbale02", "Body Level (%)", 0, 200, 1, 100, ""),
+    (303, "capturedTimbale03", "Body Decay Scale (%)", 20, 300, 1, 100, ""),
+    (304, "capturedTimbale04", "Tone", -1, 1, 0.01, 0, ""),
+    (305, "capturedTimbale05", "Attack Level (%)", 0, 200, 1, 100, ""),
+    (306, "capturedTimbale06", "Noise Attack Decay (ms)", 0.5, 50, 0.1, 6.5, ""),
+    (307, "capturedTimbale07", "Slap Decay (ms)", 0.5, 30, 0.1, 3.8, ""),
+    (308, "capturedTimbale08", "Metal Level (%)", 0, 200, 1, 100, ""),
+    (309, "capturedTimbale09", "Metal Frequency (Hz)", 500, 10000, 1, 3675, ""),
+    (310, "capturedTimbale10", "Metal Decay (ms)", 1, 200, 1, 18, ""),
+    (311, "capturedTimbale11", "Saturation (%)", 0, 200, 1, 55, ""),
+    (312, "capturedTimbale12", "Output (dB)", -24, 24, 0.1, 0, ""),
+    (313, "capturedTimbale13", "MIDI Root Note", 0, 127, 1, 60, ""),
+    (314, "capturedTimbale14", "Mode 1 Frequency (Hz)", 50, 5000, 1, 193, ""),
+    (315, "capturedTimbale15", "Mode 2 Frequency (Hz)", 50, 5000, 1, 388, ""),
+    (316, "capturedTimbale16", "Mode 3 Frequency (Hz)", 50, 5000, 1, 560, ""),
+    (317, "capturedTimbale17", "Mode 4 Frequency (Hz)", 50, 5000, 1, 732, ""),
+    (318, "capturedTimbale18", "Mode 5 Frequency (Hz)", 50, 5000, 1, 889, ""),
+    (319, "capturedTimbale19", "Mode 6 Frequency (Hz)", 50, 8000, 1, 1150, ""),
+    (320, "capturedTimbale20", "Mode 7 Frequency (Hz)", 50, 10000, 1, 1490, ""),
+    (321, "capturedTimbale21", "Mode 8 Frequency (Hz)", 50, 12000, 1, 1990, ""),
+    (322, "capturedTimbale22", "Mode 9 Frequency (Hz)", 50, 12000, 1, 2150, ""),
+    (323, "capturedTimbale23", "Mode 10 Frequency (Hz)", 50, 12000, 1, 2400, ""),
+    (324, "capturedTimbale24", "Mode 1 Level (%)", 0, 200, 1, 10, ""),
+    (325, "capturedTimbale25", "Mode 2 Level (%)", 0, 200, 1, 42, ""),
+    (326, "capturedTimbale26", "Mode 3 Level (%)", 0, 200, 1, 58, ""),
+    (327, "capturedTimbale27", "Mode 4 Level (%)", 0, 200, 1, 83, ""),
+    (328, "capturedTimbale28", "Mode 5 Level (%)", 0, 200, 1, 34, ""),
+    (329, "capturedTimbale29", "Mode 6 Level (%)", 0, 200, 1, 25, ""),
+    (330, "capturedTimbale30", "Mode 7 Level (%)", 0, 200, 1, 16, ""),
+    (331, "capturedTimbale31", "Mode 8 Level (%)", 0, 200, 1, 10, ""),
+    (332, "capturedTimbale32", "Mode 9 Level (%)", 0, 200, 0.1, 8.5, ""),
+    (333, "capturedTimbale33", "Mode 10 Level (%)", 0, 200, 0.1, 7, ""),
+    (334, "capturedTimbale34", "Mode 1 Decay (ms)", 5, 2000, 1, 90, ""),
+    (335, "capturedTimbale35", "Mode 2 Decay (ms)", 5, 2000, 1, 115, ""),
+    (336, "capturedTimbale36", "Mode 3 Decay (ms)", 5, 2000, 1, 105, ""),
+    (337, "capturedTimbale37", "Mode 4 Decay (ms)", 5, 3000, 1, 185, ""),
+    (338, "capturedTimbale38", "Mode 5 Decay (ms)", 5, 2000, 1, 120, ""),
+    (339, "capturedTimbale39", "Mode 6 Decay (ms)", 5, 2000, 1, 82, ""),
+    (340, "capturedTimbale40", "Mode 7 Decay (ms)", 5, 2000, 1, 60, ""),
+    (341, "capturedTimbale41", "Mode 8 Decay (ms)", 5, 2000, 1, 43, ""),
+    (342, "capturedTimbale42", "Mode 9 Decay (ms)", 5, 2000, 1, 38, ""),
+    (343, "capturedTimbale43", "Mode 10 Decay (ms)", 5, 2000, 1, 30, ""),
+    (344, "capturedTimbale44", "Noise Attack Mix (%)", 0, 100, 0.1, 24, ""),
+    (345, "capturedTimbale45", "Slap Mix (%)", 0, 100, 0.1, 22, ""),
+    (346, "capturedTimbale46", "Metal Ping Mix (%)", 0, 100, 0.1, 7.5, ""),
+    (347, "capturedTimbale47", "Velocity Minimum Body (%)", 0, 100, 1, 30, ""),
+    (348, "capturedTimbale48", "Velocity Sensitivity (%)", 0, 100, 1, 70, ""),
+    (349, "capturedTimbale49", "Pre Saturation Drive (%)", 0, 300, 1, 135, ""),
+    (350, "capturedTimbale50", "Final Level (%)", 0, 200, 1, 72, ""),
+    (351, "capturedTimbale51", "Velocity Tone Amount (%)", 0, 100, 1, 35, ""),
+    (352, "capturedTimbale52", "Velocity Attack Amount (%)", 0, 100, 1, 30, ""),
+    (353, "capturedTimbale53", "Velocity Decay Amount (%)", 0, 100, 1, 22, ""),
+    (354, "capturedTimbale54", "Velocity Pitch Flex Amount (%)", 0, 100, 1, 18, ""),
+    (355, "capturedTimbale55", "Velocity Metal Amount (%)", 0, 100, 1, 20, ""),
+    (356, "capturedTimbale56", "Post Saturation Velocity Amount (%)", 0, 100, 1, 65, ""),
+    (357, "capturedTimbale57", "Post Saturation Velocity Curve", 0.3, 3, 0.01, 1.2, ""),
+]
+
 PAGE_ROUTING = {
     1: [("routeKick", "Kick Output")],
     2: [("routeSnare1", "Snare 1 Output")],
@@ -198,6 +260,12 @@ def generate_parameters(parameters: list[dict[str, str]]) -> None:
             f'{cpp_float(str(minimum))}, {cpp_float(str(maximum))}, {cpp_float(str(step))}, '
             f'{cpp_float(str(default))}, "{cpp_string(choices)}" }},'
         )
+    for number, parameter_id, name, minimum, maximum, step, default, choices in CAPTURED_TIMBALE_PARAMETERS:
+        rows.append(
+            f'    {{ {number}, "{parameter_id}", "{cpp_string(name)}", '
+            f'{cpp_float(str(minimum))}, {cpp_float(str(maximum))}, {cpp_float(str(step))}, '
+            f'{cpp_float(str(default))}, "{cpp_string(choices)}" }},'
+        )
     content = """// Generated by Tools/generate_catalog.py. Do not edit.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #pragma once
@@ -229,19 +297,20 @@ def generate_pages(
     for slot in range(1, 13):
         entries = groups[slot]
         route_entries = PAGE_ROUTING[slot]
-        ids = ", ".join(
-            [f'"{parameter_id}"' for parameter_id, _ in route_entries]
-            + [f'"slider{number:03d}"' for number, _ in entries]
-        )
-        names = ", ".join(
-            [f'"{cpp_string(name)}"' for _, name in route_entries]
-            + [f'"{cpp_string(name)}"' for _, name in entries]
-        )
+        extra_ids = [f'"{parameter_id}"' for _, parameter_id, *_ in CAPTURED_TIMBALE_PARAMETERS] if slot == 10 else []
+        extra_names = [f'"{cpp_string(name)}"' for _, _, name, *_ in CAPTURED_TIMBALE_PARAMETERS] if slot == 10 else []
+        base_ids = [f'"slider{number:03d}"' for number, _ in entries]
+        base_names = [f'"{cpp_string(name)}"' for _, name in entries]
+        if slot == 10 and base_ids:
+            base_ids = base_ids[:-1] + extra_ids + base_ids[-1:]
+            base_names = base_names[:-1] + extra_names + base_names[-1:]
+        ids = ", ".join([f'"{parameter_id}"' for parameter_id, _ in route_entries] + base_ids)
+        names = ", ".join([f'"{cpp_string(name)}"' for _, name in route_entries] + base_names)
         arrays.append(f"inline constexpr const char* page{slot}Ids[] = {{ {ids} }};")
         arrays.append(f"inline constexpr const char* page{slot}Names[] = {{ {names} }};")
         rows.append(
             f'    {{ "{cpp_string(PAGE_NAMES[slot])}", page{slot}Ids, page{slot}Names, '
-            f'std::size (page{slot}Ids), {heights[slot]} }},'
+            f'std::size (page{slot}Ids), {8 if slot == 10 else heights[slot]} }},'
         )
     content = """// Generated by Tools/generate_catalog.py from GroupSlots. Do not edit.
 // SPDX-License-Identifier: AGPL-3.0-or-later
@@ -294,6 +363,8 @@ def write_audit(
                 item["minimum"], item["maximum"], item["step"], item["choices"],
                 page_for_slider.get(number, "Unexposed"), occurrences,
             ])
+        for number, parameter_id, name, minimum, maximum, step, default, choices in CAPTURED_TIMBALE_PARAMETERS:
+            writer.writerow([number, parameter_id, name, name, default, minimum, maximum, step, choices, "Clave / Cowbell", 0])
 
     with (DOC_DIR / "page-map.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
@@ -322,7 +393,7 @@ def main() -> None:
     write_audit(parameters, groups, heights, source, presets)
     exposed = {number for entries in groups.values() for number, _ in entries}
     print(f"Generated {len(parameters)} JSFX + {len(ROUTING_PARAMETERS)} routing + {len(UNIVERSAL_SLOT_PARAMETERS)} per-Slot parameters, "
-          f"{len(groups)} pages, {len(presets)} presets")
+          f"{len(groups)} pages, {len(presets)} presets, {len(CAPTURED_TIMBALE_PARAMETERS)} captured Timbales parameters")
     print(f"Profile exposes {len(exposed)} unique sliders; {256 - len(exposed)} remain host-automatable")
 
 

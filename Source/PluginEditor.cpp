@@ -989,6 +989,12 @@ void LR608AudioProcessorEditor::updateParameterList()
                 continue;
             if(globalOpen&&(juce::String(descriptor.id)=="slider250"||juce::String(descriptor.id)=="slider251"))continue;
             if(lr608::isEngineSelectorId(descriptor.id))continue;
+            if(!globalOpen && family==lr608::SlotFamily::cowbell) {
+                const auto isCapturedParam=juce::String(descriptor.id).startsWith("capturedTimbale");
+                const auto capturedEngine=lr608::slotEngines[selectedEngine].subEngine==7;
+                if(capturedEngine && !isCapturedParam)continue;
+                if(!capturedEngine && isCapturedParam)continue;
+            }
             if(!globalOpen&&catalog==lr608::slotEngines[selectedEngine].routeParameterIndex)continue;
             const auto structuralName=juce::String(page.parameterNames[item]);
             if(pageIndex==5)

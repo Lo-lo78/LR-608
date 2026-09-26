@@ -6,13 +6,14 @@
 namespace lr608 {
 struct CowbellParameters {
   std::array<double, 11> v{};
+  std::array<double, 57> captured{};
   double accentThreshold = 112, accentCharacter = 1;
 };
 class CowbellVoice {
 public:
   void prepare(double);
   void reset();
-  void trigger(int, int, const CowbellParameters &, std::uint32_t randomSeed = 0);
+  void trigger(int, int, const CowbellParameters &, std::uint32_t randomSeed = 0, int midiNote = 60);
   double render(const CowbellParameters &);
   bool isActive() const { return active; }
 
@@ -54,16 +55,18 @@ private:
     std::array<Mode, 3> shell{};
   };
   struct CapturedTimbale {
-    void reset(const CowbellParameters &, double, double, double);
+    void reset(const CowbellParameters &, double, int, double);
     double tick(std::uint32_t &);
     bool alive = false;
-    double sr = 44100, velocity = 1, age = 0, bodyLevel = 1, bodyDecayScale = 1,
-           tone = 0, attackLevel = 1, noiseEnv = 1, noiseK = 0, noisePrev = 0,
-           slapEnv = 1, slapK = 0, slapPhase = 0, slapStep = 0,
-           metalLevel = 1, metalEnv = 1, metalK = 0, metalPhase = 0, metalStep = 0,
-           saturation = .55, drive = 1.35, postVelocityAmount = .65,
-           postVelocityCurve = 1.20, outputGain = .72;
-    std::array<Mode, 10> modes{};
+    double sr = 44100, velocity = 1, age = 0, ratio = 1;
+    double bodyLevel=1, decayScale=1, tone=0, attackLevel=1;
+    double noiseDecay=.0065, slapDecay=.0038, metalLevel=1, metalFreq=3675, metalDecay=.018;
+    double saturation=.55, outGain=1, preDrive=1.35, finalLevel=.72;
+    double noiseMix=.24, slapMix=.22, metalMix=.075, velMin=.30, velSens=.70;
+    double velTone=.35, velAttack=.30, velDecay=.22, velPitch=.18, velMetal=.20;
+    double postVelAmount=.65, postVelCurve=1.20;
+    double noiseEnv=1, noisePrev=0, slapPhase=0, metalPhase=0;
+    std::array<double,10> phase{}, freq{}, level{}, decay{};
   };
   struct Mesh {
     void reset(const CowbellParameters &, double, double, double);

@@ -9,7 +9,7 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 10;
+constexpr int slotEngineArchitectureVersion = 11;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
@@ -73,13 +73,20 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
         int migrated=engine;
         if(sourceVersion==2) migrated=migrateVersion3EngineIndex(migrateVersion2EngineIndex(engine));
         else if(sourceVersion==3) migrated=migrateVersion3EngineIndex(engine);
-        // Architecture v10 restores all historical Zap indices and keeps
-        // Timbales Sample Captured outside the factory/default slot cycle.
-        // Version 9 temporarily inserted Captured at 78, shifting Zap 78..88 to 79..89.
-        if(sourceVersion==9) {
-            if(migrated==78) return 89;      // Captured Timbales
-            if(migrated>=79 && migrated<=89) return migrated-1; // restore Zap indices
+        // Architecture v11 keeps Timbales Sample Captured next to the other
+        // Timbales in the visible engine list (index 78), while factory/default
+        // slots keep their historical sounds. Version 9 already used this layout.
+        // Version 10 temporarily moved Captured to 89 and restored Zap to 78..88.
+        if(sourceVersion==10) {
+            if(migrated==89) return 78;
+            if(migrated>=78 && migrated<=88) return migrated+1;
+            return migrated;
         }
+        if(sourceVersion==9) return migrated;
+        // States older than Captured Timbales have no engine 78 of their own;
+        // shift only the historical Zap family over the newly inserted Timbales.
+        if(sourceVersion<=8 && migrated>=78 && migrated<=88) return migrated+1;
+        if(sourceVersion<=8 && migrated==89) return lr608::offEngineIndex;
         return migrated;
     };
 

@@ -57,7 +57,7 @@ int main (int argc, char** argv)
     for(int slot=0;slot<lr608::slotCount;++slot)
         if(processor.parameters.getParameter(lr608::slotEngineId(slot))==nullptr||processor.parameters.getParameter(lr608::slotNoteId(slot))==nullptr)
         {std::cerr<<"Missing slot parameter "<<slot+1<<'\n';return EXIT_FAILURE;}
-if(juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotEngineId(0))->load())!=0||juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotNoteId(0))->load())!=36||juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotEngineId(14))->load())!=78||juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotNoteId(14))->load())!=52)
+if(juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotEngineId(0))->load())!=0||juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotNoteId(0))->load())!=36||juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotEngineId(14))->load())!=79||juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotNoteId(14))->load())!=52)
     {std::cerr<<"Slot factory layout failed\n";return EXIT_FAILURE;}
     processor.setSlotOutput(2,9);processor.setSlotEngine(2,66);if(processor.getSlotOutput(2)!=9){std::cerr<<"Engine change modified slot Output\n";return EXIT_FAILURE;}processor.setSlotEngine(2,7);processor.setSlotOutput(2,0);
     auto setPlain = [&] (const char* id, float plain)

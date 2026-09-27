@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #pragma once
+#include "Refined1176.h"
 #include "HeapArray.h"
 #include <array>
 #include <cstdint>
@@ -13,7 +14,7 @@ private:
     double unitRandom(),random(),wave(int,double,double);
     double sr=44100,velocity=1,envFast=0,envSlow=0,clickEnv=0,tailEnergy=0,phase=0,satMem=0;
     double lfoPhase=0,lfoEnv=0,lfoPrev=0,lfoSmooth=0,lfoSH=0,lfoVal=0;
-    double rmPhase=0,rmNoise=0,rmPrev=0,compRunAve=0,compRunDb=0;
+    double rmPhase=0,rmNoise=0,rmPrev=0; Refined1176 compressor;
     double fastCoef=0,slowCoef=0,lfoEnvCoef=0,lfoSmoothCoef=0;
     double clockPhase=0,clockHold=0,clockLow=0,clockBand=0;
     std::array<double,4> partPhase{},partEnv{},modalPhase{},modalEnv{};

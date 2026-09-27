@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #pragma once
+#include "Refined1176.h"
+#include "OrganicGranulator.h"
 
 #include <array>
 #include <cstdint>
@@ -9,7 +11,7 @@ namespace lr608
 {
 struct SnareParameters
 {
-    std::array<double, 31> v {};
+    std::array<double, 37> v {};
     double accentThreshold = 112.0;
     double accentCharacter = 1.0;
 };
@@ -39,7 +41,7 @@ private:
     double sr = 44100.0;
     int activeEngine = 0;
     bool active = false;
-    double velocity = 1.0, accent = 0.0, bodyEnv = 0.0, noiseEnv = 0.0, clickEnv = 0.0;
+    double velocity = 1.0, accent = 0.0, bodyEnv = 0.0, bodyMidEnv = 0.0, bodyHighEnv = 0.0, noiseEnv = 0.0, clickEnv = 0.0;
     double pitchEnv = 0.0, phase1 = 0.0, phase2 = 0.0, phase3 = 0.0;
     double noiseLp = 0.0, noiseBp = 0.0, noiseHpMemory = 0.0, colourMemory = 0.0;
     double simLp1 = 0.0, simLp2 = 0.0, simLp3 = 0.0, simLp4 = 0.0, simNoiseDc = 0.0;
@@ -48,11 +50,8 @@ private:
     double nx1 = 0.0, nx2 = 0.0, ny1 = 0.0, ny2 = 0.0;
     double ringEnv = 0.0, ringPrevious = 0.0, ringSampleHold = 0.0;
     bool noiseAttackStage = false;
-    double rms = 0.0, runningDb = 0.0;
-    double compMix=0.0,compRmsCoefficient=0.0,compThresholdLinear=1.0;
-    double compThresholdLog=0.0;
-    double compAttackCoefficient=0.0,compReleaseCoefficient=0.0;
-    double compRatioReduction=0.0,compMakeupGain=1.0;
+    Refined1176 compressor;
+    OrganicGranulator noiseGranulator;
     int holdCounter = 0;
     double heldNoise = 0.0;
     std::uint32_t rng = 0x6085a11u;

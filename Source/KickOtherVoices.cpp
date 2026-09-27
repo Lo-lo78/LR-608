@@ -97,8 +97,8 @@ void KickOtherVoices::reset()
 {
     active = false; env = pitchEnv = clickEnv = impulseEnv = noiseEnv = 0.0;
     phase = impulsePhase = lfoPhase = lfoEnv = lfoSmooth = 0.0;
-    noiseHold = bodyLp = noiseLp1 = noiseLp2 = noiseLp3 = noiseLp4 = noiseDc = noiseCount = 0.0;
-    dcX = dcY = rms = runningDb = 0.0; rng = 0x608u;
+    noiseHold = bodyLp = noiseLp1 = noiseLp2 = noiseLp3 = noiseLp4 = noiseDc = noiseCount = noiseResLp = noiseResBp = 0.0; noiseGranulator.reset();
+    dcX = dcY = 0.0; compressor.reset(); rng = 0x608u;
     pitchValue = pitchTime = ampValue = ampTime = saikeNoiseLevel = phase2 = lastY = postLp = 0.0;
     smoothCount = 0; linnPhase.fill(0);linnLp.fill(0);linnFilterEnv=linnBeaterLp1=linnBeaterLp2=linnAirLp1=linnAirLp2=linnDigitalPhase=linnDigitalHold=linnHitColor=linnSampleHold=0;linnHitDetune=1;
 }
@@ -122,14 +122,7 @@ void KickOtherVoices::trigger (int engine, int midiVelocity, const Kick808Parame
     noiseHold = randomBipolar(); noiseCount = 0.0;
     bodyLp = noiseLp1 = noiseLp2 = noiseLp3 = noiseLp4 = noiseDc = 0.0;
     dcCoefficient = std::exp (-2.0 * pi * 5.0 / sr);
-    rmsCoefficient = std::exp (-1.0 / (0.01 * sr));
-    const auto db2log = std::log (10.0) / 20.0;
-    compThresholdLinear = std::exp ((p.compThreshold - 3.0) * db2log);
-    compAttackCoefficient = std::exp (-1.0 / (std::max (0.0001, p.compAttack * 0.001) * sr));
-    compReleaseCoefficient = std::exp (-1.0 / (std::max (0.001, p.compRelease * 0.001) * sr));
-    static constexpr int ratios[] { 4, 8, 12, 20, 20 };
-    compRatioReduction = 1.0 - 1.0 / ratios[std::clamp (p.compRatio, 0, 4)];
-    compMakeupGain = std::exp (p.compMakeup * db2log);
+    compressor.configure (p.compThreshold, p.compRatio, p.compMakeup, p.compAttack, p.compRelease, p.compMix);
     if(activeEngine==7){const auto ph=(p.bodyPhase+1)*.5+.75;linnPhase={ph-std::floor(ph),ph*1.31+.09,ph*.73+.21,ph*1.67+.37};for(auto&x:linnPhase)x-=std::floor(x);linnFilterEnv=1;linnBeaterLp1=linnBeaterLp2=linnAirLp1=linnAirLp2=0;linnDigitalPhase=1;linnDigitalHold=0;linnLp.fill(0);linnHitDetune=1+randomBipolar()*.0025;linnHitColor=randomBipolar();linnSampleHold=randomBipolar();}
     else if (activeEngine >= 3) resetSaike (p);
 }
@@ -139,20 +132,7 @@ double KickOtherVoices::finish (double signal, const Kick808Parameters& p)
     signal *= p.level * velocity * (activeEngine == 7 ? 0.96 : activeEngine >= 3 ? 1.270925175 : 1.0);
     const auto oldX = dcX; dcX = signal;
     dcY = dcX - oldX + dcCoefficient * dcY;
-    signal = dcY;
-    if (p.compMix > 0.000001)
-    {
-        const auto db2log = std::log (10.0) / 20.0;
-        rms = signal * signal + rmsCoefficient * (rms - signal * signal);
-        const auto over = std::max (0.0, (20.0 / std::log (10.0)) *
-            std::log (std::max (std::sqrt (std::max (0.0, rms)), 1.0e-7) / compThresholdLinear));
-        const auto coefficient = over > runningDb ? compAttackCoefficient : compReleaseCoefficient;
-        runningDb += (over - runningDb) * (1.0 - coefficient);
-        const auto gain = std::exp (-runningDb * compRatioReduction * db2log) * compMakeupGain;
-        signal += (signal * gain - signal) * (p.compMix / 100.0);
-    }
-    else rms = runningDb = 0.0;
-    return signal;
+    return compressor.process (dcY);
 }
 
 float KickOtherVoices::render (const Kick808Parameters& p, double tempo)
@@ -211,14 +191,18 @@ float KickOtherVoices::renderSimmons (const Kick808Parameters& p)
     auto coloured = air * (1.0 - flourMix * 0.66) + flour * flourMix;
     coloured *= 0.88 + noiseLp4 * texture * 0.12; coloured /= 1.0 + std::abs (coloured) * 0.16;
     noiseDc += (coloured - noiseDc) * 0.0012;
-    const auto noise = (coloured - noiseDc) * noiseEnv * p.noiseLevel * 0.58 * (1.0 + accent * 0.35);
+    auto noiseBase = noiseGranulator.process(coloured-noiseDc,noiseEnv,p.noiseGranulation,[this]{return (randomBipolar()+1.0)*0.5;});
+    const auto res=std::clamp(p.noiseResonance,0.0,1.0),resCut=std::clamp(600.0+std::pow(tone,1.25)*6800.0,350.0,sr*.28),resF=std::min(.70,(2*pi*resCut)/(sr+2*pi*resCut)*1.62),resDamp=1.90-res*1.52,resHp=noiseBase-noiseResLp-resDamp*noiseResBp;
+    noiseResBp+=resF*resHp; noiseResLp+=resF*noiseResBp; noiseBase=noiseBase*(1-res*.34)+noiseResBp*res*(.68+res*.72);
+    const auto noise = noiseBase * noiseEnv * p.noiseLevel * 0.58 * (1.0 + accent * 0.35);
     impulseEnv *= std::exp (-1.0 / ((0.0007 + p.clickResonance * 0.0065) * sr));
     clickEnv *= std::exp (-1.0 / (0.0042 * sr));
     if (impulseEnv < 0.00001) impulseEnv = 0.0; if (clickEnv < 0.00001) clickEnv = 0.0;
     impulsePhase += (650.0 + p.clickTone * 900.0) / sr; impulsePhase -= std::floor (impulsePhase);
     const auto read = impulsePhase + (p.clickPhase + 1.0) * 0.5;
-    const auto click = (std::sin ((read - std::floor (read)) * 2.0 * pi) * 0.58 + air * 0.42)
+    auto click = (std::sin ((read - std::floor (read)) * 2.0 * pi) * 0.58 + air * 0.42)
         * std::pow (impulseEnv, 2.0) * p.clickLevel * 0.54 * (1.0 + accent * 0.70);
+    click += (-body*amplitude)*std::pow(std::max(0.0,clickEnv),.42)*p.clickBodyCoupling;
     auto raw = body * amplitude * 1.06 + noise + click;
     const auto drive = 1.0 + std::pow (p.bodyDrive * 0.001, 1.25) * 7.5;
     const auto saturated = raw * drive / (1.0 + std::abs (raw * drive));

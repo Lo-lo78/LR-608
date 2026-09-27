@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #pragma once
+#include "Refined1176.h"
 #include "HeapArray.h"
 #include <array>
 #include <cstdint>
@@ -31,5 +32,5 @@ private:
  std::array<double,5> acousticPhase{},acousticFreq{};
  double acousticCharacter=0,acousticSecond=0,acousticGain=1,acousticHitColor=0;
  double acousticNoisePrev=0,acousticWireLp=0,acousticWireHpMem=0,acousticDc=0;
- HeapArray<double,65536> delay;int writePos=0;double readPos=0,writeMem=0,dc=0,x1=0,x2=0,y1=0,y2=0,rms=0,runningDb=0;
+ HeapArray<double,65536> delay;int writePos=0;double readPos=0,writeMem=0,dc=0,x1=0,x2=0,y1=0,y2=0; Refined1176 compressor;
 }; }

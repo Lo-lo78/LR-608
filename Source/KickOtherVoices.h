@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #pragma once
+#include "Refined1176.h"
+#include "OrganicGranulator.h"
 
 #include "Kick808Voice.h"
 #include <array>
@@ -60,13 +62,13 @@ private:
     double env {}, pitchEnv {}, clickEnv {}, impulseEnv {}, noiseEnv {};
     double phase {}, impulsePhase {}, lfoPhase {}, lfoEnv {}, lfoSmooth {};
     double noiseHold {}, bodyLp {}, noiseLp1 {}, noiseLp2 {}, noiseLp3 {}, noiseLp4 {}, noiseDc {};
-    double noiseCount {}, dcX {}, dcY {}, rms {}, runningDb {};
+    double noiseResLp {}, noiseResBp {}; OrganicGranulator noiseGranulator;
+    double noiseCount {}, dcX {}, dcY {};
+    Refined1176 compressor;
     std::array<double,4> linnPhase{},linnLp{};
     double linnFilterEnv{},linnBeaterLp1{},linnBeaterLp2{},linnAirLp1{},linnAirLp2{};
     double linnDigitalPhase{},linnDigitalHold{},linnHitDetune{1},linnHitColor{},linnSampleHold{};
-    double dcCoefficient {}, rmsCoefficient {}, compThresholdLinear {1.0};
-    double compAttackCoefficient {}, compReleaseCoefficient {};
-    double compRatioReduction {}, compMakeupGain {1.0};
+    double dcCoefficient {};
 
     // Saike shared state.
     double pitchValue {}, pitchTime {}, pitchRise {}, pitchDecay {}, pitchAttackSamples {};

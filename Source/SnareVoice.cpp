@@ -18,16 +18,16 @@ double SnareVoice::Svf::lp(double x){const auto v3=x-ic2,v1=a1*ic1+a2*v3,v2=ic2+
 double SnareVoice::Svf::hp(double x){const auto v3=x-ic2,v1=a1*ic1+a2*v3,v2=ic2+a2*ic1+a3*v3;ic1=2*v1-ic1;ic2=2*v2-ic2;return x-k*v1-v2;}
 double SnareVoice::Envelope::tick(){if(t<attackSamples){val+=rise*(1-val);t+=1;}else val-=decay*val;if(val<1e-7)val=0;return val;}
 
-void SnareVoice::prepare (double sampleRate) { sr = std::max (1.0, sampleRate); reset(); }
+void SnareVoice::prepare (double sampleRate) { sr = std::max (1.0, sampleRate); compressor.prepare (sr); noiseGranulator.prepare(sr); reset(); }
 
 void SnareVoice::reset()
 {
-    active = false; bodyEnv = noiseEnv = clickEnv = pitchEnv = attack = accent = 0.0;
+    active = false; bodyEnv = bodyMidEnv = bodyHighEnv = noiseEnv = clickEnv = pitchEnv = attack = accent = 0.0;
     phase1 = phase2 = phase3 = ringPhase = ringSmooth = 0.0;
-    noiseLp = noiseBp = noiseHpMemory = colourMemory = dcX = dcY = rms = runningDb = 0.0;
+    noiseLp = noiseBp = noiseHpMemory = colourMemory = dcX = dcY = 0.0; compressor.reset();
     simLp1 = simLp2 = simLp3 = simLp4 = simNoiseDc = 0.0;
     modPhase = pinkState = brownState = nx1 = nx2 = ny1 = ny2 = 0.0;
-    ringEnv = ringPrevious = ringSampleHold = 0.0; noiseAttackStage = false;
+    ringEnv = ringPrevious = ringSampleHold = 0.0; noiseAttackStage = false; noiseGranulator.reset();
     linnPhase=linnBodyEnv=linnBodyAttack=linnPitchEnv=linnCrackEnv=linnImpactEnv=0;
     linnWireEnv=linnWireAge=linnDacPhase=linnDacHold=linnAge=0;
     linnRingPhase=linnRingHold=linnRingSmoothed=0;
@@ -48,7 +48,7 @@ void SnareVoice::trigger (int engine, int midiVelocity, const SnareParameters& p
     const auto threshold = p.accentThreshold / 127.0;
     accent = velocity > threshold
         ? std::pow ((velocity-threshold) / std::max (.001, 1.0-threshold), 1.6) * p.accentCharacter : 0.0;
-    bodyEnv = clickEnv = pitchEnv = 1.0;
+    bodyEnv = bodyMidEnv = bodyHighEnv = clickEnv = pitchEnv = 1.0;
     noiseEnv = p.v[13] > 0.0 ? 0.0 : 1.0;
     noiseAttackStage = p.v[13] > 0.0;
     attack = 0.0; phase1 = phase2 = phase3 = 0.0;
@@ -57,16 +57,7 @@ void SnareVoice::trigger (int engine, int midiVelocity, const SnareParameters& p
     // Each trigger starts a voice using only the selected engine's bank.
     // Filter memories are deliberately retained, as in the continuously running JSFX filters.
     active = p.v[0] > 0.0;
-    constexpr double db2log = 0.11512925464970229;
-    compMix = p.v[30] / 100.0;
-    compRmsCoefficient = std::exp(-1.0/(.01*sr));
-    compThresholdLinear = std::exp((p.v[25]-3.0)*db2log);
-    compThresholdLog = std::log(compThresholdLinear);
-    compAttackCoefficient = std::exp(-1.0/(std::max(.0001,p.v[28]*.001)*sr));
-    compReleaseCoefficient = std::exp(-1.0/(std::max(.001,p.v[29]*.001)*sr));
-    static constexpr double ratios[] {4,8,12,20,20};
-    compRatioReduction = 1.0-1.0/ratios[std::clamp(int(std::round(p.v[26])),0,4)];
-    compMakeupGain = std::exp(p.v[27]*db2log);
+    compressor.configure (p.v[25], int(std::lround(p.v[26])), p.v[27], p.v[28], p.v[29], p.v[30]);
     if (activeEngine == 2) resetAcoustic (p);
     else if (activeEngine >= 3 && activeEngine <= 5) resetSaike (p);
     else if (activeEngine == 7) resetSaike (p);
@@ -142,38 +133,19 @@ float SnareVoice::render (const SnareParameters& p)
     const auto drive = 1.0 + std::pow (std::max (0.0, p.v[17]) * .001, 1.2) * 18.0;
     const auto driven = std::tanh (y * drive);
     y += (driven-y) * std::clamp (p.v[18], 0.0, 1.0);
-    if (p.v[30] > .0001)
-    {
-        const auto db2log = std::log(10.0)/20.0;
-        rms = y*y + std::exp(-1.0/(.01*sr))*(rms-y*y);
-        const auto over = std::max(0.0, 20.0/std::log(10.0)*std::log(std::max(std::sqrt(std::max(0.0,rms)),1e-7)
-                              / std::exp(p.v[25]*db2log)));
-        const auto coeff = std::exp(-1.0/(std::max(.0001, (over>runningDb?p.v[28]:p.v[29])*.001)*sr));
-        runningDb += (over-runningDb)*(1.0-coeff);
-        static constexpr int ratios[] {4,8,12,20,40};
-        const auto gain = std::exp((-runningDb*(1.0-1.0/ratios[std::clamp(int(std::round(p.v[26])),0,4)])+p.v[27])*db2log);
-        y += (y*gain-y) * std::clamp(p.v[30]/100.0,0.0,1.0);
-    }
+    y = compressor.process (y);
     // Non-808 families are still behind the conservative compatibility gain
     // until their dedicated JSFX functions replace this provisional branch.
     y *= p.v[0] * velocity * .055;
     const auto previous = dcX; dcX = y; dcY = dcX-previous+std::exp(-2*pi*5.0/sr)*dcY;
     if (! std::isfinite (dcY)) { reset(); return 0.0f; }
-    active = bodyEnv > 1e-6 || noiseEnv > 1e-6 || clickEnv > 1e-6;
+    active = bodyEnv > 1e-6 || bodyMidEnv > 1e-6 || bodyHighEnv > 1e-6 || noiseEnv > 1e-6 || clickEnv > 1e-6;
     return static_cast<float> (active ? dcY : 0.0);
 }
 
 double SnareVoice::compress (double signal, const SnareParameters&)
 {
-    if (compMix <= .000001) { rms = runningDb = 0.0; return signal; }
-    constexpr double db2log = 0.11512925464970229;
-    constexpr double log2db = 8.6858896380650366;
-    const auto square = signal * signal;
-    rms = square + compRmsCoefficient * (rms-square);
-    const auto overDb = std::max(0.0, log2db*(0.5*std::log(std::max(rms,1e-14))-compThresholdLog));
-    runningDb += (overDb-runningDb) * (1.0-(overDb>runningDb?compAttackCoefficient:compReleaseCoefficient));
-    const auto gain = std::exp(-runningDb*compRatioReduction*db2log) * compMakeupGain;
-    return signal + (signal*gain-signal)*compMix;
+    return compressor.process (signal);
 }
 
 float SnareVoice::render808 (const SnareParameters& p)
@@ -184,7 +156,9 @@ float SnareVoice::render808 (const SnareParameters& p)
     const auto clickFrequency = 4200.0 + accent*1800.0;
     clickEnv = std::max(0.0, clickEnv);
     phase3 += clickFrequency/sr; phase3 -= std::floor(phase3);
-    const auto click = std::sin(phase3*2*pi)*clickEnv*p.v[1];
+    auto click = std::sin(phase3*2*pi)*clickEnv*p.v[1];
+    const auto clickFocus=std::pow(std::max(0.0,clickEnv),0.42);
+    click += (-std::sin(phase1*2*pi)*bodyEnv)*clickFocus*p.v[36];
 
     const auto bodyDecay = 1.0-std::exp(-1.0/(std::max(p.v[2],.001)*sr));
     bodyEnv -= bodyEnv*bodyDecay;
@@ -193,16 +167,18 @@ float SnareVoice::render808 (const SnareParameters& p)
     const auto startFrequency = endFrequency*(1.0+p.v[5]*3.5);
     auto frequency = endFrequency+(startFrequency-endFrequency)*std::pow(bodyEnv,2.2+accent*4.6);
     frequency += randomBipolar()*3.0*bodyEnv;
+    bodyMidEnv -= bodyMidEnv*(1.0-std::exp(-1.0/(std::max(p.v[34],.001)*sr))); if(bodyMidEnv<.00001) bodyMidEnv=0;
+    bodyHighEnv -= bodyHighEnv*(1.0-std::exp(-1.0/(std::max(p.v[35],.001)*sr))); if(bodyHighEnv<.00001) bodyHighEnv=0;
     phase1 += frequency/sr; phase1 -= std::floor(phase1);
     auto body1 = std::sin(phase1*2*pi);
-    phase2 += frequency*2.1/sr; phase2 -= std::floor(phase2);
+    phase2 += frequency*2.1*std::pow(2.0,p.v[31]/12.0)/sr; phase2 -= std::floor(phase2);
     auto body2 = std::sin(phase2*2*pi)*p.v[6];
-    ringPhase += frequency*4.8/sr; ringPhase -= std::floor(ringPhase);
+    ringPhase += frequency*4.8*std::pow(2.0,p.v[32]/12.0)/sr; ringPhase -= std::floor(ringPhase);
     auto body3 = std::sin(ringPhase*2*pi)*p.v[7];
-    const auto bodyBus = body1+body2*.6+body3*.35;
-    const auto coupling = bodyBus*.12*bodyEnv;
+    const auto bodyBus = body1*bodyEnv + body2*.6*bodyMidEnv + body3*.35*bodyHighEnv;
+    const auto coupling = bodyBus*.12;
     body1 += coupling*.6; body2 += coupling*.4; body3 += coupling*.25;
-    auto bodySignal = bodyBus*bodyEnv*p.v[4];
+    auto bodySignal = bodyBus*p.v[4];
     bodySignal *= 1.0-accent*.05;
 
     if (noiseAttackStage)
@@ -231,7 +207,8 @@ float SnareVoice::render808 (const SnareParameters& p)
     double coloured;
     if (p.v[14] <= .5) { const auto t=p.v[14]*2.0; coloured=white*(1.0-t)+pink*t; }
     else { const auto t=(p.v[14]-.5)*2.0; coloured=pink*(1.0-t)+brown*t; }
-    auto noise = coloured + body1*bodyEnv*.35 + body2*bodyEnv*.25 + body3*bodyEnv*.18;
+    coloured = noiseGranulator.process(coloured,noiseEnv,p.v[33],[this]{return (randomBipolar()+1.0)*0.5;});
+    auto noise = coloured + body1*bodyEnv*.35 + body2*bodyMidEnv*.25 + body3*bodyHighEnv*.18;
 
     const auto filterEnvelopeAmount = p.v[12]*p.v[16];
     const auto baseFrequency = 1200.0+p.v[10]*3800.0;
@@ -338,7 +315,7 @@ float SnareVoice::renderSimmons (const SnareParameters& p)
     auto noiseColour=air*(1.0-flourMix*.58)+flour*flourMix;
     noiseColour*=.86+simLp4*(.08+texture*.12); noiseColour/=1.0+std::abs(noiseColour)*.16;
     simNoiseDc+=(noiseColour-simNoiseDc)*.00125;
-    const auto input=noiseColour-simNoiseDc;
+    const auto input=noiseGranulator.process(noiseColour-simNoiseDc,noiseEnv,p.v[33],[this]{return (randomBipolar()+1.0)*0.5;});
     auto filterCut=850.0+std::pow(p.v[10],1.25)*9300.0;
     filterCut*=.58+.42*std::sqrt(std::max(0.0,noiseEnv))+p.v[12]*p.v[16]*noiseEnv*1.45+modulation*p.v[7]*.10;
     filterCut=std::clamp(filterCut,350.0,sr*.30);
@@ -348,7 +325,8 @@ float SnareVoice::renderSimmons (const SnareParameters& p)
     const auto noiseSignal=filtered*noiseEnv*p.v[8]*.82*(1.0+accent*.62);
     clickEnv*=std::exp(-1.0/(.0035*sr)); if(clickEnv<.00001)clickEnv=0.0;
     phase3+=(2500.0+base*1.8)/sr;phase3-=std::floor(phase3);
-    const auto click=(std::sin(phase3*2*pi)*.42+air*.58)*std::pow(clickEnv,2.15)*p.v[1]*.58*(1.0+accent*.66);
+    auto click=(std::sin(phase3*2*pi)*.42+air*.58)*std::pow(clickEnv,2.15)*p.v[1]*.58*(1.0+accent*.66);
+    click+=(-bodySignal)*std::pow(std::max(0.0,clickEnv),.42)*p.v[36];
     auto raw=bodySignal+noiseSignal+click;
     const auto drive=1.0+std::pow(p.v[17]*.001,1.25)*7.0;
     const auto saturated=raw*drive/(1.0+std::abs(raw*drive));

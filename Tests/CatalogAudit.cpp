@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 348
+    if (std::size (lr608::generated::parameters) != 351
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -145,7 +145,10 @@ int main()
     for(int index=289;index<291;++index){const auto&e=lr608::generated::parameters[index];if(std::string(e.id)!=filterEnvIds[std::size_t(index-289)]||e.step<=0||e.minimum>e.defaultValue||e.defaultValue>e.maximum){std::cerr<<"Invalid filter envelope descriptor\n";return EXIT_FAILURE;}ids.emplace(e.id);}
     if(lr608::generated::parameters[lr608::slotFilterEnvelopeDepthParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::slotFilterEnvelopeDecayParameterIndex].defaultValue!=0.0){std::cerr<<"Filter envelope defaults are not backward-compatible\n";return EXIT_FAILURE;}
     for(int index=291;index<348;++index){const auto&c=lr608::generated::parameters[index];if(std::string(c.id).rfind("capturedTimbale",0)!=0||c.step<=0||c.minimum>c.defaultValue||c.defaultValue>c.maximum){std::cerr<<"Invalid captured Timbale descriptor\n";return EXIT_FAILURE;}ids.emplace(c.id);}
-    if (ids.size() != 348)
+    const std::array<const char*,3> kickLabIds{"kickNoiseResonance","kickNoiseGranulation","kickClickBodyCoupling"};
+    for(int index=348;index<351;++index){const auto&k=lr608::generated::parameters[index];if(std::string(k.id)!=kickLabIds[std::size_t(index-348)]||k.step<=0||k.minimum>k.defaultValue||k.defaultValue>k.maximum){std::cerr<<"Invalid Kick 808 LAB descriptor\n";return EXIT_FAILURE;}ids.emplace(k.id);}
+    if(lr608::generated::parameters[lr608::kickNoiseResonanceParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::kickNoiseGranulationParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::kickClickBodyCouplingParameterIndex].defaultValue!=0.11){std::cerr<<"Kick 808 LAB defaults are not backward-compatible\n";return EXIT_FAILURE;}
+    if (ids.size() != 351)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -168,11 +171,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 322)
+    if (exposed.size() != 325)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 322 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 325 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

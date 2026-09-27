@@ -308,3 +308,6 @@ Clave / Cowbell,8,66,354,capturedTimbale54,Velocity Pitch Flex Amount (%)
 Clave / Cowbell,8,67,355,capturedTimbale55,Velocity Metal Amount (%)
 Clave / Cowbell,8,68,356,capturedTimbale56,Post Saturation Velocity Amount (%)
 Clave / Cowbell,8,69,357,capturedTimbale57,Post Saturation Velocity Curve
+Kick,8,33,358,kickNoiseResonance,Kick Noise Resonance
+Kick,8,34,359,kickNoiseGranulation,Kick Noise Granulation
+Kick,8,35,360,kickClickBodyCoupling,Kick Click Body Coupling

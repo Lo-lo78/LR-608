@@ -811,6 +811,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         value ("slider140"), value ("slider141"), value ("slider142"), value ("slider148"),
         value ("slider149"), value ("slider150"), value ("slider152"), value ("slider153"),
         value ("slider154"), value ("slider155"), juce::roundToInt (value ("slider151")),
+        value ("kickNoiseResonance"), value ("kickNoiseGranulation"), value ("kickClickBodyCoupling"),
         value ("slider250"), value ("slider251"), value ("slider256")
     };
     const auto kickEngine = juce::roundToInt (value ("slider247"));

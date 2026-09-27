@@ -365,5 +365,8 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 355, "capturedTimbale55", "Velocity Metal Amount (%)", 0.0, 100.0, 1.0, 20.0, "" },
     { 356, "capturedTimbale56", "Post Saturation Velocity Amount (%)", 0.0, 100.0, 1.0, 65.0, "" },
     { 357, "capturedTimbale57", "Post Saturation Velocity Curve", 0.3, 3.0, 0.01, 1.2, "" },
+    { 358, "kickNoiseResonance", "Kick Noise Resonance", 0.0, 1.0, 0.001, 0.0, "" },
+    { 359, "kickNoiseGranulation", "Kick Noise Granulation", 0.0, 100.0, 0.1, 0.0, "" },
+    { 360, "kickClickBodyCoupling", "Kick Click Body Coupling", 0.0, 0.5, 0.001, 0.11, "" },
 };
 }

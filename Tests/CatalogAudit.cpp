@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 351
+    if (std::size (lr608::generated::parameters) != 375
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -148,7 +148,39 @@ int main()
     const std::array<const char*,3> kickLabIds{"kickNoiseResonance","kickNoiseGranulation","kickClickBodyCoupling"};
     for(int index=348;index<351;++index){const auto&k=lr608::generated::parameters[index];if(std::string(k.id)!=kickLabIds[std::size_t(index-348)]||k.step<=0||k.minimum>k.defaultValue||k.defaultValue>k.maximum){std::cerr<<"Invalid Kick 808 LAB descriptor\n";return EXIT_FAILURE;}ids.emplace(k.id);}
     if(lr608::generated::parameters[lr608::kickNoiseResonanceParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::kickNoiseGranulationParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::kickClickBodyCouplingParameterIndex].defaultValue!=0.11){std::cerr<<"Kick 808 LAB defaults are not backward-compatible\n";return EXIT_FAILURE;}
-    if (ids.size() != 351)
+    const std::array<const char*,12> snareLabIds{
+        "snare1BodyMidTune", "snare1BodyHighTune", "snare1NoiseGranulation",
+        "snare1BodyMidDecay", "snare1BodyHighDecay", "snare1ClickBodyCoupling",
+        "snare2BodyMidTune", "snare2BodyHighTune", "snare2NoiseGranulation",
+        "snare2BodyMidDecay", "snare2BodyHighDecay", "snare2ClickBodyCoupling"
+    };
+    for(int index=351;index<363;++index)
+    {
+        const auto&s=lr608::generated::parameters[index];
+        if(std::string(s.id)!=snareLabIds[std::size_t(index-351)]||s.step<=0||s.minimum>s.defaultValue||s.defaultValue>s.maximum)
+        {
+            std::cerr<<"Invalid Snare LAB descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(s.id);
+    }
+    const std::array<const char*,12> simmonsLabIds{
+        "lowTomNoiseResonance", "lowTomNoiseGranulation", "lowTomClickBodyCoupling",
+        "midTomNoiseResonance", "midTomNoiseGranulation", "midTomClickBodyCoupling",
+        "highTomNoiseResonance", "highTomNoiseGranulation", "highTomClickBodyCoupling",
+        "lowTomPitchDecayCurve", "midTomPitchDecayCurve", "highTomPitchDecayCurve"
+    };
+    for(int index=363;index<375;++index)
+    {
+        const auto&t=lr608::generated::parameters[index];
+        if(std::string(t.id)!=simmonsLabIds[std::size_t(index-363)]||t.step<=0||t.minimum>t.defaultValue||t.defaultValue>t.maximum)
+        {
+            std::cerr<<"Invalid Simmons LAB descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(t.id);
+    }
+    if (ids.size() != 375)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -171,11 +203,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 325)
+    if (exposed.size() != 349)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 325 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 349 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

@@ -694,7 +694,13 @@ void LR608AudioProcessorEditor::resized()
     auto reportArea=getLocalBounds().reduced(30);slotReportSummary.setBounds(reportArea.removeFromTop(38));reportArea.removeFromTop(6);auto reportHeadings=reportArea.removeFromTop(34);const auto reportGap=12;const auto reportWidth=(reportHeadings.getWidth()-reportGap)/2;slotReportFilledLabel.setBounds(reportHeadings.removeFromLeft(reportWidth));reportHeadings.removeFromLeft(reportGap);slotReportEmptyLabel.setBounds(reportHeadings);auto reportButtonArea=reportArea.removeFromBottom(38);slotReportClose.setBounds(reportButtonArea.withSizeKeepingCentre(150,38));reportArea.removeFromBottom(8);auto filledArea=reportArea.removeFromLeft(reportWidth);reportArea.removeFromLeft(reportGap);slotReportFilled.setBounds(filledArea);slotReportEmpty.setBounds(reportArea);
 }
 
-void LR608AudioProcessorEditor::focusGained (FocusChangeType) { scheduleInitialFocusTransfer(); }
+void LR608AudioProcessorEditor::focusGained (FocusChangeType)
+{
+    // The editor itself is only a landing point.  Treat this as entering the
+    // plug-in from outside so the first real control can announce its area.
+    accessibilityFocusArea = 0;
+    scheduleInitialFocusTransfer();
+}
 void LR608AudioProcessorEditor::focusOfChildComponentChanged(FocusChangeType)
 {
     if(globalOpen)return;
@@ -751,10 +757,11 @@ void LR608AudioProcessorEditor::performInitialFocusTransfer()
     if (! isShowing() || presetBrowserOpen || presetSaveOpen || slotNameEditorOpen || slotReportOpen)
         return;
     auto* focused = juce::Component::getCurrentlyFocusedComponent();
-    // Once one of our controls already owns focus, never force it back to Slot.
-    // This is especially important when a modal surface such as the preset
-    // browser closes and restores the previous working control.
-    if (focused != nullptr && (focused == this || isParentOf (focused)))
+    // Once one of our child controls already owns focus, never force it back
+    // to Slot.  The editor container itself is only the host landing point and
+    // must NOT count here: when REAPER enters LR-608, focus commonly lands on
+    // the editor first and then needs to be transferred to the Slot control.
+    if (focused != nullptr && focused != this && isParentOf (focused))
         return;
     auto* peer = getPeer();
     auto* target = static_cast<juce::Component*> (&slotSelector);
@@ -1678,7 +1685,7 @@ void LR608AudioProcessorEditor::confirmPresetOverwrite(){if(!presetOverwriteConf
 void LR608AudioProcessorEditor::showHelpLanguageMenu()
 {
     juce::PopupMenu menu;
-    menu.addSectionHeader("Help language");
+    menu.addSectionHeader("Choose Help language");
     menu.addItem(1,"English");menu.addItem(2,"Italiano");menu.addItem(3,juce::String::fromUTF8("Español"));menu.addItem(4,juce::String::fromUTF8("Português"));
     menu.addItem(5,juce::String::fromUTF8("Français"));menu.addItem(6,juce::String::fromUTF8("Русский"));menu.addItem(7,juce::String::fromUTF8("中文"));menu.addItem(8,juce::String::fromUTF8("日本語"));
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&help),[safe=juce::Component::SafePointer(this)](int result)
@@ -1917,7 +1924,7 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     if(presetBrowserOpen)
     {
         const auto count=int(presetBrowserEntries.size());
-        if(alt&&character=='c'){closePresetBrowser();return true;}
+        if(alt&&(character=='c'||character=='b')){closePresetBrowser();return true;}
         if(code==juce::KeyPress::escapeKey){closePresetBrowser();return true;}
         if(code==juce::KeyPress::returnKey){activatePresetBrowserRow(presetBrowser.getSelectedRow());return true;}
         if(count>0&&code==juce::KeyPress::upKey){selectPresetBrowserRow(presetBrowser.getSelectedRow()-1);return true;}

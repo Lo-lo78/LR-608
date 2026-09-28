@@ -385,12 +385,14 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     for(int note=0;note<128;++note){chokeTriggerSelector.addItem(juce::String(note),note+2);chokeTargetSelector.addItem(juce::String(note),note+2);}
     for(int output=lr608::OutputStage::stemCount-1;output>=0;--output)outputSelector.addItem("Stereo "+juce::String(output*2+1)+"/"+juce::String(output*2+2),output+1);
     slotSelector.setTitle("Slot"); engineSelector.setTitle("Engine"); noteSelector.setTitle("MIDI Note");chokeTriggerSelector.setTitle("MIDI Choke Trigger");chokeTargetSelector.setTitle("MIDI Choke Target");outputSelector.setTitle("Output");
-    slotSelector.setDescription("Slot. F2 edits the Slot name. Left and Right select a column. Alt plus navigation changes the value");
-    engineSelector.setDescription("Engine for the current slot. The MIDI Note remains unchanged");
-    noteSelector.setDescription("MIDI Note belonging to the current slot. Up to 8 active Slot layers are allowed per note");
-    chokeTriggerSelector.setDescription("MIDI Note that triggers this Slot's choke link. Off disables it");
-    chokeTargetSelector.setDescription("MIDI Note whose active voices are choked. Off disables it");
-    outputSelector.setDescription("Stereo output belonging to the current slot");
+    // Keep the Slot area concise for screen readers.  Alt+D is announced only
+    // when focus enters this area, rather than being repeated on every control.
+    slotSelector.setDescription({});
+    engineSelector.setDescription({});
+    noteSelector.setDescription({});
+    chokeTriggerSelector.setDescription({});
+    chokeTargetSelector.setDescription({});
+    outputSelector.setDescription({});
     slotSelector.setExplicitFocusOrder(1);engineSelector.setExplicitFocusOrder(2);noteSelector.setExplicitFocusOrder(3);chokeTriggerSelector.setExplicitFocusOrder(4);chokeTargetSelector.setExplicitFocusOrder(5);outputSelector.setExplicitFocusOrder(6);
     slotSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.captureSlotFromProxy(selectedSlot);const auto item=parameterSelector.getSelectedItemIndex();if(item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}selectedSlot=juce::jlimit(0,lr608::slotCount-1,slotSelector.getSelectedId()-1);saveUiPosition(false);syncSlotBar(true);};
     engineSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.captureSlotFromProxy(selectedSlot);processor.setSlotEngine(selectedSlot,engineSelector.getSelectedId()-1);syncSlotBar(true);saveUiPosition(false);};
@@ -419,27 +421,27 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     };
     parameterValue.setTitle ("Value");
 
-    reset.setDescription ("Resets the selected parameter. Shortcut Backspace");
+    reset.setDescription ("Backspace");
     reset.onClick = [this] { resetSelected(); };
     reset.setExplicitFocusOrder (9);
-    initialize.setDescription ("Initializes the complete LR-608 kit. Shortcut Alt I");
+    initialize.setDescription ("Alt+I");
     initialize.onClick = [this] { initializeAll(); };
     initialize.setExplicitFocusOrder (10);
-    clearSlots.setDescription ("Clear all 128 Slots by setting every Engine to Off");
+    clearSlots.setDescription ("Alt+Shift+Delete");
     clearSlots.onClick = [this] { clearAllSlots(); };
     clearSlots.setExplicitFocusOrder (11);
-    previousPreset.setDescription ("Loads the previous preset. Shortcut Alt minus");
+    previousPreset.setDescription ({});
     previousPreset.onClick = [this] { changePreset (-1); };
     previousPreset.setExplicitFocusOrder (12);
-    nextPreset.setDescription ("Loads the next preset. Shortcut Alt plus");
+    nextPreset.setDescription ({});
     nextPreset.onClick = [this] { changePreset (1); };
     nextPreset.setExplicitFocusOrder (13);
-    loadPreset.setDescription("Opens the accessible preset browser. Shortcut Alt B");
+    loadPreset.setDescription("Alt+B");
     loadPreset.setExplicitFocusOrder(14);loadPreset.onClick=[this]{togglePresetBrowser();};
-    savePreset.setDescription("Saves the complete LR-608 kit with a name. Shortcut Alt S");
+    savePreset.setDescription("Alt+S");
     savePreset.setExplicitFocusOrder(15);savePreset.onClick=[this]{showPresetSave();};
     help.setExplicitFocusOrder (16);
-    help.setDescription("Opens the HTML help language menu. Shortcut Alt H");
+    help.setDescription("Alt+H");
     help.onClick = [this] { showHelpLanguageMenu(); };
 
     for (auto* component : std::array<juce::Component*, 18> {
@@ -478,6 +480,12 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     loadPreset.setColour (juce::TextButton::buttonColourId, cyan.darker (0.58f));
     savePreset.setColour (juce::TextButton::buttonColourId, cyan.darker (0.58f));
     help.setColour (juce::TextButton::buttonColourId, yellow.darker (0.58f));
+    // Previous/Next preset remain available through Alt+- and Alt++, but the
+    // redundant buttons are hidden from both the visual and keyboard UI.
+    previousPreset.setVisible(false);
+    nextPreset.setVisible(false);
+    previousPreset.setWantsKeyboardFocus(false);
+    nextPreset.setWantsKeyboardFocus(false);
 
     parameterValue.setColour (juce::Slider::backgroundColourId, juce::Colour::fromRGB (0x2a, 0x30, 0x35));
     parameterValue.setColour (juce::Slider::trackColourId, cyan.darker (0.18f));
@@ -691,13 +699,31 @@ void LR608AudioProcessorEditor::focusOfChildComponentChanged(FocusChangeType)
 {
     if(globalOpen)return;
     auto* focused=juce::Component::getCurrentlyFocusedComponent();
-    if(focused==&slotSelector){selectedSlotColumn=0;saveUiPosition(false);}
-    else if(focused==&engineSelector){selectedSlotColumn=1;saveUiPosition(false);}
-    else if(focused==&noteSelector){selectedSlotColumn=2;saveUiPosition(false);}
-    else if(focused==&chokeTriggerSelector){selectedSlotColumn=3;saveUiPosition(false);}
-    else if(focused==&chokeTargetSelector){selectedSlotColumn=4;saveUiPosition(false);}
-    else if(focused==&outputSelector){selectedSlotColumn=5;saveUiPosition(false);}
-    else if(focused==&parameterSelector||focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused)))saveUiPosition(true);
+    int newArea=0;
+    if(focused==&slotSelector){selectedSlotColumn=0;saveUiPosition(false);newArea=1;}
+    else if(focused==&engineSelector){selectedSlotColumn=1;saveUiPosition(false);newArea=1;}
+    else if(focused==&noteSelector){selectedSlotColumn=2;saveUiPosition(false);newArea=1;}
+    else if(focused==&chokeTriggerSelector){selectedSlotColumn=3;saveUiPosition(false);newArea=1;}
+    else if(focused==&chokeTargetSelector){selectedSlotColumn=4;saveUiPosition(false);newArea=1;}
+    else if(focused==&outputSelector){selectedSlotColumn=5;saveUiPosition(false);newArea=1;}
+    else if(focused==&parameterSelector){saveUiPosition(true);newArea=2;}
+    else if(focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused))){saveUiPosition(true);newArea=3;}
+    else if(focused!=nullptr)newArea=3;
+
+    const auto previousArea=accessibilityFocusArea;
+    accessibilityFocusArea=newArea;
+    if(newArea!=previousArea&&(newArea==1||newArea==2))
+    {
+        const auto expectedArea=newArea;
+        juce::Timer::callAfterDelay(70,[safe=juce::Component::SafePointer(this),expectedArea]
+        {
+            if(safe==nullptr||safe->presetBrowserOpen||safe->presetSaveOpen)return;
+            auto* now=juce::Component::getCurrentlyFocusedComponent();
+            const bool inSlot=now==&safe->slotSelector||now==&safe->engineSelector||now==&safe->noteSelector||now==&safe->chokeTriggerSelector||now==&safe->chokeTargetSelector||now==&safe->outputSelector;
+            const bool inGrid=now==&safe->parameterSelector;
+            if((expectedArea==1&&inSlot)||(expectedArea==2&&inGrid))safe->announce(expectedArea==1?"Alt+D":"Alt+L");
+        });
+    }
 }
 void LR608AudioProcessorEditor::visibilityChanged() { if (isVisible()) scheduleInitialFocusTransfer(); }
 
@@ -725,7 +751,10 @@ void LR608AudioProcessorEditor::performInitialFocusTransfer()
     if (! isShowing() || presetBrowserOpen || presetSaveOpen || slotNameEditorOpen || slotReportOpen)
         return;
     auto* focused = juce::Component::getCurrentlyFocusedComponent();
-    if (focused == &slotSelector)
+    // Once one of our controls already owns focus, never force it back to Slot.
+    // This is especially important when a modal surface such as the preset
+    // browser closes and restores the previous working control.
+    if (focused != nullptr && (focused == this || isParentOf (focused)))
         return;
     auto* peer = getPeer();
     auto* target = static_cast<juce::Component*> (&slotSelector);
@@ -857,7 +886,7 @@ void LR608AudioProcessorEditor::closeGlobal(bool accept)
     if(!globalOpen)return;
     if(!accept)for(const auto&entry:globalSnapshot)if(auto*p=processor.parameters.getParameter(entry.first)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(entry.second));p->endChangeGesture();}
     const auto globalItem=parameterSelector.getSelectedItemIndex();if(globalItem>=0){globalGridIndex=globalItem;processor.parameters.state.setProperty("uiGlobalGrid",globalItem,nullptr);}
-    globalOpen=false;title.setText("LR-608",juce::dontSendNotification);parameterSelector.setTitle("Parameter");slotSelector.setVisible(true);engineSelector.setVisible(true);noteSelector.setVisible(true);chokeTriggerSelector.setVisible(true);chokeTargetSelector.setVisible(true);outputSelector.setVisible(true);initialize.setVisible(true);clearSlots.setVisible(true);previousPreset.setVisible(true);nextPreset.setVisible(true);help.setVisible(true);selectedSlot=positionBeforeGlobalSlot;selectedSlotColumn=positionBeforeGlobalColumn;syncSlotBar(true);saveUiPosition(positionWasInGrid);
+    globalOpen=false;title.setText("LR-608",juce::dontSendNotification);parameterSelector.setTitle("Parameter");slotSelector.setVisible(true);engineSelector.setVisible(true);noteSelector.setVisible(true);chokeTriggerSelector.setVisible(true);chokeTargetSelector.setVisible(true);outputSelector.setVisible(true);initialize.setVisible(true);clearSlots.setVisible(true);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(true);selectedSlot=positionBeforeGlobalSlot;selectedSlotColumn=positionBeforeGlobalColumn;syncSlotBar(true);saveUiPosition(positionWasInGrid);
     if(positionWasInGrid)requestShortcutFocus(parameterSelector);else focusSlotColumn(selectedSlotColumn);
     announce(accept?"Global confirmed":"Global cancelled");
 }
@@ -903,11 +932,11 @@ void LR608AudioProcessorEditor::updateParameterList()
     visibleNames.clear();
     parameterSelector.clear (juce::dontSendNotification);
     parameterSelector.setTitle(globalOpen?"Global":(slotFxPage?"FX":"Sound"));
-    parameterSelector.setDescription(globalOpen?"Global parameters":(slotFxPage?"FX and Slot parameters. Alt F returns to Sound parameters":"Sound parameters for the current Engine. Alt F opens FX and Slot parameters"));
+    parameterSelector.setDescription({});
     const auto selectedEngine=juce::jlimit(0,lr608::slotEngineCount-1,engineSelector.getSelectedId()-1);
     if(!globalOpen&&lr608::isOffEngine(selectedEngine))
     {
-        parameterSelector.setDescription("No parameters. Engine Off");
+        parameterSelector.setDescription({});
         parameterValue.setEnabled(false);reset.setEnabled(false);
         return;
     }
@@ -1040,15 +1069,11 @@ void LR608AudioProcessorEditor::selectParameter()
     attachment.reset();
     parameterValue.setTitle ("Value. " + visibleNames[item]);
     parameterValue.setName ("Value. " + visibleNames[item]);
-    parameterValue.setDescription ("Value for " + visibleNames[item]
-                                   + ". Alt+V. Enter returns to Parameter");
+    parameterValue.setDescription ("Alt+V");
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         processor.parameters, descriptor.id, parameterValue);
     const auto& page = lr608::generated::pages[pageSelector.getSelectedItemIndex()];
-    parameterSelector.setDescription (
-        "Parameter, row " + juce::String (item % page.rowsPerColumn + 1)
-        + ", column " + juce::String (item / page.rowsPerColumn + 1)
-        + ". Alt+navigation keys, Enter for Value, Backspace resets");
+    parameterSelector.setDescription({});
 }
 
 void LR608AudioProcessorEditor::updateParameterLabel()
@@ -1516,10 +1541,16 @@ void LR608AudioProcessorEditor::openPresetBrowser()
     // temporary modal surface: closing or confirming it must return the user
     // to the same working area instead of always landing on the Browser button.
     presetBrowserReturnFocus=nullptr;
+    presetBrowserReturnSlot=selectedSlot;
+    presetBrowserReturnColumn=selectedSlotColumn;
+    presetBrowserReturnFxPage=slotFxPage;
+    presetBrowserReturnWasInGrid=false;
+    presetBrowserReturnGridIndex=parameterSelector.getSelectedItemIndex();
     if(auto* focused=juce::Component::getCurrentlyFocusedComponent())
     {
         for(auto* control:std::array<juce::Component*,16>{&slotSelector,&engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help})
             if(focused==control||control->isParentOf(focused)){presetBrowserReturnFocus=control;break;}
+        presetBrowserReturnWasInGrid=presetBrowserReturnFocus==&parameterSelector;
     }
     if(presetBrowserReturnFocus==nullptr)presetBrowserReturnFocus=&loadPreset;
     presetBrowserOriginalPatch=processor.presetManager.capturePatchSnapshot();presetBrowserPreviewFile={};presetBrowserHasPreview=false;const auto root=processor.presetManager.getLibraryRoot();presetBrowserDirectory=root;const auto remembered=processor.parameters.state.getProperty(presetBrowserDirectoryState).toString();if(remembered.isNotEmpty()&&remembered!="."){const auto candidate=root.getChildFile(remembered);if(candidate.isDirectory()&&processor.presetManager.isInsideLibrary(candidate))presetBrowserDirectory=candidate;}
@@ -1531,7 +1562,14 @@ void LR608AudioProcessorEditor::closePresetBrowser(bool focusGrid,bool restoreOr
     if(!presetBrowserOpen)return;const auto root=processor.presetManager.getLibraryRoot();processor.parameters.state.setProperty(presetBrowserDirectoryState,presetBrowserDirectory==root?juce::String("."):presetBrowserDirectory.getRelativePathFrom(root),nullptr);const auto row=presetBrowser.getSelectedRow();processor.parameters.state.setProperty(presetBrowserRowState,std::max(0,row),nullptr);if(juce::isPositiveAndBelow(row,int(presetBrowserEntries.size())))processor.parameters.state.setProperty(presetBrowserSelectionState,presetBrowserEntries[std::size_t(row)].file.getRelativePathFrom(root),nullptr);else processor.parameters.state.removeProperty(presetBrowserSelectionState,nullptr);
     if(restoreOriginal&&presetBrowserHasPreview&&presetBrowserOriginalPatch.isValid())processor.presetManager.restorePatchSnapshot(presetBrowserOriginalPatch);presetBrowserOriginalPatch={};presetBrowserPreviewFile={};presetBrowserHasPreview=false;presetDeleteConfirmationOpen=false;presetDeleteChoiceYes=false;presetDeleteFile={};presetBrowserOpen=false;for(auto*c:std::array<juce::Component*,7>{&presetBrowserPath,&presetBrowser,&presetBrowserBack,&presetBrowserClose,&presetDeleteLabel,&presetDeleteYes,&presetDeleteNo})c->setVisible(false);setMainControlsEnabled(true);refreshAfterPresetChange();repaint();
     auto* returnTarget=presetBrowserReturnFocus;presetBrowserReturnFocus=nullptr;
-    if(returnTarget==nullptr||!isParentOf(returnTarget)||!returnTarget->isShowing()||!returnTarget->isEnabled())returnTarget=focusGrid?static_cast<juce::Component*>(&parameterSelector):static_cast<juce::Component*>(&loadPreset);
+    selectedSlot=juce::jlimit(0,lr608::slotCount-1,presetBrowserReturnSlot);
+    selectedSlotColumn=juce::jlimit(0,5,presetBrowserReturnColumn);
+    slotFxPage=presetBrowserReturnFxPage;
+    syncSlotBar(true,false);
+    if(presetBrowserReturnWasInGrid&&!visibleCatalogIndices.empty())
+        setListIndex(juce::jlimit(0,int(visibleCatalogIndices.size())-1,presetBrowserReturnGridIndex),false);
+    saveUiPosition(presetBrowserReturnWasInGrid);
+    if(returnTarget==nullptr||!isParentOf(returnTarget)||!returnTarget->isShowing()||!returnTarget->isEnabled())returnTarget=(focusGrid||presetBrowserReturnWasInGrid)?static_cast<juce::Component*>(&parameterSelector):static_cast<juce::Component*>(&loadPreset);
     requestShortcutFocus(*returnTarget);
 }
 void LR608AudioProcessorEditor::refreshPresetBrowser(int row)
@@ -1897,8 +1935,18 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             for(int offset=1;offset<=count;++offset)
             {
                 const auto row=(std::max(0,current)+offset)%count;
-                const auto name=getNameForRow(row).trimStart();
-                if(name.isNotEmpty()&&juce::CharacterFunctions::toLowerCase(name[0])==character){selectPresetBrowserRow(row);break;}
+                auto name=presetBrowserEntries[std::size_t(row)].name.trimStart();
+                // Factory files may have a numeric ordering prefix such as
+                // "014 - simons".  Letters should still jump by the actual
+                // preset/folder name, while number keys can target the prefix.
+                auto matchName=name;
+                if(juce::CharacterFunctions::isLetter(character))
+                {
+                    int pos=0;
+                    while(pos<matchName.length()&&(juce::CharacterFunctions::isDigit(matchName[pos])||juce::CharacterFunctions::isWhitespace(matchName[pos])||matchName[pos]=='-'||matchName[pos]=='_'||matchName[pos]=='.'))++pos;
+                    matchName=matchName.substring(pos).trimStart();
+                }
+                if(matchName.isNotEmpty()&&juce::CharacterFunctions::toLowerCase(matchName[0])==character){selectPresetBrowserRow(row);break;}
             }
             return true;
         }

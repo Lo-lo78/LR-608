@@ -92,6 +92,12 @@ private:
     juce::File presetSaveReturnFile;
     juce::File presetDeleteFile;
     juce::Component* presetBrowserReturnFocus = nullptr;
+    int presetBrowserReturnSlot = 0;
+    int presetBrowserReturnColumn = 0;
+    int presetBrowserReturnGridIndex = 0;
+    bool presetBrowserReturnFxPage = false;
+    bool presetBrowserReturnWasInGrid = false;
+    int accessibilityFocusArea = 0;
     int presetDeleteRow=0;
     int stepWidthIndex = 0;
     int selectedSlot = 0;

@@ -1953,38 +1953,8 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         { changePreset (1); return true; }
         if (character == '-' || code == '-' || code == juce::KeyPress::numberPadSubtract)
         { changePreset (-1); return true; }
-        if (character == 'p')
-        {
-            selectedSlotColumn=0;
-            if(selectedSlot>0)slotSelector.setSelectedId(selectedSlot,juce::sendNotificationSync);
-            const auto focusIsSlot = source == &slotSelector
-                                  || (source != nullptr && slotSelector.isParentOf (source));
-            if (! focusIsSlot)
-            {
-                const auto message = "Slot " + juce::String (selectedSlot + 1);
-                status.setText (message, juce::dontSendNotification);
-                status.setTitle (message);
-                if (auto* handler = status.getAccessibilityHandler())
-                    handler->notifyAccessibilityEvent (juce::AccessibilityEvent::titleChanged);
-            }
-            return true;
-        }
-        if (character == 'n')
-        {
-            selectedSlotColumn=0;
-            if(selectedSlot<lr608::slotCount-1)slotSelector.setSelectedId(selectedSlot+2,juce::sendNotificationSync);
-            const auto focusIsSlot = source == &slotSelector
-                                  || (source != nullptr && slotSelector.isParentOf (source));
-            if (! focusIsSlot)
-            {
-                const auto message = "Slot " + juce::String (selectedSlot + 1);
-                status.setText (message, juce::dontSendNotification);
-                status.setTitle (message);
-                if (auto* handler = status.getAccessibilityHandler())
-                    handler->notifyAccessibilityEvent (juce::AccessibilityEvent::titleChanged);
-            }
-            return true;
-        }
+        if (character == 'p') {selectedSlotColumn=0;changeSlotBarValue(1,false,false,false);return true;}
+        if (character == 'n') {selectedSlotColumn=0;changeSlotBarValue(-1,false,false,false);return true;}
         if (character == 'd') { focusSlotColumn(selectedSlotColumn); return true; }
         if (character == 'l') {saveUiPosition(true);focusControl (parameterSelector); return true; }
         if (character == 'e') { parameterValue.showTextBox(); return true; }

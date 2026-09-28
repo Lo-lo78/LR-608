@@ -1003,6 +1003,11 @@ void LR608AudioProcessorEditor::updateParameterList()
                 const auto mid=structuralName.startsWith("Mid Tom")||structuralName.startsWith("MidTom");
                 const auto high=structuralName.startsWith("High Tom")||structuralName.startsWith("HighTom");
                 if((family==lr608::SlotFamily::lowTom&&!low)||(family==lr608::SlotFamily::midTom&&!mid)||(family==lr608::SlotFamily::highTom&&!high))continue;
+                // Wave Morph belongs to the 808 tom circuit.  The legacy JSFX
+                // reused the physical slider for Simmons because of the 256-slider
+                // limit, but the Simmons DSP never reads it.  Do not expose a
+                // misleading "Noise Texture" control for the three Simmons toms.
+                if(lr608::slotEngines[selectedEngine].subEngine==1&&structuralName.endsWith(" Wave Morph"))continue;
                 if(!slotFxPage&&structuralName.endsWith(" Pan"))continue;
             }
             if(pageIndex==7)
@@ -1948,8 +1953,18 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         { changePreset (1); return true; }
         if (character == '-' || code == '-' || code == juce::KeyPress::numberPadSubtract)
         { changePreset (-1); return true; }
-        if (character == 'p') {selectedSlotColumn=0;changeSlotBarValue(-1,false,false,false);return true;}
-        if (character == 'n') {selectedSlotColumn=0;changeSlotBarValue(1,false,false,false);return true;}
+        if (character == 'p')
+        {
+            selectedSlotColumn=0;
+            if(selectedSlot>0)slotSelector.setSelectedId(selectedSlot,juce::sendNotificationSync);
+            return true;
+        }
+        if (character == 'n')
+        {
+            selectedSlotColumn=0;
+            if(selectedSlot<lr608::slotCount-1)slotSelector.setSelectedId(selectedSlot+2,juce::sendNotificationSync);
+            return true;
+        }
         if (character == 'd') { focusSlotColumn(selectedSlotColumn); return true; }
         if (character == 'l') {saveUiPosition(true);focusControl (parameterSelector); return true; }
         if (character == 'e') { parameterValue.showTextBox(); return true; }

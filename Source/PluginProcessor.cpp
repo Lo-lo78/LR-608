@@ -561,6 +561,17 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
             slotValues[slot][catalogIndex("slider251")].store(parameters.getRawParameterValue("slider251")->load());
         }
         else captureSlotFromProxy(slot);
+
+        // The original 808 snare used the main Body Decay for all three body
+        // resonators.  Mid/High decay became independent native VST parameters
+        // later, so legacy/factory presets must inherit the historical main
+        // decay instead of falling back to their generic defaults.
+        if(engine==8)
+        {
+            const auto bodyDecay=slotValues[slot][catalogIndex("slider022")].load();
+            slotValues[slot][lr608::snare1BodyMidDecayParameterIndex].store(bodyDecay);
+            slotValues[slot][lr608::snare1BodyHighDecayParameterIndex].store(bodyDecay);
+        }
     }
     static constexpr int extraBases[]{30,45,35,40};
     static constexpr const char*extraSelectors[]{"slider219","slider217","slider219","slider219"};

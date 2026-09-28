@@ -22,6 +22,7 @@ std::vector<juce::String> tokeniseReaperState(const juce::String&text)
     if(current.isNotEmpty())result.push_back(current);return result;
 }
 juce::String embeddedRplText(){int size=0;if(const auto*data=BinaryData::getNamedResource("LR608_jsfx_rpl",size))return juce::String::fromUTF8(data,size);return {};}
+juce::String embeddedFactoryPreset14Text(){int size=0;if(const auto*data=BinaryData::getNamedResource("FactoryPreset14_LR608",size))return juce::String::fromUTF8(data,size);return {};}
 int descriptorIndex(juce::String key)
 {
     key=key.trim();if(key.startsWith("[PARAM] "))key=key.substring(8).trim();
@@ -38,12 +39,12 @@ juce::Result PresetManager::ensureLibraryExists()
 {
     if(const auto r=root.createDirectory();r.failed())return juce::Result::fail("Cannot create the LR-608 preset folder");
     const auto factory=root.getChildFile("Factory");if(const auto r=factory.createDirectory();r.failed())return juce::Result::fail("Cannot create the Factory preset folder");
-    const auto marker=root.getChildFile(".factory-rpl-4-lr608-installed");if(marker.existsAsFile())return juce::Result::ok();
+    const auto marker=root.getChildFile(".factory-rpl-5-lr608-installed");if(marker.existsAsFile())return juce::Result::ok();
     const auto presets=parseReaperLibrary(embeddedRplText());if(presets.empty())return juce::Result::fail("The embedded LR-608 preset library is invalid");
     std::vector<juce::File> installed;
-    for(std::size_t i=0;i<presets.size();++i){const auto installedName=i==0?juce::String("Init"):presets[i].name;auto legal=juce::File::createLegalFileName(installedName.trim());if(legal.isEmpty())legal="Factory preset";const auto file=factory.getChildFile(juce::String(int(i)+1).paddedLeft('0',3)+" - "+legal+presetExtension);if(!file.replaceWithText(serialiseLegacyPreset(installedName,presets[i].values)))return juce::Result::fail("Cannot write an LR-608 factory preset");installed.push_back(file);}
+    for(std::size_t i=0;i<presets.size();++i){const auto installedName=i==0?juce::String("Init"):presets[i].name;auto legal=juce::File::createLegalFileName(installedName.trim());if(legal.isEmpty())legal="Factory preset";const auto file=factory.getChildFile(juce::String(int(i)+1).paddedLeft('0',3)+" - "+legal+presetExtension);const auto presetText=i==13?embeddedFactoryPreset14Text():serialiseLegacyPreset(installedName,presets[i].values);if(presetText.isEmpty()||!file.replaceWithText(presetText))return juce::Result::fail("Cannot write an LR-608 factory preset");installed.push_back(file);}
     const auto old=factory.findChildFiles(juce::File::findFiles,false,presetWildcard,juce::File::FollowSymlinks::no);for(const auto&file:old){const auto n=file.getFileName();const auto managed=n.length()>6&&n.substring(0,3).containsOnly("0123456789")&&n.substring(3,6)==" - ";if(managed&&std::find(installed.begin(),installed.end(),file)==installed.end()&&!file.deleteFile())return juce::Result::fail("An obsolete Factory preset could not be removed");}
-    if(!marker.replaceWithText("LR-608 Factory bank synchronised with Init-first migration version 3.\n"))return juce::Result::fail("Factory presets were written but the marker failed");return juce::Result::ok();
+    if(!marker.replaceWithText("LR-608 Factory bank synchronised with Init-first migration version 4.\n"))return juce::Result::fail("Factory presets were written but the marker failed");return juce::Result::ok();
 }
 
 juce::Result PresetManager::loadFactoryInit()

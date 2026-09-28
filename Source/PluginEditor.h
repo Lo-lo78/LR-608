@@ -91,6 +91,7 @@ private:
     juce::File presetOverwriteFile;
     juce::File presetSaveReturnFile;
     juce::File presetDeleteFile;
+    juce::Component* presetBrowserReturnFocus = nullptr;
     int presetDeleteRow=0;
     int stepWidthIndex = 0;
     int selectedSlot = 0;

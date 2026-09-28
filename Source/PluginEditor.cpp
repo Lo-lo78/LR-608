@@ -1512,6 +1512,16 @@ void LR608AudioProcessorEditor::togglePresetBrowser(){if(presetBrowserOpen)close
 void LR608AudioProcessorEditor::openPresetBrowser()
 {
     if(presetBrowserOpen)return;if(const auto result=processor.presetManager.ensureLibraryExists();result.failed()){announce(result.getErrorMessage());return;}if(presetSaveOpen)closePresetSave();
+    // Remember the control that owned focus before Alt+B.  The browser is a
+    // temporary modal surface: closing or confirming it must return the user
+    // to the same working area instead of always landing on the Browser button.
+    presetBrowserReturnFocus=nullptr;
+    if(auto* focused=juce::Component::getCurrentlyFocusedComponent())
+    {
+        for(auto* control:std::array<juce::Component*,16>{&slotSelector,&engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help})
+            if(focused==control||control->isParentOf(focused)){presetBrowserReturnFocus=control;break;}
+    }
+    if(presetBrowserReturnFocus==nullptr)presetBrowserReturnFocus=&loadPreset;
     presetBrowserOriginalPatch=processor.presetManager.capturePatchSnapshot();presetBrowserPreviewFile={};presetBrowserHasPreview=false;const auto root=processor.presetManager.getLibraryRoot();presetBrowserDirectory=root;const auto remembered=processor.parameters.state.getProperty(presetBrowserDirectoryState).toString();if(remembered.isNotEmpty()&&remembered!="."){const auto candidate=root.getChildFile(remembered);if(candidate.isDirectory()&&processor.presetManager.isInsideLibrary(candidate))presetBrowserDirectory=candidate;}
     presetBrowserOpen=true;setMainControlsEnabled(false);for(auto*c:std::array<juce::Component*,4>{&presetBrowserPath,&presetBrowser,&presetBrowserBack,&presetBrowserClose}){c->setVisible(true);c->toFront(false);}refreshPresetBrowser(int(processor.parameters.state.getProperty(presetBrowserRowState,0)));const auto selection=processor.parameters.state.getProperty(presetBrowserSelectionState).toString();if(selection.isNotEmpty()){const auto file=root.getChildFile(selection);for(int row=0;row<int(presetBrowserEntries.size());++row)if(presetBrowserEntries[std::size_t(row)].file==file){const juce::ScopedValueSetter guard(suppressPresetBrowserAnnouncement,true);presetBrowser.selectRow(row);presetBrowser.scrollToEnsureRowIsOnscreen(row);break;}}
     repaint();juce::MessageManager::callAsync([safe=juce::Component::SafePointer(this)]{if(safe!=nullptr&&safe->presetBrowserOpen)safe->focusPresetBrowserAndAnnounce();});
@@ -1519,7 +1529,10 @@ void LR608AudioProcessorEditor::openPresetBrowser()
 void LR608AudioProcessorEditor::closePresetBrowser(bool focusGrid,bool restoreOriginal)
 {
     if(!presetBrowserOpen)return;const auto root=processor.presetManager.getLibraryRoot();processor.parameters.state.setProperty(presetBrowserDirectoryState,presetBrowserDirectory==root?juce::String("."):presetBrowserDirectory.getRelativePathFrom(root),nullptr);const auto row=presetBrowser.getSelectedRow();processor.parameters.state.setProperty(presetBrowserRowState,std::max(0,row),nullptr);if(juce::isPositiveAndBelow(row,int(presetBrowserEntries.size())))processor.parameters.state.setProperty(presetBrowserSelectionState,presetBrowserEntries[std::size_t(row)].file.getRelativePathFrom(root),nullptr);else processor.parameters.state.removeProperty(presetBrowserSelectionState,nullptr);
-    if(restoreOriginal&&presetBrowserHasPreview&&presetBrowserOriginalPatch.isValid())processor.presetManager.restorePatchSnapshot(presetBrowserOriginalPatch);presetBrowserOriginalPatch={};presetBrowserPreviewFile={};presetBrowserHasPreview=false;presetDeleteConfirmationOpen=false;presetDeleteChoiceYes=false;presetDeleteFile={};presetBrowserOpen=false;for(auto*c:std::array<juce::Component*,7>{&presetBrowserPath,&presetBrowser,&presetBrowserBack,&presetBrowserClose,&presetDeleteLabel,&presetDeleteYes,&presetDeleteNo})c->setVisible(false);setMainControlsEnabled(true);refreshAfterPresetChange();repaint();if(focusGrid)requestShortcutFocus(parameterSelector);else requestShortcutFocus(loadPreset);
+    if(restoreOriginal&&presetBrowserHasPreview&&presetBrowserOriginalPatch.isValid())processor.presetManager.restorePatchSnapshot(presetBrowserOriginalPatch);presetBrowserOriginalPatch={};presetBrowserPreviewFile={};presetBrowserHasPreview=false;presetDeleteConfirmationOpen=false;presetDeleteChoiceYes=false;presetDeleteFile={};presetBrowserOpen=false;for(auto*c:std::array<juce::Component*,7>{&presetBrowserPath,&presetBrowser,&presetBrowserBack,&presetBrowserClose,&presetDeleteLabel,&presetDeleteYes,&presetDeleteNo})c->setVisible(false);setMainControlsEnabled(true);refreshAfterPresetChange();repaint();
+    auto* returnTarget=presetBrowserReturnFocus;presetBrowserReturnFocus=nullptr;
+    if(returnTarget==nullptr||!isParentOf(returnTarget)||!returnTarget->isShowing()||!returnTarget->isEnabled())returnTarget=focusGrid?static_cast<juce::Component*>(&parameterSelector):static_cast<juce::Component*>(&loadPreset);
+    requestShortcutFocus(*returnTarget);
 }
 void LR608AudioProcessorEditor::refreshPresetBrowser(int row)
 {
@@ -1851,11 +1864,6 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     }
     if(slotNameEditorOpen){if(code==juce::KeyPress::escapeKey){closeSlotNameEditor();return true;}if(code==juce::KeyPress::returnKey){commitSlotName();return true;}return false;}
     if(code==juce::KeyPress::F2Key&&(source==&slotSelector||(source!=nullptr&&slotSelector.isParentOf(source)))){showSlotNameEditor();return true;}
-    if(alt&&character=='m'){toggleMidiKeyboardMode();return true;}
-    if(alt&&character=='b'){if(presetSaveOpen)closePresetSave();else togglePresetBrowser();return true;}
-    if(alt&&character=='c'&&presetSaveOpen){closePresetSave();return true;}
-    if(alt&&character=='c'&&presetBrowserOpen){closePresetBrowser();return true;}
-    if(alt&&character=='s'){showPresetSave();return true;}
     if(presetDeleteConfirmationOpen)
     {
         if(code==juce::KeyPress::escapeKey){dismissPresetDeleteConfirmation();return true;}
@@ -1867,13 +1875,12 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         return false;
     }
     if(presetOverwriteConfirmationOpen){if(code==juce::KeyPress::escapeKey){dismissPresetOverwriteConfirmation();return true;}return false;}
-    if(presetSaveOpen){if(code==juce::KeyPress::escapeKey){closePresetSave();return true;}if(code==juce::KeyPress::returnKey){commitPresetSave();return true;}return false;}
+    if(presetSaveOpen){if(alt&&character=='c'){closePresetSave();return true;}if(code==juce::KeyPress::escapeKey){closePresetSave();return true;}if(code==juce::KeyPress::returnKey){commitPresetSave();return true;}return false;}
     if(presetBrowserOpen)
     {
         const auto count=int(presetBrowserEntries.size());
+        if(alt&&character=='c'){closePresetBrowser();return true;}
         if(code==juce::KeyPress::escapeKey){closePresetBrowser();return true;}
-        if(code==juce::KeyPress::deleteKey){showPresetDeleteConfirmation();return true;}
-        if(code==juce::KeyPress::backspaceKey){goToParentPresetFolder();return true;}
         if(code==juce::KeyPress::returnKey){activatePresetBrowserRow(presetBrowser.getSelectedRow());return true;}
         if(count>0&&code==juce::KeyPress::upKey){selectPresetBrowserRow(presetBrowser.getSelectedRow()-1);return true;}
         if(count>0&&code==juce::KeyPress::downKey){selectPresetBrowserRow(presetBrowser.getSelectedRow()+1);return true;}
@@ -1881,8 +1888,25 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if(count>0&&code==juce::KeyPress::pageDownKey){selectPresetBrowserRow(presetBrowser.getSelectedRow()+10);return true;}
         if(count>0&&code==juce::KeyPress::homeKey){selectPresetBrowserRow(0);return true;}
         if(count>0&&code==juce::KeyPress::endKey){selectPresetBrowserRow(count-1);return true;}
-        return false;
+        // In the preset browser, unmodified letters/numbers are reserved for
+        // fast selection.  All other plug-in shortcuts (Alt+L, Alt+D, Alt+N,
+        // Alt+P, Alt+B, Alt+S, etc.) are swallowed until the browser closes.
+        if(count>0&&!alt&&!ctrl&&juce::CharacterFunctions::isLetterOrDigit(character))
+        {
+            const auto current=presetBrowser.getSelectedRow();
+            for(int offset=1;offset<=count;++offset)
+            {
+                const auto row=(std::max(0,current)+offset)%count;
+                const auto name=getNameForRow(row).trimStart();
+                if(name.isNotEmpty()&&juce::CharacterFunctions::toLowerCase(name[0])==character){selectPresetBrowserRow(row);break;}
+            }
+            return true;
+        }
+        return true;
     }
+    if(alt&&character=='m'){toggleMidiKeyboardMode();return true;}
+    if(alt&&character=='b'){togglePresetBrowser();return true;}
+    if(alt&&character=='s'){showPresetSave();return true;}
     if(alt&&!key.getModifiers().isShiftDown()&&character=='f'&&!globalOpen){toggleSlotParameterPage();return true;}
     if(alt&&character=='r'){if(globalOpen)announce("Slot report is available in the Slot area");else handleSlotReportShortcut();return true;}
     if(alt&&key.getModifiers().isShiftDown()&&code==juce::KeyPress::deleteKey&&!globalOpen){clearMidiKey();return true;}
@@ -1959,7 +1983,10 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             if(selectedSlot>0)
             {
                 slotSelector.setSelectedId(selectedSlot,juce::sendNotificationSync);
-                announce("Slot, "+slotDisplayName(selectedSlot));
+                auto message="Slot, "+slotDisplayName(selectedSlot);
+                const auto location=currentFocusValueAnnouncement();
+                if(location.isNotEmpty()&&location!=message)message+=", "+location;
+                announce(message);
             }
             return true;
         }
@@ -1969,7 +1996,10 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             if(selectedSlot<lr608::slotCount-1)
             {
                 slotSelector.setSelectedId(selectedSlot+2,juce::sendNotificationSync);
-                announce("Slot, "+slotDisplayName(selectedSlot));
+                auto message="Slot, "+slotDisplayName(selectedSlot);
+                const auto location=currentFocusValueAnnouncement();
+                if(location.isNotEmpty()&&location!=message)message+=", "+location;
+                announce(message);
             }
             return true;
         }

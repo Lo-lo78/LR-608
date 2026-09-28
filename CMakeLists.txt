@@ -19,6 +19,7 @@ FetchContent_MakeAvailable(JUCE)
 
 juce_add_binary_data(LR608Data SOURCES
     "LR-608.jsfx.rpl"
+    "FactoryPreset14.LR608"
     "Documentation/LR608Help.html"
 )
 

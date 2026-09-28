@@ -1960,7 +1960,13 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             const auto focusIsSlot = source == &slotSelector
                                   || (source != nullptr && slotSelector.isParentOf (source));
             if (! focusIsSlot)
-                announce ("Slot " + juce::String (selectedSlot + 1));
+            {
+                const auto message = "Slot " + juce::String (selectedSlot + 1);
+                status.setText (message, juce::dontSendNotification);
+                status.setTitle (message);
+                if (auto* handler = status.getAccessibilityHandler())
+                    handler->notifyAccessibilityEvent (juce::AccessibilityEvent::titleChanged);
+            }
             return true;
         }
         if (character == 'n')
@@ -1970,7 +1976,13 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             const auto focusIsSlot = source == &slotSelector
                                   || (source != nullptr && slotSelector.isParentOf (source));
             if (! focusIsSlot)
-                announce ("Slot " + juce::String (selectedSlot + 1));
+            {
+                const auto message = "Slot " + juce::String (selectedSlot + 1);
+                status.setText (message, juce::dontSendNotification);
+                status.setTitle (message);
+                if (auto* handler = status.getAccessibilityHandler())
+                    handler->notifyAccessibilityEvent (juce::AccessibilityEvent::titleChanged);
+            }
             return true;
         }
         if (character == 'd') { focusSlotColumn(selectedSlotColumn); return true; }

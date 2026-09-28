@@ -1957,12 +1957,20 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         {
             selectedSlotColumn=0;
             if(selectedSlot>0)slotSelector.setSelectedId(selectedSlot,juce::sendNotificationSync);
+            const auto focusIsSlot = source == &slotSelector
+                                  || (source != nullptr && slotSelector.isParentOf (source));
+            if (! focusIsSlot)
+                announce ("Slot " + juce::String (selectedSlot + 1));
             return true;
         }
         if (character == 'n')
         {
             selectedSlotColumn=0;
             if(selectedSlot<lr608::slotCount-1)slotSelector.setSelectedId(selectedSlot+2,juce::sendNotificationSync);
+            const auto focusIsSlot = source == &slotSelector
+                                  || (source != nullptr && slotSelector.isParentOf (source));
+            if (! focusIsSlot)
+                announce ("Slot " + juce::String (selectedSlot + 1));
             return true;
         }
         if (character == 'd') { focusSlotColumn(selectedSlotColumn); return true; }

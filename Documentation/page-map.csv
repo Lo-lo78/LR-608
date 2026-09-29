@@ -126,7 +126,6 @@ Rim,10,16,166,slider166,Rim Comp Release (ms)
 Rim,10,17,167,slider167,Rim Comp Mix
 Rim,10,18,209,slider209,Rim Engine
 Rim,10,19,252,slider252,Rim Delay Mode
-Toms,8,1,40,slider040,Low Tom Pan
 Toms,8,2,41,slider041,Low Tom Click Level
 Toms,8,3,42,slider042,Low Tom Tune
 Toms,8,4,43,slider043,Low Tom Pitch Decay
@@ -134,7 +133,6 @@ Toms,8,5,44,slider044,Low Tom Pitch Amount
 Toms,8,6,45,slider045,Low Tom Decay
 Toms,8,7,46,slider046,Low Tom Noise Level
 Toms,8,8,47,slider047,Low Tom Noise LPF
-Toms,8,9,48,slider048,Mid Tom Pan
 Toms,8,10,49,slider049,Mid Tom Click Level
 Toms,8,11,50,slider050,Mid Tom Tune
 Toms,8,12,51,slider051,Mid Tom Pitch Decay
@@ -142,7 +140,6 @@ Toms,8,13,52,slider052,Mid Tom Pitch Amount
 Toms,8,14,53,slider053,Mid Tom Decay
 Toms,8,15,54,slider054,Mid Tom Noise Level
 Toms,8,16,55,slider055,Mid Tom Noise LPF
-Toms,8,17,56,slider056,High Tom Pan
 Toms,8,18,57,slider057,High Tom Click Level
 Toms,8,19,58,slider058,High Tom Tune
 Toms,8,20,59,slider059,High Tom Pitch Decay

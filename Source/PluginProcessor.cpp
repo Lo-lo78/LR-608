@@ -582,12 +582,6 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
         setSlotOutput(slot,juce::roundToInt(parameters.getRawParameterValue(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id)->load()));
         if(auto*p=parameters.getParameter(lr608::slotNoteId(slot)))p->setValueNotifyingHost(p->convertTo0to1(float(extraNotes[extra])));
         captureSlotFromProxy(slot);
-        const auto importedFamily=lr608::slotEngines[engine].family;
-        if(importedFamily==lr608::SlotFamily::lowTom||importedFamily==lr608::SlotFamily::midTom||importedFamily==lr608::SlotFamily::highTom)
-        {
-            const auto* legacyPanId=importedFamily==lr608::SlotFamily::lowTom?"slider040":importedFamily==lr608::SlotFamily::midTom?"slider048":"slider056";
-            slotValues[slot][lr608::slotPanParameterIndex].store(parameters.getRawParameterValue(legacyPanId)->load());
-        }
     }
     // The original JSFX has a fixed hi-hat choke: closed (42) and pedal (44)
     // both truncate every voice started by open hi-hat note 46. Factory kits

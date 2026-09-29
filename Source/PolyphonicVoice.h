@@ -18,7 +18,7 @@ namespace lr608 {
 class PolyphonicVoice {
 public:
  void prepare(double);void reset();
- void start(int engine,int velocity,int output,int midiNote,int sourceSlotIndex,const std::array<std::atomic<float>,slotParameterValueCount>&,double tempo,std::uint64_t age);
+ void start(int engine,int velocity,int output,int midiNote,int sourceSlotIndex,const std::array<std::atomic<float>,slotParameterValueCount>&,double tempo,std::uint64_t age,bool pingPongRight);
  void choke();StereoSample render();bool isActive()const{return active;}std::uint64_t getAge()const{return voiceAge;}int getRoute()const{return route;}int getMidiNote()const{return sourceMidiNote;}int getSlot()const{return sourceSlot;}
 private:
  struct Biquad

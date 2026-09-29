@@ -113,6 +113,7 @@ private:
     std::array<std::atomic<int>,lr608::slotCount> slotEngineIndices{};
     std::array<std::atomic<int>,lr608::slotCount> slotChokeTriggers{};
     std::array<std::atomic<int>,lr608::slotCount> slotChokeTargets{};
+    std::array<bool,lr608::slotCount> slotPingPongRight{};
     std::array<juce::String,lr608::slotCount> slotNames{};
     std::atomic<int> currentProxySlot{0};
     std::atomic<int> lastPlayedMidiNote{-1};

@@ -970,6 +970,13 @@ void LR608AudioProcessorEditor::updateParameterList()
     }
     if(!globalOpen&&slotFxPage)
     {
+        const auto catalog=lr608::slotPingPongPanDepthParameterIndex;
+        visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Ping Pong Pan Depth");
+        auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter("slotPingPongPanDepth"))label+=", "+parameter->getCurrentValueAsText();
+        parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
+    }
+    if(!globalOpen&&slotFxPage)
+    {
         const auto catalog=lr608::slotVoiceOverlapParameterIndex;
         visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Voice Overlap");
         auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter("slotVoiceOverlap"))label+=", "+parameter->getCurrentValueAsText();

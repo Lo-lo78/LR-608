@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 379
+    if (std::size (lr608::generated::parameters) != 380
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -82,6 +82,13 @@ int main()
         return EXIT_FAILURE;
     }
     ids.emplace(overlap.id);
+    const auto& pingPong=lr608::generated::parameters[lr608::slotPingPongPanDepthParameterIndex];
+    if(std::string(pingPong.id)!="slotPingPongPanDepth"||pingPong.minimum!=0.0||pingPong.maximum!=1.0||pingPong.step!=0.01||pingPong.defaultValue!=0.0)
+    {
+        std::cerr << "Invalid Ping Pong Pan Depth descriptor\n";
+        return EXIT_FAILURE;
+    }
+    ids.emplace(pingPong.id);
     const std::array<const char*,4> filterIds{"slotLowPassCutoff","slotLowPassResonance","slotHighPassCutoff","slotHighPassResonance"};
     for(int index=272;index<276;++index)
     {
@@ -205,7 +212,7 @@ int main()
         }
         ids.emplace(g.id);
     }
-    if (ids.size() != 379)
+    if (ids.size() != 380)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;

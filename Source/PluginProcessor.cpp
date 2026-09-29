@@ -11,7 +11,7 @@ namespace
 int catalogIndex(juce::StringRef);
 constexpr int slotEngineArchitectureVersion = 12;
 constexpr const char* universalSlotParameterIds[] {
-    "slotPan", "slotVoiceOverlap",
+    "slotPan", "slotPingPongPanDepth", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
     "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
     "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch",
@@ -218,6 +218,7 @@ void LR608AudioProcessor::prepareToPlay (double sampleRate, int)
     timingEngine.reset();
     for(auto& voice:*voicePool)voice.prepare(sampleRate);
     for(auto& delay:slotDelays)delay.prepare(sampleRate);
+    slotPingPongRight.fill(false);
     voiceCounter=0;activeVoiceCount=0;outputIdleLatched=false;
     voiceStealCounter.store(0);
     outputStage.prepare (sampleRate);
@@ -721,7 +722,14 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 for(int voice=0;voice<int(voicePool->size());++voice)if(!(*voicePool)[std::size_t(voice)].isActive()){targetIndex=voice;break;}
                 if(targetIndex<0){targetIndex=int(std::distance(voicePool->begin(),std::min_element(voicePool->begin(),voicePool->end(),[](const auto&a,const auto&b){return a.getAge()<b.getAge();})));voiceStealCounter.fetch_add(1,std::memory_order_relaxed);}
                 else activeVoiceIndices[std::size_t(activeVoiceCount++)]=targetIndex;
-                (*voicePool)[std::size_t(targetIndex)].start(slotEngineIndices[slot].load(std::memory_order_relaxed),hit.velocity,slotOutputs[slot].load(),hit.note,slot,slotValues[slot],timing.tempo,hitGeneration);
+                const auto pingPongDepth=juce::jlimit(0.0f,1.0f,slotValues[slot][lr608::slotPingPongPanDepthParameterIndex].load(std::memory_order_relaxed));
+                bool pingPongRight=false;
+                if(pingPongDepth>0.0f)
+                {
+                    pingPongRight=slotPingPongRight[std::size_t(slot)];
+                    slotPingPongRight[std::size_t(slot)]=!pingPongRight;
+                }
+                (*voicePool)[std::size_t(targetIndex)].start(slotEngineIndices[slot].load(std::memory_order_relaxed),hit.velocity,slotOutputs[slot].load(),hit.note,slot,slotValues[slot],timing.tempo,hitGeneration,pingPongRight);
             }
         };
         juce::MidiBuffer incomingMidi;
@@ -1028,6 +1036,7 @@ void LR608AudioProcessor::storeSlotStates()
 void LR608AudioProcessor::restoreSlotStates()
 {
     for(auto& delay:slotDelays)delay.reset();
+    slotPingPongRight.fill(false);
     const auto legacyAccentThreshold=parameters.getRawParameterValue("slider250")->load(),legacyAccentCharacter=parameters.getRawParameterValue("slider251")->load();
     for(int slot=0;slot<lr608::slotCount;++slot){const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));for(int p=0;p<lr608::slotParameterValueCount;++p)slotValues[slot][p].store(engineDefaults[engine][p]);slotGrid[slot].store(0);slotOutputs[slot].store(0);slotNames[std::size_t(slot)].clear();}
     if(const auto slots=parameters.state.getChildWithName("SlotStates");slots.isValid())for(int child=0;child<slots.getNumChildren();++child){const auto node=slots.getChild(child);const auto slot=int(node.getProperty("index",-1));if(!juce::isPositiveAndBelow(slot,lr608::slotCount))continue;slotGrid[slot].store(juce::jmax(0,int(node.getProperty("grid",0))));slotNames[std::size_t(slot)]=node.getProperty("name").toString().trim().substring(0,48);const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));int legacyOutput=0;if(!lr608::isOffEngine(engine)){const auto routeName=juce::Identifier(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id);legacyOutput=int(node.getProperty(routeName,0));}const auto output=node.hasProperty("output")?int(node.getProperty("output")):legacyOutput;slotOutputs[slot].store(juce::jlimit(0,lr608::OutputStage::stemCount-1,output));if(!node.hasProperty("slider250"))slotValues[slot][catalogIndex("slider250")].store(legacyAccentThreshold);if(!node.hasProperty("slider251"))slotValues[slot][catalogIndex("slider251")].store(legacyAccentCharacter);for(int property=0;property<node.getNumProperties();++property){const auto name=node.getPropertyName(property);if(name==juce::Identifier("index")||name==juce::Identifier("grid")||name==juce::Identifier("output")||name==juce::Identifier("name"))continue;if(const auto p=catalogIndex(name.toString());p>=0)slotValues[slot][p].store(float(node.getProperty(name)));}}

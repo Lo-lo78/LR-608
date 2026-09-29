@@ -307,7 +307,7 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 276, "slotDegradeHold", "Degrade Hold (samples)", 1.0, 64.0, 1.0, 4.0, "" },
     { 277, "slotDegradeJitter", "Degrade Jitter (%)", 0.0, 100.0, 0.1, 0.0, "" },
     { 278, "slotFilterEnvelopeDepth", "Filter Envelope Depth (%)", 0.0, 100.0, 0.1, 0.0, "" },
-    { 279, "slotFilterEnvelopeDecay", "Filter Envelope Decay (s)", 0.0, 30.0, 0.01, 0.0, "" },
+    { 279, "slotFilterEnvelopeDecay", "FX Envelope Decay (s)", 0.0, 30.0, 0.01, 0.0, "" },
     { 301, "capturedTimbale01", "Transpose (semitones)", -24.0, 24.0, 0.01, 4.0, "" },
     { 302, "capturedTimbale02", "Body Level (%)", 0.0, 200.0, 1.0, 100.0, "" },
     { 303, "capturedTimbale03", "Body Decay Scale (%)", 20.0, 300.0, 1.0, 100.0, "" },
@@ -412,6 +412,10 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 402, "slotLfoSquarePwm", "LFO Square PWM", 0.05, 0.95, 0.001, 0.5, "" },
     { 403, "slotLfoUpperSquash", "LFO Upper Squash", 0.0, 1.0, 0.01, 0.0, "" },
     { 404, "slotLfoLowerSquash", "LFO Lower Squash", 0.0, 1.0, 0.01, 0.0, "" },
-    { 405, "slotFilterEnvelopeAttack", "Filter Envelope Attack (s)", 0.0, 30.0, 0.001, 0.004, "" },
+    { 405, "slotFilterEnvelopeAttack", "FX Envelope Attack (s)", 0.0, 30.0, 0.001, 0.004, "" },
+    { 406, "slotEnvVolumeDepth", "Env Depth Volume", -1.0, 1.0, 0.01, 0.0, "" },
+    { 407, "slotEnvLowPassDepth", "Env Depth Filter LP", -8.0, 8.0, 0.01, 0.0, "" },
+    { 408, "slotEnvHighPassDepth", "Env Depth Filter HP", -8.0, 8.0, 0.01, 0.0, "" },
+    { 409, "slotEnvPanDepth", "Env Depth Pan", -1.0, 1.0, 0.01, 0.0, "" },
 };
 }

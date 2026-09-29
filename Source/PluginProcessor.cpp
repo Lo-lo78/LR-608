@@ -9,7 +9,7 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 12;
+constexpr int slotEngineArchitectureVersion = 13;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotPingPongPanDepth",
     "slotLfoRate", "slotLfoWave", "slotLfoSmooth",
@@ -21,7 +21,8 @@ constexpr const char* universalSlotParameterIds[] {
     "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
     "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch",
     "slotDegradeAmount", "slotDegradeBits", "slotDegradeHold", "slotDegradeJitter",
-    "slotFilterEnvelopeDepth", "slotFilterEnvelopeAttack", "slotFilterEnvelopeDecay", "slider250", "slider251"
+    "slotFilterEnvelopeDepth", "slotFilterEnvelopeAttack", "slotFilterEnvelopeDecay",
+    "slotEnvVolumeDepth", "slotEnvLowPassDepth", "slotEnvHighPassDepth", "slotEnvPanDepth", "slider250", "slider251"
 };
 
 int migrateLegacyEngineIndex (int oldIndex)
@@ -139,6 +140,24 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
                 }
                 slot.removeProperty ("slotDelayDry", nullptr);
                 slot.removeProperty ("slotDelayVolume", nullptr);
+            }
+    }
+
+    if (sourceVersion <= 12)
+    {
+        // Architecture v13 replaces the single positive filter-envelope amount
+        // with four bipolar FX-envelope destinations. Preserve old filter motion
+        // exactly: legacy 100% meant +2 octaves LP and +1 octave HP.
+        if (auto slots = state.getChildWithName ("SlotStates"); slots.isValid())
+            for (int child = 0; child < slots.getNumChildren(); ++child)
+            {
+                auto slot = slots.getChild (child);
+                const auto legacy = juce::jlimit (0.0, 100.0, double (slot.getProperty ("slotFilterEnvelopeDepth", 0.0)));
+                if (! slot.hasProperty ("slotEnvLowPassDepth")) slot.setProperty ("slotEnvLowPassDepth", legacy * 0.02, nullptr);
+                if (! slot.hasProperty ("slotEnvHighPassDepth")) slot.setProperty ("slotEnvHighPassDepth", legacy * 0.01, nullptr);
+                if (! slot.hasProperty ("slotEnvVolumeDepth")) slot.setProperty ("slotEnvVolumeDepth", 0.0, nullptr);
+                if (! slot.hasProperty ("slotEnvPanDepth")) slot.setProperty ("slotEnvPanDepth", 0.0, nullptr);
+                slot.setProperty ("slotFilterEnvelopeDepth", 0.0, nullptr);
             }
     }
 

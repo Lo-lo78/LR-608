@@ -29,7 +29,8 @@ private:
  Kick808Voice kick808;KickOtherVoices kickOther;SnareVoice snare;ClapVoice clap;RimVoice rim;TomVoice low{2},mid{1},high{0};HatVoice hat;CymbalVoice crash{true},ride{false};MaracasVoice maracas;CowbellVoice cowbell;ZapVoice zap;
  Kick808Parameters kp{};SnareParameters sp{};ClapParameters cp{};RimParameters rp{};TomParameters tp{};HatParameters hp{};CymbalParameters yp{};MaracasParameters mp{};CowbellParameters wp{};ZapParameters zp{};
  SlotFamily family=SlotFamily::kick;int sub=0,route=0,sourceMidiNote=-1,sourceSlot=-1,chokeRemaining=0,chokeLength=96;bool active=false;std::uint64_t voiceAge=0;double tempo=120,pan=0,filterSampleRate=44100;Biquad highPassFilter,lowPassFilter;
- double lpBaseCutoff=18000,lpResonance=.707,hpBaseCutoff=20,hpResonance=.707,filterEnvelopeDepth=0,filterEnvelopeValue=0; // shared FX envelope state
+ double lpBaseCutoff=18000,lpResonance=.707,hpBaseCutoff=20,hpResonance=.707,filterEnvelopeValue=0; // shared FX envelope state
+ double envVolumeDepth=0,envLowPassDepth=0,envHighPassDepth=0,envPanDepth=0;
  double filterEnvelopeAttackStep=1.0,filterEnvelopeDecayMul=0.0;
  std::int64_t filterEnvelopeStageSamples=0,filterEnvelopeDecaySamples=0,filterEnvelopeAttackSamples=0;int filterEnvelopeStage=0,filterEnvelopeCounter=0;
  // Trigger-only per-voice LFO. When all four depths are zero lfoActive remains false,

@@ -239,7 +239,18 @@ int main()
         std::cerr<<"Trigger LFO depths are not backward-compatible\n";
         return EXIT_FAILURE;
     }
-    if (ids.size() != 396)
+    for(const auto index:{lr608::slotEnvVolumeDepthParameterIndex,lr608::slotEnvLowPassDepthParameterIndex,
+                          lr608::slotEnvHighPassDepthParameterIndex,lr608::slotEnvPanDepthParameterIndex})
+    {
+        const auto& e=lr608::generated::parameters[index];
+        if(e.defaultValue!=0.0||e.minimum>=0.0||e.maximum<=0.0||e.step<=0.0)
+        {
+            std::cerr<<"Invalid bipolar FX envelope depth descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(e.id);
+    }
+    if (ids.size() != 400)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;

@@ -722,9 +722,9 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 for(int voice=0;voice<int(voicePool->size());++voice)if(!(*voicePool)[std::size_t(voice)].isActive()){targetIndex=voice;break;}
                 if(targetIndex<0){targetIndex=int(std::distance(voicePool->begin(),std::min_element(voicePool->begin(),voicePool->end(),[](const auto&a,const auto&b){return a.getAge()<b.getAge();})));voiceStealCounter.fetch_add(1,std::memory_order_relaxed);}
                 else activeVoiceIndices[std::size_t(activeVoiceCount++)]=targetIndex;
-                const auto pingPongDepth=juce::jlimit(0.0f,1.0f,slotValues[slot][lr608::slotPingPongPanDepthParameterIndex].load(std::memory_order_relaxed));
+                const auto pingPongDepth=juce::jlimit(-1.0f,1.0f,slotValues[slot][lr608::slotPingPongPanDepthParameterIndex].load(std::memory_order_relaxed));
                 bool pingPongRight=false;
-                if(pingPongDepth>0.0f)
+                if(std::abs(pingPongDepth)>1.0e-9f)
                 {
                     pingPongRight=slotPingPongRight[std::size_t(slot)];
                     slotPingPongRight[std::size_t(slot)]=!pingPongRight;

@@ -396,6 +396,6 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 386, "hiHatNoiseGranulation", "HiHat Noise Granulation", 0.0, 1000.0, 0.1, 0.0, "" },
     { 387, "crashNoiseGranulation", "Crash Noise Granulation", 0.0, 1000.0, 0.1, 0.0, "" },
     { 388, "rideNoiseGranulation", "Ride Noise Granulation", 0.0, 1000.0, 0.1, 0.0, "" },
-    { 389, "slotPingPongPanDepth", "Ping Pong Pan Depth", 0.0, 1.0, 0.01, 0.0, "" },
+    { 389, "slotPingPongPanDepth", "Ping Pong Pan Depth", -1.0, 1.0, 0.01, 0.0, "" },
 };
 }

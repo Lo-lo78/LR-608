@@ -83,7 +83,7 @@ int main()
     }
     ids.emplace(overlap.id);
     const auto& pingPong=lr608::generated::parameters[lr608::slotPingPongPanDepthParameterIndex];
-    if(std::string(pingPong.id)!="slotPingPongPanDepth"||pingPong.minimum!=0.0||pingPong.maximum!=1.0||pingPong.step!=0.01||pingPong.defaultValue!=0.0)
+    if(std::string(pingPong.id)!="slotPingPongPanDepth"||pingPong.minimum!=-1.0||pingPong.maximum!=1.0||pingPong.step!=0.01||pingPong.defaultValue!=0.0)
     {
         std::cerr << "Invalid Ping Pong Pan Depth descriptor\n";
         return EXIT_FAILURE;

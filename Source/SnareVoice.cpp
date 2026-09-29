@@ -470,12 +470,18 @@ void SnareVoice::resetSaike(const SnareParameters& p)
     if(skType==4){noiseFrequency=720+std::pow(std::clamp(p.v[10],0.0,1.0),1.30)*9000;noiseInvq=1.42-std::clamp(p.v[11],0.0,1.0)*1.12;sharedFrequency=1850+std::clamp(p.v[12],0.0,10.0)*420;sharedInvq=1.18-std::clamp(p.v[16],0.0,1.0)*.78;skBody.init(470+tune01*1180,.58,sr);}
     else{noiseFrequency=900+std::pow(std::clamp(p.v[10],0.0,1.0),1.35)*10500;noiseInvq=1.55-std::clamp(p.v[11],0.0,1.0)*1.25;sharedFrequency=1100+std::clamp(p.v[12],0.0,10.0)*500;sharedInvq=1.35-std::clamp(p.v[16],0.0,1.0);skBody.init(650+tune01*1500,.75,sr);}
     skNoiseFilter.init(noiseFrequency,noiseInvq,sr);skShared.init(sharedFrequency,sharedInvq,sr);skMudDip.init(480,12,-50,sr);skShift.init(std::clamp(p.v[19],.5,80.0),sr);
+    // Independent body amplitude envelope for Saike Type 2 and the 909 Variant.
+    // This intentionally does not replace skAmp: Amplitude Decay keeps its original Saike behaviour.
+    const auto bodyAmpSeconds=std::clamp(p.v[37],.001,10.0);
+    skBodyAmpEnv=1.0;
+    skBodyAmpK=std::exp(-1.0/(bodyAmpSeconds*sr));
     skAge=0;skMaxAge=(.18+std::clamp(p.v[9],0.0,1.0)*1.45+std::clamp(p.v[6],0.0,1.0)*.75)*sr;
 }
 
 float SnareVoice::renderSaike(const SnareParameters& p)
 {
     skAge+=1;const auto pitch=skPitch.tick(),amp=skAmp.tick();
+    if(skType==2||skType==4)skBodyAmpEnv*=skBodyAmpK;else skBodyAmpEnv=1.0;
     if(skType==1&&amp>.002&&skNoise.val<(.12+std::clamp(p.v[15],0.0,1.0)*.42)*((randomBipolar()+1)*.5))skNoise.t=0;
     const auto saikeNoiseEnv=skNoise.tick();
     const auto step=.5*std::exp((1-.4*std::clamp(p.v[5]*.5,0.0,.5)*pitch)*skBaseLog)*(48000/sr);
@@ -485,8 +491,8 @@ float SnareVoice::renderSaike(const SnareParameters& p)
     const auto shaped=.91*(2/(1+std::exp(-2*(2*tri+asym)))-1-asym)+.1*tri;
     double y;
     if(skType==1){const auto n=2*saikeNoiseEnv*randomBipolar()*.5*noiseGain;y=(shaped*bodyGain+n)*amp;y=skShared.bp(y);y=skMudDip.tick(y);}
-    else if(skType==2){const auto body=shaped*.5*amp*saikeNoiseEnv*bodyGain;const auto interaction=1-std::min(.98,amp*body*body*(.5+std::clamp(p.v[16],0.0,1.0)));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*randomBipolar()*.5);y=body+n*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
-    else if(skType==4){const auto resonance=skBody.bp(shaped*amp);const auto body=(shaped*.44+resonance*.92)*amp*(.42+saikeNoiseEnv*.58)*bodyGain;const auto interaction=1-std::min(.96,amp*body*body*(.42+std::clamp(p.v[16],0.0,1.0)*.88));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*randomBipolar()*.5),crack=skShared.bp(std::pow(std::max(0.0,saikeNoiseEnv),3.4)*randomBipolar()*.5);y=body+(n*.82+crack*.34)*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
+    else if(skType==2){const auto body=shaped*.5*amp*saikeNoiseEnv*skBodyAmpEnv*bodyGain;const auto interaction=1-std::min(.98,amp*body*body*(.5+std::clamp(p.v[16],0.0,1.0)));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*randomBipolar()*.5);y=body+n*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
+    else if(skType==4){const auto resonance=skBody.bp(shaped*amp);const auto body=(shaped*.44+resonance*.92)*amp*(.42+saikeNoiseEnv*.58)*skBodyAmpEnv*bodyGain;const auto interaction=1-std::min(.96,amp*body*body*(.42+std::clamp(p.v[16],0.0,1.0)*.88));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*randomBipolar()*.5),crack=skShared.bp(std::pow(std::max(0.0,saikeNoiseEnv),3.4)*randomBipolar()*.5);y=body+(n*.82+crack*.34)*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
     else{const auto body=tri*.3*amp*bodyGain,n=skNoiseFilter.bp(saikeNoiseEnv*randomBipolar()*.5);y=skMudDip.tick(body+n*noiseGain)*2;}
     if(p.v[1]>1e-6)y+=randomBipolar()*std::pow(std::max(0.0,amp),5)*p.v[1]*.18;
     if(skSmoothCount>0){--skSmoothCount;y=.9*skLast+.1*y;}

@@ -89,7 +89,7 @@ juce::String contextualParameterName (int engine, juce::String structuralName)
     if (info.family == lr608::SlotFamily::snare1 || info.family == lr608::SlotFamily::snare2)
     {
         const auto suffix = mappedName (structuralName, {
-            {"Snare Level","Level"},{"Snare Click Level","Transient"},{"Snare Body Decay","Pitch Decay"},{"Snare Body Tune","Minimum Pitch"},
+            {"Snare Level","Level"},{"Snare Click Level","Transient"},{"Snare Body Decay","Pitch Decay"},{"Snare Body Tune","Minimum Pitch"},{"Snare Body Amp Decay","Body Amp Decay"},
             {"Snare Body Level","Body Level"},{"Snare Body Pitch Decay","Pitch Envelope"},{"Snare Body Mid","Amplitude Decay"},{"Snare Body High","Body Brightness"},
             {"Snare Noise Level","Noise Level"},{"Snare Noise Decay","Noise Decay"},{"Snare Noise Tone","Noise Tone"},{"Snare Noise Resonance","Noise Resonance"},
             {"Snare Noise Tone Env","Shared Filter Tone"},{"Snare Noise Attack","Noise Attack"},{"Snare Noise Color","Body Noise Balance"},{"Snare Noise Degrade","Noise Retrigger"},
@@ -1025,6 +1025,14 @@ void LR608AudioProcessorEditor::updateParameterList()
                 continue;
             if(globalOpen&&(juce::String(descriptor.id)=="slider250"||juce::String(descriptor.id)=="slider251"))continue;
             if(lr608::isEngineSelectorId(descriptor.id))continue;
+            if(!globalOpen && family==lr608::SlotFamily::snare1)
+            {
+                const auto snareSub=lr608::slotEngines[selectedEngine].subEngine;
+                const auto targetSaike=snareSub==4||snareSub==7;
+                const auto id=juce::String(descriptor.id);
+                if(targetSaike && (id=="snare1BodyMidTune"||id=="snare1BodyHighTune"||id=="snare1BodyMidDecay"||id=="snare1BodyHighDecay"))continue;
+                if(id=="snare1SaikeBodyAmpDecay"&&!targetSaike)continue;
+            }
             if(!globalOpen && family==lr608::SlotFamily::cowbell) {
                 const auto isCapturedParam=juce::String(descriptor.id).startsWith("capturedTimbale");
                 const auto capturedEngine=lr608::slotEngines[selectedEngine].subEngine==7;

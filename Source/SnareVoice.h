@@ -11,7 +11,7 @@ namespace lr608
 {
 struct SnareParameters
 {
-    std::array<double, 37> v {};
+    std::array<double, 38> v {};
     double accentThreshold = 112.0;
     double accentCharacter = 1.0;
 };
@@ -76,7 +76,7 @@ private:
     Svf skBody,skNoiseFilter,skShared;
     KickOtherVoices::Bell skMudDip;
     KickOtherVoices::Shifter skShift;
-    double skBaseLog=0,skLast=0,skAge=0,skMaxAge=0;
+    double skBaseLog=0,skLast=0,skAge=0,skMaxAge=0,skBodyAmpEnv=1,skBodyAmpK=1;
     int skType=1,skSmoothCount=0;
 
     double plPhase0=0,plPhase1=0,plDrumAmp=0,plSnareAmp=0,plFm=0;

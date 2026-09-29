@@ -392,5 +392,6 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 382, "lowTomPitchDecayCurve", "Low Tom Pitch Decay Curve", 0.2, 4.0, 0.01, 1.55, "" },
     { 383, "midTomPitchDecayCurve", "Mid Tom Pitch Decay Curve", 0.2, 4.0, 0.01, 1.55, "" },
     { 384, "highTomPitchDecayCurve", "High Tom Pitch Decay Curve", 0.2, 4.0, 0.01, 1.55, "" },
+    { 385, "snare1SaikeBodyAmpDecay", "Snare Body Amp Decay", 0.001, 10.0, 0.001, 10.0, "" },
 };
 }

@@ -20,7 +20,7 @@ double clamp01 (double x) { return std::clamp (x, 0.0, 1.0); }
 // and exposed Click/Body Coupling (default 0.11). TEST3/TEST5 resonator
 // variants and TEST8 resonant granulator were explicitly rejected.
 
-void Kick808Voice::prepare (double sampleRate) { sr = std::max (1.0, sampleRate); reset(); }
+void Kick808Voice::prepare (double sampleRate) { sr = std::max (1.0, sampleRate); noiseGranulator.prepare(sr); reset(); }
 
 void Kick808Voice::reset()
 {
@@ -33,6 +33,7 @@ void Kick808Voice::reset()
     noiseContactE1 = noiseContactE2 = noiseContactE3 = noiseContactE4 = noiseContactE5 = 0.0;
     noiseContactC1 = noiseContactC2 = noiseContactC3 = noiseContactC4 = noiseContactC5 = 1.0;
     noiseContactMean = 0.0;
+    noiseGranulator.reset();
     rng = 0x608u;
 }
 
@@ -207,44 +208,11 @@ float Kick808Voice::render (const Kick808Parameters& p, double tempo)
     const auto impulseFinal = impulse * 0.18 + impulseBp * 0.95;
 
     auto noise = randomBipolar();
-    if (noiseGranulationAmount > 1.0e-9)
-    {
-        const auto tailness = 1.0 - std::sqrt (clamp01 (noiseEnv));
-        const auto speed = 0.10 + 0.90 * std::sqrt (std::max (0.0, noiseEnv));
-        const auto uniform = [this] { return (randomBipolar() + 1.0) * 0.5; };
-        auto contact = [&] (double& counter, double& envelope, double step, double low, double span, double tailBoost, double r0, double rSpan)
-        {
-            counter -= 1.0;
-            if (counter <= 0.0)
-            {
-                envelope += (low + uniform() * span) * (1.0 + tailBoost * tailness);
-                counter = (step / speed) * (r0 + uniform() * rSpan);
-            }
-        };
-        contact (noiseContactC1, noiseContactE1, noiseContactStep1, 0.46, 0.54, 0.18, 0.52, 1.18);
-        contact (noiseContactC2, noiseContactE2, noiseContactStep2, 0.43, 0.57, 0.16, 0.50, 1.22);
-        contact (noiseContactC3, noiseContactE3, noiseContactStep3, 0.40, 0.60, 0.14, 0.48, 1.26);
-        contact (noiseContactC4, noiseContactE4, noiseContactStep4, 0.37, 0.63, 0.12, 0.46, 1.30);
-        contact (noiseContactC5, noiseContactE5, noiseContactStep5, 0.34, 0.66, 0.10, 0.44, 1.34);
-
-        noiseContactE1 *= noiseContactD1Fast + (noiseContactD1Slow - noiseContactD1Fast) * tailness;
-        noiseContactE2 *= noiseContactD2Fast + (noiseContactD2Slow - noiseContactD2Fast) * tailness;
-        noiseContactE3 *= noiseContactD3Fast + (noiseContactD3Slow - noiseContactD3Fast) * tailness;
-        noiseContactE4 *= noiseContactD4Fast + (noiseContactD4Slow - noiseContactD4Fast) * tailness;
-        noiseContactE5 *= noiseContactD5Fast + (noiseContactD5Slow - noiseContactD5Fast) * tailness;
-
-        const auto sum = noiseContactE1 * 0.26 + noiseContactE2 * 0.23 + noiseContactE3 * 0.20
-                       + noiseContactE4 * 0.17 + noiseContactE5 * 0.14;
-        noiseContactMean += (sum - noiseContactMean) * noiseContactMeanCoefficient;
-        const auto normalized = std::clamp (sum / std::max (0.08, noiseContactMean), 0.08, 2.65);
-        const auto granulationBase = std::min (1.0, noiseGranulationAmount);
-        const auto granulationOver = std::clamp ((noiseGranulationAmount - 1.0) / 9.0, 0.0, 1.0);
-        const auto depth = granulationBase * (1.0 + granulationOver * 4.5) * (0.30 + 0.68 * tailness);
-        const auto modulation = std::clamp (1.0 + depth * (normalized - 1.0),
-                                            0.10 - granulationOver * 0.08,
-                                            2.25 + granulationOver * 5.25);
-        noise *= modulation;
-    }
+    // Use the same OrganicGranulator as the other drum engines.  The old
+    // Kick-808-only contact mesh mainly changed level on this very short
+    // noise burst, so high values were much less audible than elsewhere.
+    noise = noiseGranulator.process (noise, noiseEnv, p.noiseGranulation,
+                                     [this] { return (randomBipolar() + 1.0) * 0.5; });
 
     noiseEnv -= noiseEnv * noiseEnvLoss;
     if (noiseEnv < 0.00001) noiseEnv = 0.0;

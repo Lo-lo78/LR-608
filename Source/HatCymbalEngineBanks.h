@@ -11,6 +11,6 @@ public:
  static bool ownsHat(juce::StringRef); static bool ownsCymbal(juce::StringRef);
 private:
  void loadHat(int);void loadCymbal(int);juce::AudioProcessorValueTreeState& state;
- std::array<std::array<float,10>,7> hats{};std::array<std::array<float,7>,4> cymbals{};
+ std::array<std::array<float,11>,7> hats{};std::array<std::array<float,9>,4> cymbals{};
  int hatEngine=0,cymbalEngine=0;bool applying=false;
 }; }

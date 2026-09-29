@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 376
+    if (std::size (lr608::generated::parameters) != 379
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -191,7 +191,21 @@ int main()
         return EXIT_FAILURE;
     }
     ids.emplace(saikeBodyAmpDecay.id);
-    if (ids.size() != 376)
+    const std::array<const char*,3> metalGranulationIds{
+        "hiHatNoiseGranulation", "crashNoiseGranulation", "rideNoiseGranulation"
+    };
+    for (int index = 376; index < 379; ++index)
+    {
+        const auto& g = lr608::generated::parameters[index];
+        if (std::string(g.id) != metalGranulationIds[std::size_t(index - 376)]
+            || g.minimum != 0.0 || g.maximum != 1000.0 || g.step != 0.1 || g.defaultValue != 0.0)
+        {
+            std::cerr << "Invalid hat/cymbal Noise Granulation descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(g.id);
+    }
+    if (ids.size() != 379)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -214,11 +228,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 350)
+    if (exposed.size() != 353)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 350 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 353 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

@@ -393,5 +393,8 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 383, "midTomPitchDecayCurve", "Mid Tom Pitch Decay Curve", 0.2, 4.0, 0.01, 1.55, "" },
     { 384, "highTomPitchDecayCurve", "High Tom Pitch Decay Curve", 0.2, 4.0, 0.01, 1.55, "" },
     { 385, "snare1SaikeBodyAmpDecay", "Snare Body Amp Decay", 0.001, 10.0, 0.001, 10.0, "" },
+    { 386, "hiHatNoiseGranulation", "HiHat Noise Granulation", 0.0, 1000.0, 0.1, 0.0, "" },
+    { 387, "crashNoiseGranulation", "Crash Noise Granulation", 0.0, 1000.0, 0.1, 0.0, "" },
+    { 388, "rideNoiseGranulation", "Ride Noise Granulation", 0.0, 1000.0, 0.1, 0.0, "" },
 };
 }

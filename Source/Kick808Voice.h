@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include "OrganicGranulator.h"
 
 namespace lr608
 {
@@ -63,6 +64,7 @@ private:
     double compThresholdDb = -21.0, compKneeDb = 6.0;
     double compAttackCoefficient = 0.0, compReleaseSeconds = 0.08, compRatioReduction = 0.0;
     double compMakeupGain = 1.0;
+    OrganicGranulator noiseGranulator;
     std::uint32_t rng = 0x608u;
 };
 }

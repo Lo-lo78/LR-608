@@ -7,7 +7,7 @@ inline constexpr int slotCount=128;
 inline constexpr int maxMidiNoteLayers=8;
 inline constexpr int slotEngineCount=91;
 inline constexpr int offEngineIndex=90;
-inline constexpr int slotParameterValueCount=376;
+inline constexpr int slotParameterValueCount=379;
 inline constexpr int slotPanParameterIndex=270;
 inline constexpr int slotVoiceOverlapParameterIndex=271;
 inline constexpr int slotLowPassCutoffParameterIndex=272;
@@ -59,6 +59,9 @@ inline constexpr int midTomPitchDecayCurveParameterIndex=373;
 inline constexpr int highTomPitchDecayCurveParameterIndex=374;
 // Appended: independent smooth amplitude envelope for Snare 1 Saike Type 2 / 909 Variant.
 inline constexpr int snare1SaikeBodyAmpDecayParameterIndex=375;
+inline constexpr int hiHatNoiseGranulationParameterIndex=376;
+inline constexpr int crashNoiseGranulationParameterIndex=377;
+inline constexpr int rideNoiseGranulationParameterIndex=378;
 enum class SlotFamily{kick,snare1,snare2,clap,rim,lowTom,midTom,highTom,hatClosed,hatOpen,crash,ride,maracas,cowbell,zap};
 struct SlotEngineInfo{const char*name;SlotFamily family;int subEngine;int page;int routeParameterIndex;};
 #define LR_ENG(n,f,s,p,r) {n,SlotFamily::f,s,p,r}

@@ -16,7 +16,7 @@ double clamp01 (double x) { return std::clamp (x, 0.0, 1.0); }
 // Kick 808 migration checkpoint (2026-09-27):
 // Ported from LR-608_Kick808_LAB_TEST11_ClickBodyCoupling.jsfx.
 // Approved changes: fixed-short click-resonator tail, refined TEST7 1176,
-// independent Noise Resonance, organic TEST10 Noise Granulation (0..100),
+// independent Noise Resonance, organic TEST10 Noise Granulation (0..1000),
 // and exposed Click/Body Coupling (default 0.11). TEST3/TEST5 resonator
 // variants and TEST8 resonant granulator were explicitly rejected.
 
@@ -94,12 +94,15 @@ void Kick808Voice::trigger (int midiVelocity, const Kick808Parameters& p, std::u
 
     // TEST10 organic flour/contact mesh. This is temporal modulation of the
     // existing broadband noise, not another filter or resonant sound source.
-    noiseGranulationAmount = std::clamp (p.noiseGranulation * 0.01, 0.0, 1.0);
-    const auto rate1 = 1050.0 + noiseGranulationAmount * 1250.0;
-    const auto rate2 = 1320.0 + noiseGranulationAmount * 1580.0;
-    const auto rate3 = 1680.0 + noiseGranulationAmount * 1900.0;
-    const auto rate4 = 2110.0 + noiseGranulationAmount * 2220.0;
-    const auto rate5 = 2640.0 + noiseGranulationAmount * 2550.0;
+    noiseGranulationAmount = std::clamp (p.noiseGranulation * 0.01, 0.0, 10.0);
+    const auto granulationBase = std::min (1.0, noiseGranulationAmount);
+    const auto granulationOver = std::clamp ((noiseGranulationAmount - 1.0) / 9.0, 0.0, 1.0);
+    const auto granulationDensity = 1.0 + granulationOver * 7.0;
+    const auto rate1 = (1050.0 + granulationBase * 1250.0) * granulationDensity;
+    const auto rate2 = (1320.0 + granulationBase * 1580.0) * granulationDensity;
+    const auto rate3 = (1680.0 + granulationBase * 1900.0) * granulationDensity;
+    const auto rate4 = (2110.0 + granulationBase * 2220.0) * granulationDensity;
+    const auto rate5 = (2640.0 + granulationBase * 2550.0) * granulationDensity;
     noiseContactStep1 = std::max (1.0, sr / rate1);
     noiseContactStep2 = std::max (1.0, sr / rate2);
     noiseContactStep3 = std::max (1.0, sr / rate3);
@@ -234,8 +237,12 @@ float Kick808Voice::render (const Kick808Parameters& p, double tempo)
                        + noiseContactE4 * 0.17 + noiseContactE5 * 0.14;
         noiseContactMean += (sum - noiseContactMean) * noiseContactMeanCoefficient;
         const auto normalized = std::clamp (sum / std::max (0.08, noiseContactMean), 0.08, 2.65);
-        const auto depth = noiseGranulationAmount * (0.30 + 0.68 * tailness);
-        const auto modulation = std::clamp (1.0 + depth * (normalized - 1.0), 0.10, 2.25);
+        const auto granulationBase = std::min (1.0, noiseGranulationAmount);
+        const auto granulationOver = std::clamp ((noiseGranulationAmount - 1.0) / 9.0, 0.0, 1.0);
+        const auto depth = granulationBase * (1.0 + granulationOver * 4.5) * (0.30 + 0.68 * tailness);
+        const auto modulation = std::clamp (1.0 + depth * (normalized - 1.0),
+                                            0.10 - granulationOver * 0.08,
+                                            2.25 + granulationOver * 5.25);
         noise *= modulation;
     }
 

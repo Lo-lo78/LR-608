@@ -313,6 +313,6 @@ jsfx_slider,vst3_id,jsfx_name,ui_name,default,minimum,maximum,step,choices,page,
 356,capturedTimbale56,Post Saturation Velocity Amount (%),Post Saturation Velocity Amount (%),65,0,100,1,,Clave / Cowbell,0
 357,capturedTimbale57,Post Saturation Velocity Curve,Post Saturation Velocity Curve,1.2,0.3,3,0.01,,Clave / Cowbell,0
 358,kickNoiseResonance,Kick Noise Resonance,Kick Noise Resonance,0,0,1,0.001,,Kick,0
-359,kickNoiseGranulation,Kick Noise Granulation,Kick Noise Granulation,0,0,100,0.1,,Kick,0
+359,kickNoiseGranulation,Kick Noise Granulation,Kick Noise Granulation,0,0,1000,0.1,,Kick,0
 360,kickClickBodyCoupling,Kick Click Body Coupling,Kick Click Body Coupling,0.11,0,0.5,0.001,,Kick,0
 385,snare1SaikeBodyAmpDecay,Snare Body Amp Decay,Snare Body Amp Decay,10,0.001,10,0.001,,Snare 1,30

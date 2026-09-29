@@ -374,6 +374,7 @@ float SnareVoice::renderAcoustic(const SnareParameters& p)
     const auto crackNoise=crackExcitation?randomBipolar():0.0,crackDirect=crackExcitation?randomBipolar():0.0;
     const auto air=.5*acNoiseVol*acNoiseVal*acAirGain*f[6].bp(sparse1), low=1.4*acNoiseVal*acNoiseVol*acWireGain*acCoupling*f[8].bp(sparse2)*acPunch3*acPunch3, crack=2*std::min(1.0,acTwack)*acNoiseVol*acClickGain*(1-acAttackFast)*(f[7].lp(crackNoise)+.3*crackDirect)*acAtk;
     auto noise=air*(.72+acColor*.55)+low*(1.25-acColor*.55)+crack; if(acDarkAmount>1e-6) noise+=(f[9].lp(noise)-noise)*acDarkAmount;
+    noise=noiseGranulator.process(noise,acNoiseVal,p.v[33],[this]{return (randomBipolar()+1.0)*0.5;});
     auto y=body+noise; y=4*y/(1+std::abs(y+y)); if(acDriveMix>1e-6){auto d=y*acDriveGain;d/=1+std::abs(d);y+=(d-y)*acDriveMix;}
     active=acPunch3>.00012||acNoiseVal>.00001||acTwack>.00002;
     if(!active){double energy=0;for(auto& sv:f)energy+=std::abs(sv.ic1);active=energy>.00012;}
@@ -431,7 +432,7 @@ float SnareVoice::renderLinn(const SnareParameters& p)
     const auto impact=linnImpactEnv*(.32+linnClickGain*.45)*(.70+randomBipolar()*.48);
     const auto m2=linnFilters[0].bp(impact),m3=linnFilters[1].bp(impact),m4=linnFilters[2].bp(impact),m5=linnFilters[3].bp(impact);
     const auto membrane=body*linnBodyGain+(m2*.42+m3*.26)*linnMidGain+(m4*.20+m5*.13)*linnHighGain;
-    const auto rawNoise=randomBipolar();
+    const auto rawNoise=noiseGranulator.process(randomBipolar(),std::max({linnWireEnv,linnCrackEnv,linnImpactEnv}),p.v[33],[this]{return (randomBipolar()+1.0)*0.5;});
     auto crack=linnFilters[4].bp(rawNoise)*linnCrackEnv*linnClickGain;
     if(linnWireAge<linnWireAttackSamples){linnWireEnv+=(1-linnWireEnv)*linnWireRise;++linnWireAge;}else linnWireEnv*=linnWireDecay;
     const auto hpWire=linnFilters[5].hp(rawNoise);
@@ -484,16 +485,17 @@ float SnareVoice::renderSaike(const SnareParameters& p)
     if(skType==2||skType==4)skBodyAmpEnv*=skBodyAmpK;else skBodyAmpEnv=1.0;
     if(skType==1&&amp>.002&&skNoise.val<(.12+std::clamp(p.v[15],0.0,1.0)*.42)*((randomBipolar()+1)*.5))skNoise.t=0;
     const auto saikeNoiseEnv=skNoise.tick();
+    const auto granularNoise=[&](){return noiseGranulator.process(randomBipolar(),saikeNoiseEnv,p.v[33],[this]{return (randomBipolar()+1.0)*0.5;});};
     const auto step=.5*std::exp((1-.4*std::clamp(p.v[5]*.5,0.0,.5)*pitch)*skBaseLog)*(48000/sr);
     phase1+=step;phase1-=std::floor(phase1);const auto tri=phase1<=.5?4*phase1-1:3-4*phase1;
     const auto asym=.02+std::clamp(p.v[24],0.0,1.0)*.16,color=std::clamp(p.v[14],0.0,1.0);
     const auto bodyGain=std::max(0.0,p.v[4])*(.72+color*.35),noiseGain=std::max(0.0,p.v[8])*(1.18-color*.38);
     const auto shaped=.91*(2/(1+std::exp(-2*(2*tri+asym)))-1-asym)+.1*tri;
     double y;
-    if(skType==1){const auto n=2*saikeNoiseEnv*randomBipolar()*.5*noiseGain;y=(shaped*bodyGain+n)*amp;y=skShared.bp(y);y=skMudDip.tick(y);}
-    else if(skType==2){const auto body=shaped*.5*amp*saikeNoiseEnv*skBodyAmpEnv*bodyGain;const auto interaction=1-std::min(.98,amp*body*body*(.5+std::clamp(p.v[16],0.0,1.0)));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*randomBipolar()*.5);y=body+n*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
-    else if(skType==4){const auto resonance=skBody.bp(shaped*amp);const auto body=(shaped*.44+resonance*.92)*amp*(.42+saikeNoiseEnv*.58)*skBodyAmpEnv*bodyGain;const auto interaction=1-std::min(.96,amp*body*body*(.42+std::clamp(p.v[16],0.0,1.0)*.88));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*randomBipolar()*.5),crack=skShared.bp(std::pow(std::max(0.0,saikeNoiseEnv),3.4)*randomBipolar()*.5);y=body+(n*.82+crack*.34)*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
-    else{const auto body=tri*.3*amp*bodyGain,n=skNoiseFilter.bp(saikeNoiseEnv*randomBipolar()*.5);y=skMudDip.tick(body+n*noiseGain)*2;}
+    if(skType==1){const auto n=2*saikeNoiseEnv*granularNoise()*.5*noiseGain;y=(shaped*bodyGain+n)*amp;y=skShared.bp(y);y=skMudDip.tick(y);}
+    else if(skType==2){const auto body=shaped*.5*amp*saikeNoiseEnv*skBodyAmpEnv*bodyGain;const auto interaction=1-std::min(.98,amp*body*body*(.5+std::clamp(p.v[16],0.0,1.0)));const auto n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*granularNoise()*.5);y=body+n*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
+    else if(skType==4){const auto resonance=skBody.bp(shaped*amp);const auto body=(shaped*.44+resonance*.92)*amp*(.42+saikeNoiseEnv*.58)*skBodyAmpEnv*bodyGain;const auto interaction=1-std::min(.96,amp*body*body*(.42+std::clamp(p.v[16],0.0,1.0)*.88));const auto gn=granularNoise(),n=skNoiseFilter.bp(saikeNoiseEnv*saikeNoiseEnv*gn*.5),crack=skShared.bp(std::pow(std::max(0.0,saikeNoiseEnv),3.4)*gn*.5);y=body+(n*.82+crack*.34)*interaction*noiseGain;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}}
+    else{const auto body=tri*.3*amp*bodyGain,n=skNoiseFilter.bp(saikeNoiseEnv*granularNoise()*.5);y=skMudDip.tick(body+n*noiseGain)*2;}
     if(p.v[1]>1e-6)y+=randomBipolar()*std::pow(std::max(0.0,amp),5)*p.v[1]*.18;
     if(skSmoothCount>0){--skSmoothCount;y=.9*skLast+.1*y;}
     if(p.v[18]>1e-6){auto driven=y*(1+std::pow(std::max(0.0,p.v[17])*.001,1.2)*10);driven/=1+std::abs(driven);y+=(driven-y)*std::clamp(p.v[18],0.0,1.0);}
@@ -517,7 +519,7 @@ float SnareVoice::renderPlaits(const SnareParameters& p)
     auto resetAmount=std::clamp((.125-plF0)*8,0.0,1.0);resetAmount*=resetAmount*fmAmount*(.40+std::clamp(p.v[16],0.0,1.0)*.95);const auto resetNoise=((plPhase0>.5?-1:1)+(plPhase1>.5?-1:1))*resetAmount*.025;
     const auto frequency=plF0*(1+fmAmount*(4.8*plFm));plPhase0+=frequency;plPhase1+=frequency*(1.47+(std::clamp(p.v[7],0.0,1.0)-.5)*.20);if(resetAmount>.1){if(plPhase0>=1+resetNoise)plPhase0=1-plPhase0;if(plPhase1>=1+resetNoise)plPhase1=1-plPhase1;}else{if(plPhase0>=1)--plPhase0;if(plPhase1>=1)--plPhase1;}
     const auto distorted=[](double phase){const auto tri=(phase<.5?phase:1-phase)*4-1.3;return 2*tri/(1+std::abs(tri));};auto body=distorted(plPhase0)*.72+distorted(plPhase1)*(.15+std::clamp(p.v[6],0.0,1.0)*.55);const auto asym=.025+std::clamp(p.v[24],0.0,1.0)*.17;body=.91*(2/(1+std::exp(-2*(2*body+asym)))-1-asym)+.1*body;body*=plDrumAmp*(.55+std::max(0.0,p.v[4])*1.35)*std::sqrt(std::max(0.0,1-snappy*.55));plDrumLp+=(body-plDrumLp)*plDrumLpCoeff;body=plDrumLp;
-    const auto raw=randomBipolar();if(plNoiseHoldCount<=0){plNoiseHold=raw;plNoiseHoldCount=plNoiseHoldSamples;}--plNoiseHoldCount;const auto degraded=raw*(1-std::clamp(p.v[15],0.0,1.0))+plNoiseHold*std::clamp(p.v[15],0.0,1.0);plSnareLp+=(degraded-plSnareLp)*plSnareLpCoeff;plSnareHpLp+=(plSnareLp-plSnareHpLp)*plSnareHpCoeff;auto wire=(plSnareLp-plSnareHpLp)*(.75+std::clamp(p.v[11],0.0,1.0)*.75);wire*=(plSnareAmp+plFm*.55)*(snappy*2.10)*(1-std::min(1.0,std::abs(body)*1.8)*std::min(.90,.25+std::clamp(p.v[16],0.0,1.0)*.65));
+    const auto raw=randomBipolar();if(plNoiseHoldCount<=0){plNoiseHold=raw;plNoiseHoldCount=plNoiseHoldSamples;}--plNoiseHoldCount;auto degraded=raw*(1-std::clamp(p.v[15],0.0,1.0))+plNoiseHold*std::clamp(p.v[15],0.0,1.0);degraded=noiseGranulator.process(degraded,std::max(plSnareAmp,plFm),p.v[33],[this]{return (randomBipolar()+1.0)*0.5;});plSnareLp+=(degraded-plSnareLp)*plSnareLpCoeff;plSnareHpLp+=(plSnareLp-plSnareHpLp)*plSnareHpCoeff;auto wire=(plSnareLp-plSnareHpLp)*(.75+std::clamp(p.v[11],0.0,1.0)*.75);wire*=(plSnareAmp+plFm*.55)*(snappy*2.10)*(1-std::min(1.0,std::abs(body)*1.8)*std::min(.90,.25+std::clamp(p.v[16],0.0,1.0)*.65));
     auto y=body+wire+randomBipolar()*plFm*std::clamp(p.v[1],0.0,2.0)*.070;y=skMudDip.tick(y);if(std::abs(p.v[20])>1e-6){const auto shifted=skShift.tick(y);y+=(shifted-y)*std::clamp(std::abs(p.v[20]),0.0,1.0);}if(plDriveMix>1e-6){auto driven=y*plDriveGain;driven/=1+std::abs(driven);y+=(driven-y)*plDriveMix;}if(plSmoothCount>0){--plSmoothCount;y=.86*plLast+.14*y;}y*=1+std::clamp(accent,0.0,1.0)*.60;plLast=y;++plAge;active=plAge<plMaxAge&&(plDrumAmp>4e-6||plSnareAmp>4e-6||plFm>4e-6||std::abs(y)>4e-6);
     auto signal=compress(y*.12*p.v[0]*velocity*19.811164906,p);if(!std::isfinite(signal)){reset();return 0;}return static_cast<float>(active?signal:0);
 }

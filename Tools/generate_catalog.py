@@ -87,7 +87,7 @@ UNIVERSAL_SLOT_PARAMETERS = [
 # pre-existing slot snapshot index remains stable.
 KICK_808_LAB_PARAMETERS = [
     (358, "kickNoiseResonance", "Kick Noise Resonance", 0, 1, 0.001, 0, ""),
-    (359, "kickNoiseGranulation", "Kick Noise Granulation", 0, 100, 0.1, 0, ""),
+    (359, "kickNoiseGranulation", "Kick Noise Granulation", 0, 1000, 0.1, 0, ""),
     (360, "kickClickBodyCoupling", "Kick Click Body Coupling", 0, 0.5, 0.001, 0.11, ""),
 ]
 

@@ -21,7 +21,7 @@ constexpr const char* universalSlotParameterIds[] {
     "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
     "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch",
     "slotDegradeAmount", "slotDegradeBits", "slotDegradeHold", "slotDegradeJitter",
-    "slotFilterEnvelopeDepth", "slotFilterEnvelopeDecay", "slider250", "slider251"
+    "slotFilterEnvelopeDepth", "slotFilterEnvelopeAttack", "slotFilterEnvelopeDecay", "slider250", "slider251"
 };
 
 int migrateLegacyEngineIndex (int oldIndex)

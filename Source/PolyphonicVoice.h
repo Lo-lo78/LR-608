@@ -29,16 +29,15 @@ private:
  Kick808Voice kick808;KickOtherVoices kickOther;SnareVoice snare;ClapVoice clap;RimVoice rim;TomVoice low{2},mid{1},high{0};HatVoice hat;CymbalVoice crash{true},ride{false};MaracasVoice maracas;CowbellVoice cowbell;ZapVoice zap;
  Kick808Parameters kp{};SnareParameters sp{};ClapParameters cp{};RimParameters rp{};TomParameters tp{};HatParameters hp{};CymbalParameters yp{};MaracasParameters mp{};CowbellParameters wp{};ZapParameters zp{};
  SlotFamily family=SlotFamily::kick;int sub=0,route=0,sourceMidiNote=-1,sourceSlot=-1,chokeRemaining=0,chokeLength=96;bool active=false;std::uint64_t voiceAge=0;double tempo=120,pan=0,filterSampleRate=44100;Biquad highPassFilter,lowPassFilter;
- double lpBaseCutoff=18000,lpResonance=.707,hpBaseCutoff=20,hpResonance=.707,filterEnvelopeDepth=0,filterEnvelopeValue=0;
- std::int64_t filterEnvelopeAgeSamples=0,filterEnvelopeDecaySamples=0,filterEnvelopeAttackSamples=1;int filterEnvelopeCounter=0;
- // Trigger-only per-voice LFO. A zero destination mask means the LFO DSP path is absent;
- // phase/wave/smoothing/filter modulation are touched only while a source voice is sounding.
- // Zero mask means there is no LFO work at all. Bits: 1=volume, 2=LP, 4=HP, 8=pan.
- std::uint8_t lfoDestinationMask=0;bool sourceActive=false,lfoOneShot=false,lfoOneShotDone=false,lfoHasEvaluated=false;
+ double lpBaseCutoff=18000,lpResonance=.707,hpBaseCutoff=20,hpResonance=.707,filterEnvelopeDepth=0,filterEnvelopeValue=0; // shared FX envelope state
+ double filterEnvelopeAttackStep=1.0,filterEnvelopeDecayMul=0.0;
+ std::int64_t filterEnvelopeStageSamples=0,filterEnvelopeDecaySamples=0,filterEnvelopeAttackSamples=0;int filterEnvelopeStage=0,filterEnvelopeCounter=0;
+ // Trigger-only per-voice LFO. When all four depths are zero lfoActive remains false,
+ // so phase/wave/smoothing/filter modulation are completely skipped in render().
+ bool lfoActive=false,sourceActive=false,lfoOneShot=false,lfoOneShotDone=false;
  double lfoPhase=0,lfoIncrement=0,lfoRate=12,lfoSmooth=0,lfoVolumeDepth=0,lfoLowPassDepth=0,lfoHighPassDepth=0,lfoPanDepth=0;
  double lfoOneShotPercent=100,lfoOneShotPosition=0,lfoPhaseOffset=0,lfoEnvRate=0,lfoDelay=0,lfoDelayEnvelope=0,lfoRateEnvelope=1,lfoSquarePwm=.5,lfoUpperSquash=0,lfoLowerSquash=0;
  float lfoPreviousPhase=1.0f,lfoSmoothState=0.0f,lfoSampleHold=0.0f,lfoCurrent=0.0f;
- double lfoRateEnvelopeDecay=1.0,lfoDelayStep=1.0,lfoSmoothCoefficient=0.0,lfoSquashPositive=1.0,lfoSquashNegative=1.0;
  int lfoWave=0;std::uint32_t lfoRng=0x6081f0u;
  double degradeAmount=0,degradeQScale=128.0,degradeHoldL=0,degradeHoldR=0,degradeJitter=0;int degradeHoldSamples=1,degradeCount=0;std::uint32_t degradeRng=0x608d4a7u;
 };

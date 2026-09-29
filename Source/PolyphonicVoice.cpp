@@ -21,16 +21,18 @@ void PolyphonicVoice::Biquad::reset(){b0=1;b1=b2=a1=a2=z1L=z2L=z1R=z2R=0;bypass=
 void PolyphonicVoice::Biquad::configure(bool highPass,double cutoff,double resonance,double sampleRate,bool neutral){if(neutral){bypass=true;b0=1;b1=b2=a1=a2=0;return;}bypass=false;const auto w=2*3.14159265358979323846*std::clamp(cutoff,20.0,sampleRate*.45)/sampleRate,c=std::cos(w),s=std::sin(w),alpha=s/(2*std::clamp(resonance,.5,10.0)),a0=1+alpha;if(highPass){b0=(1+c)*.5/a0;b1=-(1+c)/a0;b2=b0;}else{b0=(1-c)*.5/a0;b1=(1-c)/a0;b2=b0;}a1=-2*c/a0;a2=(1-alpha)/a0;}
 double PolyphonicVoice::Biquad::process(double input,bool right){if(bypass)return input;auto&z1=right?z1R:z1L;auto&z2=right?z2R:z2L;const auto output=b0*input+z1;z1=b1*input-a1*output+z2;z2=b2*input-a2*output;return output;}
 bool PolyphonicVoice::Biquad::hasTail()const{return !bypass&&(std::abs(z1L)+std::abs(z2L)+std::abs(z1R)+std::abs(z2R)>1.0e-9);}
-void PolyphonicVoice::prepare(double sr){filterSampleRate=std::max(1.0,sr);kick808.prepare(sr);kickOther.prepare(sr);snare.prepare(sr);clap.prepare(sr);rim.prepare(sr);low.prepare(sr);mid.prepare(sr);high.prepare(sr);hat.prepare(sr);crash.prepare(sr);ride.prepare(sr);maracas.prepare(sr);cowbell.prepare(sr);zap.prepare(sr);chokeLength=std::max(1,int(std::lround(sr*.002)));active=false;highPassFilter.reset();lowPassFilter.reset();filterEnvelopeValue=0;filterEnvelopeAgeSamples=0;filterEnvelopeDecaySamples=0;filterEnvelopeAttackSamples=std::max<std::int64_t>(1,std::llround(filterSampleRate*.004));filterEnvelopeCounter=0;lfoDestinationMask=0;sourceActive=false;lfoOneShot=false;lfoOneShotDone=false;lfoHasEvaluated=false;lfoPhase=0;lfoIncrement=0;lfoOneShotPosition=0;lfoDelayEnvelope=0;lfoRateEnvelope=1;lfoPreviousPhase=1.0f;lfoSmoothState=lfoSampleHold=lfoCurrent=0.0f;}
-void PolyphonicVoice::reset(){kick808.reset();kickOther.reset();snare.reset();clap.reset();rim.reset();low.reset();mid.reset();high.reset();hat.reset();crash.reset();ride.reset();maracas.reset();cowbell.reset();zap.reset();highPassFilter.reset();lowPassFilter.reset();active=false;chokeRemaining=0;sourceMidiNote=-1;sourceSlot=-1;degradeAmount=0;degradeQScale=128.0;degradeHoldL=degradeHoldR=0;degradeJitter=0;degradeHoldSamples=1;degradeCount=0;degradeRng=0x608d4a7u;filterEnvelopeDepth=0;filterEnvelopeValue=0;filterEnvelopeAgeSamples=0;filterEnvelopeDecaySamples=0;filterEnvelopeAttackSamples=std::max<std::int64_t>(1,std::llround(filterSampleRate*.004));filterEnvelopeCounter=0;lfoDestinationMask=0;sourceActive=false;lfoOneShot=false;lfoOneShotDone=false;lfoHasEvaluated=false;lfoPhase=0;lfoIncrement=0;lfoOneShotPosition=0;lfoDelayEnvelope=0;lfoRateEnvelope=1;lfoPreviousPhase=1.0f;lfoSmoothState=lfoSampleHold=lfoCurrent=0.0f;lfoVolumeDepth=lfoLowPassDepth=lfoHighPassDepth=lfoPanDepth=0;}
+void PolyphonicVoice::prepare(double sr){filterSampleRate=std::max(1.0,sr);kick808.prepare(sr);kickOther.prepare(sr);snare.prepare(sr);clap.prepare(sr);rim.prepare(sr);low.prepare(sr);mid.prepare(sr);high.prepare(sr);hat.prepare(sr);crash.prepare(sr);ride.prepare(sr);maracas.prepare(sr);cowbell.prepare(sr);zap.prepare(sr);chokeLength=std::max(1,int(std::lround(sr*.002)));active=false;highPassFilter.reset();lowPassFilter.reset();filterEnvelopeValue=0;filterEnvelopeStageSamples=0;filterEnvelopeDecaySamples=0;filterEnvelopeAttackSamples=0;filterEnvelopeAttackStep=1.0;filterEnvelopeDecayMul=0.0;filterEnvelopeStage=0;filterEnvelopeCounter=0;lfoActive=false;sourceActive=false;lfoOneShot=false;lfoOneShotDone=false;lfoPhase=0;lfoIncrement=0;lfoOneShotPosition=0;lfoDelayEnvelope=0;lfoRateEnvelope=1;lfoPreviousPhase=1.0f;lfoSmoothState=lfoSampleHold=lfoCurrent=0.0f;}
+void PolyphonicVoice::reset(){kick808.reset();kickOther.reset();snare.reset();clap.reset();rim.reset();low.reset();mid.reset();high.reset();hat.reset();crash.reset();ride.reset();maracas.reset();cowbell.reset();zap.reset();highPassFilter.reset();lowPassFilter.reset();active=false;chokeRemaining=0;sourceMidiNote=-1;sourceSlot=-1;degradeAmount=0;degradeQScale=128.0;degradeHoldL=degradeHoldR=0;degradeJitter=0;degradeHoldSamples=1;degradeCount=0;degradeRng=0x608d4a7u;filterEnvelopeDepth=0;filterEnvelopeValue=0;filterEnvelopeStageSamples=0;filterEnvelopeDecaySamples=0;filterEnvelopeAttackSamples=0;filterEnvelopeAttackStep=1.0;filterEnvelopeDecayMul=0.0;filterEnvelopeStage=0;filterEnvelopeCounter=0;lfoActive=false;sourceActive=false;lfoOneShot=false;lfoOneShotDone=false;lfoPhase=0;lfoIncrement=0;lfoOneShotPosition=0;lfoDelayEnvelope=0;lfoRateEnvelope=1;lfoPreviousPhase=1.0f;lfoSmoothState=lfoSampleHold=lfoCurrent=0.0f;lfoVolumeDepth=lfoLowPassDepth=lfoHighPassDepth=lfoPanDepth=0;}
 void PolyphonicVoice::start(int engine,int velocity,int output,int midiNote,int sourceSlotIndex,const std::array<std::atomic<float>,slotParameterValueCount>&v,double bpm,std::uint64_t age,bool pingPongRight){engine=std::clamp(engine,0,slotEngineCount-1);if(isOffEngine(engine)){reset();return;}const auto&info=slotEngines[engine];family=info.family;sub=info.subEngine;route=std::clamp(output,0,OutputStage::stemCount-1);sourceMidiNote=std::clamp(midiNote,0,127);sourceSlot=std::clamp(sourceSlotIndex,0,slotCount-1);chokeRemaining=0;voiceAge=age;tempo=bpm;const auto randomSeed=voiceRandomSeed(age,sourceSlot);const auto s=[&](int n){return double(v[n-1].load(std::memory_order_relaxed));};const auto at=s(250),ac=s(251);const auto pingPongDepth=std::clamp(double(v[slotPingPongPanDepthParameterIndex].load(std::memory_order_relaxed)),-1.0,1.0);const auto pingPongPan=[](double base,double depth,bool right){base=std::clamp(base,-1.0,1.0);const auto magnitude=std::abs(depth);if(magnitude<=1.0e-12)return base;const auto excursion=(1.0-std::abs(base))*magnitude;const auto effectiveRight=depth<0.0?!right:right;return std::clamp(base+(effectiveRight?excursion:-excursion),-1.0,1.0);};pan=pingPongPan(s(271),pingPongDepth,pingPongRight);lpBaseCutoff=v[slotLowPassCutoffParameterIndex].load(std::memory_order_relaxed);lpResonance=v[slotLowPassResonanceParameterIndex].load(std::memory_order_relaxed);hpBaseCutoff=v[slotHighPassCutoffParameterIndex].load(std::memory_order_relaxed);hpResonance=v[slotHighPassResonanceParameterIndex].load(std::memory_order_relaxed);
  const auto envDepthPercent=double(v[slotFilterEnvelopeDepthParameterIndex].load(std::memory_order_relaxed));
+ const auto envAttackSeconds=double(v[slotFilterEnvelopeAttackParameterIndex].load(std::memory_order_relaxed));
  const auto envDecaySeconds=double(v[slotFilterEnvelopeDecayParameterIndex].load(std::memory_order_relaxed));
  filterEnvelopeDepth=std::clamp(envDepthPercent*.01,0.0,1.0);
- filterEnvelopeValue=(filterEnvelopeDepth>1.0e-9&&envDecaySeconds>=0.01)?1.0:0.0;
- filterEnvelopeAttackSamples=std::max<std::int64_t>(1,std::llround(filterSampleRate*.004));
- filterEnvelopeDecaySamples=filterEnvelopeValue>0?std::max<std::int64_t>(1,std::llround(std::max(0.01,envDecaySeconds)*filterSampleRate)):0;
- filterEnvelopeAgeSamples=0;filterEnvelopeCounter=0;
+ filterEnvelopeAttackSamples=std::max<std::int64_t>(0,std::llround(std::max(0.0,envAttackSeconds)*filterSampleRate));
+ filterEnvelopeDecaySamples=std::max<std::int64_t>(1,std::llround(std::max(0.0,envDecaySeconds)*filterSampleRate));
+ filterEnvelopeValue=0.0;filterEnvelopeStageSamples=0;filterEnvelopeStage=0;filterEnvelopeCounter=0;
+ filterEnvelopeAttackStep=filterEnvelopeAttackSamples>0?1.0-std::exp(std::log(0.001)/double(filterEnvelopeAttackSamples)):1.0;
+ filterEnvelopeDecayMul=filterEnvelopeDecaySamples>0?std::exp(std::log(0.001)/double(filterEnvelopeDecaySamples)):0.0;
  highPassFilter.reset();lowPassFilter.reset();
  highPassFilter.configure(true,hpBaseCutoff,hpResonance,filterSampleRate,hpBaseCutoff<=20.0);lowPassFilter.configure(false,lpBaseCutoff,lpResonance,filterSampleRate,lpBaseCutoff>=18000.0);
  degradeAmount=std::clamp(double(v[slotDegradeAmountParameterIndex].load(std::memory_order_relaxed))*.01,0.0,1.0);
@@ -40,43 +42,32 @@ void PolyphonicVoice::start(int engine,int velocity,int output,int midiNote,int 
  degradeHoldSamples=std::max(1,int(std::lround(1.0+(targetHold-1)*degradeAmount)));
  degradeJitter=std::clamp(double(v[slotDegradeJitterParameterIndex].load(std::memory_order_relaxed))*.01,0.0,1.0);
  degradeQScale=std::max(1.0,std::pow(2.0,effectiveBits-1));degradeCount=0;degradeHoldL=degradeHoldR=0;degradeRng=randomSeed;
- // Read only the four destinations first. If they are all zero, the rest of the
- // LFO parameter block is deliberately untouched: a disabled LFO has zero DSP cost.
+ lfoRate=std::clamp(double(v[slotLfoRateParameterIndex].load(std::memory_order_relaxed)),0.125,128.0);
+ lfoWave=std::clamp(int(std::lround(v[slotLfoWaveParameterIndex].load(std::memory_order_relaxed))),0,5);
+ lfoSmooth=std::clamp(double(v[slotLfoSmoothParameterIndex].load(std::memory_order_relaxed)),0.0,100.0);
+ lfoOneShot=v[slotLfoOneShotParameterIndex].load(std::memory_order_relaxed)>=0.5f;
+ lfoOneShotPercent=std::clamp(double(v[slotLfoOneShotPercentParameterIndex].load(std::memory_order_relaxed)),0.0,100.0);
+ lfoPhaseOffset=std::clamp(double(v[slotLfoPhaseParameterIndex].load(std::memory_order_relaxed)),0.0,1.0);
+ lfoEnvRate=std::clamp(double(v[slotLfoEnvRateParameterIndex].load(std::memory_order_relaxed)),-10.0,10.0);
+ lfoDelay=std::clamp(double(v[slotLfoDelayParameterIndex].load(std::memory_order_relaxed)),0.0,20.0);
+ lfoSquarePwm=std::clamp(double(v[slotLfoSquarePwmParameterIndex].load(std::memory_order_relaxed)),0.05,0.95);
+ lfoUpperSquash=std::clamp(double(v[slotLfoUpperSquashParameterIndex].load(std::memory_order_relaxed)),0.0,1.0);
+ lfoLowerSquash=std::clamp(double(v[slotLfoLowerSquashParameterIndex].load(std::memory_order_relaxed)),0.0,1.0);
  lfoVolumeDepth=std::clamp(double(v[slotLfoVolumeDepthParameterIndex].load(std::memory_order_relaxed)),-1.0,1.0);
  lfoLowPassDepth=std::clamp(double(v[slotLfoLowPassDepthParameterIndex].load(std::memory_order_relaxed)),-8.0,8.0);
  lfoHighPassDepth=std::clamp(double(v[slotLfoHighPassDepthParameterIndex].load(std::memory_order_relaxed)),-8.0,8.0);
  lfoPanDepth=std::clamp(double(v[slotLfoPanDepthParameterIndex].load(std::memory_order_relaxed)),-1.0,1.0);
- lfoDestinationMask=0;
- if(std::abs(lfoVolumeDepth)>1.0e-12)lfoDestinationMask|=1;
- if(std::abs(lfoLowPassDepth)>1.0e-12)lfoDestinationMask|=2;
- if(std::abs(lfoHighPassDepth)>1.0e-12)lfoDestinationMask|=4;
- if(std::abs(lfoPanDepth)>1.0e-12)lfoDestinationMask|=8;
- sourceActive=true;
- if(lfoDestinationMask!=0)
+ lfoActive=std::abs(lfoVolumeDepth)>1.0e-12||std::abs(lfoLowPassDepth)>1.0e-12||std::abs(lfoHighPassDepth)>1.0e-12||std::abs(lfoPanDepth)>1.0e-12;
+ // One shared trigger-only FX Attack/Decay envelope drives the filter envelope and LFO Env Rate.
+ // Its coefficients are precomputed at trigger time; if no destination uses it, it never runs.
+ const auto fxEnvelopeNeeded=filterEnvelopeDepth>1.0e-9||(lfoActive&&std::abs(lfoEnvRate)>1.0e-12);
+ if(fxEnvelopeNeeded)
  {
-  lfoRate=std::clamp(double(v[slotLfoRateParameterIndex].load(std::memory_order_relaxed)),0.125,128.0);
-  lfoWave=std::clamp(int(std::lround(v[slotLfoWaveParameterIndex].load(std::memory_order_relaxed))),0,5);
-  lfoSmooth=std::clamp(double(v[slotLfoSmoothParameterIndex].load(std::memory_order_relaxed)),0.0,100.0);
-  lfoOneShot=v[slotLfoOneShotParameterIndex].load(std::memory_order_relaxed)>=0.5f;
-  lfoOneShotPercent=std::clamp(double(v[slotLfoOneShotPercentParameterIndex].load(std::memory_order_relaxed)),0.0,100.0);
-  lfoPhaseOffset=std::clamp(double(v[slotLfoPhaseParameterIndex].load(std::memory_order_relaxed)),0.0,1.0);
-  lfoEnvRate=std::clamp(double(v[slotLfoEnvRateParameterIndex].load(std::memory_order_relaxed)),-10.0,10.0);
-  lfoDelay=std::clamp(double(v[slotLfoDelayParameterIndex].load(std::memory_order_relaxed)),0.0,20.0);
-  lfoSquarePwm=std::clamp(double(v[slotLfoSquarePwmParameterIndex].load(std::memory_order_relaxed)),0.05,0.95);
-  lfoUpperSquash=std::clamp(double(v[slotLfoUpperSquashParameterIndex].load(std::memory_order_relaxed)),0.0,1.0);
-  lfoLowerSquash=std::clamp(double(v[slotLfoLowerSquashParameterIndex].load(std::memory_order_relaxed)),0.0,1.0);
-  lfoPhase=0.0;lfoOneShotPosition=0.0;lfoOneShotDone=false;lfoHasEvaluated=false;lfoDelayEnvelope=0.0;lfoRateEnvelope=1.0;lfoPreviousPhase=1.0f;lfoSmoothState=0.0f;lfoCurrent=0.0f;lfoRng=randomSeed^0x1f012bb5u;lfoSampleHold=lfoRandomSigned(lfoRng);
-  lfoIncrement=std::max(0.0,lfoRate*std::max(1.0,bpm)/240.0/filterSampleRate);
-  lfoRateEnvelopeDecay=lfoEnvRate!=0.0?std::exp(-1.0/filterSampleRate):1.0;
-  lfoDelayStep=lfoDelay>1.0e-12?1.0/std::max(1.0,lfoDelay*filterSampleRate):1.0;
-  const auto smoothSquared=lfoSmooth*lfoSmooth;
-  lfoSmoothCoefficient=smoothSquared>0.0?1.0/(1.0+smoothSquared*(lfoWave==5?2000.0:400.0)):0.0;
-  lfoSquashPositive=1.0-lfoUpperSquash;lfoSquashNegative=1.0-lfoLowerSquash;
+     if(filterEnvelopeAttackSamples>0){filterEnvelopeValue=0.0;filterEnvelopeStage=1;}
+     else{filterEnvelopeValue=1.0;filterEnvelopeStage=2;}
  }
- else
- {
-  lfoIncrement=0.0;lfoCurrent=0.0f;
- }
+ sourceActive=true;lfoPhase=0.0;lfoOneShotPosition=0.0;lfoOneShotDone=false;lfoDelayEnvelope=0.0;lfoRateEnvelope=filterEnvelopeValue;lfoPreviousPhase=1.0f;lfoSmoothState=0.0f;lfoCurrent=0.0f;lfoRng=randomSeed^0x1f012bb5u;lfoSampleHold=lfoRandomSigned(lfoRng);
+ lfoIncrement=lfoActive?std::max(0.0,lfoRate*std::max(1.0,bpm)/240.0/filterSampleRate):0.0;
  if(family==SlotFamily::kick){kp={s(11),s(12),s(13),s(14),s(15),s(16),s(17),s(18),s(67),s(78),s(79),s(100),s(101),s(102),s(103),int(std::lround(s(104))),s(105),s(106),s(107),s(138),s(140),s(141),s(142),s(148),s(149),s(150),s(152),s(153),s(154),s(155),int(std::lround(s(151))),double(v[kickNoiseResonanceParameterIndex].load(std::memory_order_relaxed)),double(v[kickNoiseGranulationParameterIndex].load(std::memory_order_relaxed)),double(v[kickClickBodyCouplingParameterIndex].load(std::memory_order_relaxed)),at,ac,s(256)};if(sub==0){kickOther.reset();kick808.trigger(velocity,kp,randomSeed);}else{kick808.reset();kickOther.trigger(sub,velocity,kp,randomSeed);}}
  else if(family==SlotFamily::snare1||family==SlotFamily::snare2){const int a[][31]={{20,21,22,23,24,29,116,117,26,25,27,28,19,92,94,96,98,108,139,132,133,134,135,136,137,156,157,158,159,160,161},{221,222,223,224,225,230,232,233,227,226,228,229,220,93,95,97,99,231,240,234,235,236,237,238,239,241,242,243,244,245,246}};const auto slot=family==SlotFamily::snare1?0:1;for(int i=0;i<31;++i)sp.v[i]=s(a[slot][i]);const int x[][6]={{snare1BodyMidTuneParameterIndex,snare1BodyHighTuneParameterIndex,snare1NoiseGranulationParameterIndex,snare1BodyMidDecayParameterIndex,snare1BodyHighDecayParameterIndex,snare1ClickBodyCouplingParameterIndex},{snare2BodyMidTuneParameterIndex,snare2BodyHighTuneParameterIndex,snare2NoiseGranulationParameterIndex,snare2BodyMidDecayParameterIndex,snare2BodyHighDecayParameterIndex,snare2ClickBodyCouplingParameterIndex}};for(int i=0;i<6;++i)sp.v[31+i]=double(v[x[slot][i]].load(std::memory_order_relaxed));sp.v[37]=family==SlotFamily::snare1?double(v[snare1SaikeBodyAmpDecayParameterIndex].load(std::memory_order_relaxed)):10.0;sp.accentThreshold=at;sp.accentCharacter=ac;snare.trigger(sub,velocity,sp,randomSeed);}
  else if(family==SlotFamily::clap){const int a[]{30,31,32,33,34,208,35,36,37,38,39};for(int i=0;i<11;++i)cp.v[i]=s(a[i]);cp.accentThreshold=at;cp.accentCharacter=ac;clap.trigger(sub,velocity,cp,randomSeed);}
@@ -92,48 +83,29 @@ StereoSample PolyphonicVoice::render()
 {
     if(!active)return{};
 
-    // LFO fast path: zero destination mask means zero LFO work.  Filter-only
-    // modulation is evaluated only when filter coefficients are refreshed (1/16 rate).
-    const bool lfoConfigured=lfoDestinationMask!=0;
-    const bool lfoSourceThisSample=lfoConfigured&&sourceActive;
-    const bool lfoAudioRate=lfoSourceThisSample&&((lfoDestinationMask&0x09)!=0); // volume or pan
-    double lfo=double(lfoCurrent);
-    const auto evaluateLfo=[this](int elapsedSamples)->double
+    // The LFO is deliberately voice-local and trigger-only.  With all four
+    // destinations at zero lfoActive is false, so none of this code executes.
+    const bool lfoRunningThisSample=lfoActive&&sourceActive;
+    double lfo=0.0;
+    if(lfoRunningThisSample)
     {
-        if(elapsedSamples<=0)return double(lfoCurrent);
         const auto previous=lfoPhase;
-        if(lfoEnvRate!=0.0)
+        // LFO Env Rate reads the same exponential FX Attack/Decay envelope as the filter.
+        lfoRateEnvelope=(lfoEnvRate!=0.0&&filterEnvelopeStage!=0)?filterEnvelopeValue:0.0;
+        const auto rateMultiplier=lfoEnvRate!=0.0?std::exp2(lfoRateEnvelope*lfoEnvRate):1.0;
+        auto advance=lfoIncrement*rateMultiplier;
+        const auto oneShot=lfoOneShot&&lfoOneShotPercent>0.0;
+        if(!(oneShot&&lfoOneShotDone))
         {
-            const auto midpointEnvelope=elapsedSamples==1?lfoRateEnvelope:lfoRateEnvelope*std::pow(lfoRateEnvelopeDecay,0.5*double(elapsedSamples-1));
-            const auto rateMultiplier=std::exp2(midpointEnvelope*lfoEnvRate);
-            auto advance=lfoIncrement*double(elapsedSamples)*rateMultiplier;
-            const auto oneShot=lfoOneShot&&lfoOneShotPercent>0.0;
-            if(!(oneShot&&lfoOneShotDone))
+            if(oneShot)
             {
-                if(oneShot)
-                {
-                    const auto limit=std::clamp(lfoOneShotPercent*.01,0.0,1.0);
-                    advance=std::min(advance,std::max(0.0,limit-lfoOneShotPosition));
-                    lfoOneShotPosition+=advance;if(lfoOneShotPosition>=limit)lfoOneShotDone=true;
-                }
-                lfoPhase+=advance;lfoPhase-=std::floor(lfoPhase);
+                const auto limit=std::clamp(lfoOneShotPercent*.01,0.0,1.0);
+                advance=std::min(advance,std::max(0.0,limit-lfoOneShotPosition));
+                lfoOneShotPosition+=advance;
+                if(lfoOneShotPosition>=limit)lfoOneShotDone=true;
             }
-            lfoRateEnvelope*=elapsedSamples==1?lfoRateEnvelopeDecay:std::pow(lfoRateEnvelopeDecay,double(elapsedSamples));
-        }
-        else
-        {
-            auto advance=lfoIncrement*double(elapsedSamples);
-            const auto oneShot=lfoOneShot&&lfoOneShotPercent>0.0;
-            if(!(oneShot&&lfoOneShotDone))
-            {
-                if(oneShot)
-                {
-                    const auto limit=std::clamp(lfoOneShotPercent*.01,0.0,1.0);
-                    advance=std::min(advance,std::max(0.0,limit-lfoOneShotPosition));
-                    lfoOneShotPosition+=advance;if(lfoOneShotPosition>=limit)lfoOneShotDone=true;
-                }
-                lfoPhase+=advance;lfoPhase-=std::floor(lfoPhase);
-            }
+            lfoPhase+=advance;
+            if(lfoPhase>=1.0)lfoPhase-=std::floor(lfoPhase);
         }
         auto phase=lfoPhase+lfoPhaseOffset;phase-=std::floor(phase);
         float raw=0.0f;
@@ -146,29 +118,35 @@ StereoSample PolyphonicVoice::render()
             case 4:raw=phase<lfoSquarePwm?1.0f:-1.0f;break;
             default:
                 if(phase<lfoPreviousPhase||(lfoPhase<previous))lfoSampleHold=lfoRandomSigned(lfoRng);
-                raw=lfoSampleHold;break;
+                raw=lfoSampleHold;
+                break;
         }
-        if(lfoSmoothCoefficient>0.0)
+        const auto smoothSquared=lfoSmooth*lfoSmooth;
+        if(smoothSquared>0.0)
         {
-            const auto effective=elapsedSamples==1?lfoSmoothCoefficient:1.0-std::pow(1.0-lfoSmoothCoefficient,double(elapsedSamples));
-            lfoSmoothState+=float((double(raw)-double(lfoSmoothState))*effective);lfoCurrent=lfoSmoothState;
+            const auto coefficient=lfoWave==5?1.0/(1.0+smoothSquared*2000.0):1.0/(1.0+smoothSquared*400.0);
+            lfoSmoothState+=float((double(raw)-double(lfoSmoothState))*coefficient);
+            lfoCurrent=lfoSmoothState;
         }
-        else {lfoSmoothState=raw;lfoCurrent=raw;}
+        else
+        {
+            lfoSmoothState=raw;
+            lfoCurrent=raw;
+        }
         lfoPreviousPhase=float(phase);
         if(lfoDelay>1.0e-12)
         {
-            const auto effective=elapsedSamples==1?lfoDelayStep:1.0-std::pow(1.0-lfoDelayStep,double(elapsedSamples));
-            lfoDelayEnvelope+=(1.0-lfoDelayEnvelope)*effective;lfoCurrent*=float(lfoDelayEnvelope);
+            lfoDelayEnvelope+=(1.0-lfoDelayEnvelope)*(1.0/std::max(1.0,lfoDelay*filterSampleRate));
+            lfoCurrent*=float(lfoDelayEnvelope);
         }
         else lfoDelayEnvelope=1.0;
-        lfoCurrent*=lfoCurrent>=0.0f?float(lfoSquashPositive):float(lfoSquashNegative);
-        lfoHasEvaluated=true;return double(lfoCurrent);
-    };
-    if(lfoAudioRate)lfo=evaluateLfo(1);
+        lfoCurrent*=lfoCurrent>=0.0f?float(1.0-lfoUpperSquash):float(1.0-lfoLowerSquash);
+        lfo=double(lfoCurrent);
+    }
 
     const bool tomFamily=family==SlotFamily::lowTom||family==SlotFamily::midTom||family==SlotFamily::highTom;
     if(tomFamily)
-        tp.v[1]=std::clamp(pan+(lfoAudioRate?lfo*lfoPanDepth:0.0),-1.0,1.0);
+        tp.v[1]=std::clamp(pan+(lfoRunningThisSample?lfo*lfoPanDepth:0.0),-1.0,1.0);
 
     StereoSample out;
     switch(family)
@@ -206,7 +184,7 @@ StereoSample PolyphonicVoice::render()
         out.right=out.right*(1.0-degradeAmount)+crushedR*degradeAmount;
     }
 
-    if(lfoSourceThisSample&&(lfoDestinationMask&0x01)!=0)
+    if(lfoRunningThisSample&&std::abs(lfoVolumeDepth)>1.0e-12)
     {
         const auto gain=std::max(0.0,1.0+lfo*lfoVolumeDepth);
         out.left*=gain;out.right*=gain;
@@ -214,7 +192,7 @@ StereoSample PolyphonicVoice::render()
 
     if(!tomFamily)
     {
-        const auto effectivePan=std::clamp(pan+(lfoAudioRate?lfo*lfoPanDepth:0.0),-1.0,1.0);
+        const auto effectivePan=std::clamp(pan+(lfoRunningThisSample?lfo*lfoPanDepth:0.0),-1.0,1.0);
         if(std::abs(effectivePan)>1.0e-12)
         {
             constexpr double q=.78539816339744830962,r=1.4142135623730950488;
@@ -223,29 +201,15 @@ StereoSample PolyphonicVoice::render()
         }
     }
 
-    const bool lfoFilterRunning=lfoSourceThisSample&&((lfoDestinationMask&0x06)!=0);
-    if(filterEnvelopeValue>1.0e-6||lfoFilterRunning)
+    const bool lfoFilterRunning=lfoRunningThisSample&&(std::abs(lfoLowPassDepth)>1.0e-12||std::abs(lfoHighPassDepth)>1.0e-12);
+    const bool filterEnvelopeRunning=(filterEnvelopeStage!=0||filterEnvelopeValue>1.0e-9)&&filterEnvelopeDepth>1.0e-9;
+    if(filterEnvelopeRunning||lfoFilterRunning)
     {
         if(filterEnvelopeCounter<=0)
         {
-            if(lfoFilterRunning&&!lfoAudioRate)lfo=evaluateLfo(lfoHasEvaluated?16:1);
             double envAmount=0.0;
-            if(filterEnvelopeValue>1.0e-6)
-            {
-                double shape=0.0;
-                if(filterEnvelopeAgeSamples<filterEnvelopeAttackSamples)
-                {
-                    const auto x=std::clamp(double(filterEnvelopeAgeSamples)/double(filterEnvelopeAttackSamples),0.0,1.0);
-                    shape=x*x*(3.0-2.0*x);
-                }
-                else
-                {
-                    const auto decayAge=filterEnvelopeAgeSamples-filterEnvelopeAttackSamples;
-                    const auto x=std::clamp(double(decayAge)/double(std::max<std::int64_t>(1,filterEnvelopeDecaySamples)),0.0,1.0);
-                    shape=1.0-x*x*(3.0-2.0*x);
-                }
-                envAmount=shape*filterEnvelopeDepth;
-            }
+            if(filterEnvelopeStage!=0||filterEnvelopeValue>1.0e-9)
+                envAmount=filterEnvelopeValue*filterEnvelopeDepth;
             const auto lpOctaves=envAmount*2.0+(lfoFilterRunning?lfo*lfoLowPassDepth:0.0);
             const auto hpOctaves=envAmount+(lfoFilterRunning?lfo*lfoHighPassDepth:0.0);
             const auto lp=std::clamp(lpBaseCutoff*std::pow(2.0,lpOctaves),80.0,18000.0);
@@ -256,18 +220,37 @@ StereoSample PolyphonicVoice::render()
         }
         else --filterEnvelopeCounter;
 
-        if(filterEnvelopeValue>1.0e-6)
+    }
+
+    // Advance the shared FX envelope once per sample using precomputed one-pole
+    // coefficients. This gives synth-like exponential attack/decay with only
+    // multiply/add work in the audio loop. When it ends, it disappears.
+    if(filterEnvelopeStage!=0)
+    {
+        if(filterEnvelopeStage==1)
         {
-            ++filterEnvelopeAgeSamples;
-            if(filterEnvelopeAgeSamples>=filterEnvelopeAttackSamples+filterEnvelopeDecaySamples)
+            filterEnvelopeValue+=(1.0-filterEnvelopeValue)*filterEnvelopeAttackStep;
+            if(++filterEnvelopeStageSamples>=filterEnvelopeAttackSamples)
             {
-                filterEnvelopeValue=0;
-                filterEnvelopeCounter=0;
-                if(!lfoFilterRunning)
-                {
-                    highPassFilter.configure(true,hpBaseCutoff,hpResonance,filterSampleRate,hpBaseCutoff<=20.0);
-                    lowPassFilter.configure(false,lpBaseCutoff,lpResonance,filterSampleRate,lpBaseCutoff>=18000.0);
-                }
+                filterEnvelopeValue=1.0;filterEnvelopeStageSamples=0;
+                filterEnvelopeStage=2;
+            }
+        }
+        else
+        {
+            filterEnvelopeValue*=filterEnvelopeDecayMul;
+            if(++filterEnvelopeStageSamples>=filterEnvelopeDecaySamples)
+            {
+                filterEnvelopeValue=0.0;filterEnvelopeStage=0;filterEnvelopeStageSamples=0;
+            }
+        }
+        if(filterEnvelopeStage==0)
+        {
+            lfoRateEnvelope=0;filterEnvelopeCounter=0;
+            if(!lfoFilterRunning&&filterEnvelopeDepth>1.0e-9)
+            {
+                highPassFilter.configure(true,hpBaseCutoff,hpResonance,filterSampleRate,hpBaseCutoff<=20.0);
+                lowPassFilter.configure(false,lpBaseCutoff,lpResonance,filterSampleRate,lpBaseCutoff>=18000.0);
             }
         }
     }
@@ -277,14 +260,14 @@ StereoSample PolyphonicVoice::render()
 
     // Once the source engine has finished, the LFO disappears completely.
     // Filter tails may continue, but with static coefficients only.
-    if(!sourceActive&&lfoDestinationMask!=0)
+    if(!sourceActive&&lfoActive)
     {
         const auto hadFilterLfo=std::abs(lfoLowPassDepth)>1.0e-12||std::abs(lfoHighPassDepth)>1.0e-12;
-        lfoDestinationMask=0;lfoCurrent=0.0f;
+        lfoActive=false;lfoCurrent=0.0f;
         if(hadFilterLfo)
         {
             filterEnvelopeCounter=0;
-            if(filterEnvelopeValue<=1.0e-6)
+            if(filterEnvelopeStage==0)
             {
                 highPassFilter.configure(true,hpBaseCutoff,hpResonance,filterSampleRate,hpBaseCutoff<=20.0);
                 lowPassFilter.configure(false,lpBaseCutoff,lpResonance,filterSampleRate,lpBaseCutoff>=18000.0);

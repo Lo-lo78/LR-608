@@ -22,9 +22,4 @@ Cross-LFO controls are intentionally omitted: LR-608 uses one LFO per voice/engi
 All new parameter IDs are appended after existing parameters to preserve earlier indices.
 When all four destination depths are zero, the LFO DSP path is skipped.
 
-CPU optimization pass:
-- The four LFO depths are read first at trigger time. If all are zero, no other LFO parameter is read or initialized.
-- A zero destination mask bypasses all LFO phase, waveform, smoothing, one-shot, delay, envelope-rate and filter-modulation work.
-- LFO state is voice-local and is cleared as soon as the source engine stops. Filter tails continue with static coefficients only.
-- If only LP/HP destinations are enabled, the LFO is evaluated only on the existing 16-sample filter-coefficient update cadence; phase advances by the equivalent elapsed sample count.
-- Volume/Pan destinations use audio-rate evaluation, with trigger-precomputed coefficients and no pow() calls in the normal one-sample path.
+FX envelope: Filter Envelope Attack (s) + Filter Envelope Decay (s) form a shared exponential AD envelope for filter depth, LFO Env Rate, and future FX-envelope destinations. Attack defaults to the previous fixed 4 ms behavior.

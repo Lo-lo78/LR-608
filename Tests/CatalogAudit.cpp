@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 395
+    if (std::size (lr608::generated::parameters) != 396
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -151,6 +151,7 @@ int main()
     const std::array<const char*,2> filterEnvIds{"slotFilterEnvelopeDepth","slotFilterEnvelopeDecay"};
     for(int index=289;index<291;++index){const auto&e=lr608::generated::parameters[index];if(std::string(e.id)!=filterEnvIds[std::size_t(index-289)]||e.step<=0||e.minimum>e.defaultValue||e.defaultValue>e.maximum){std::cerr<<"Invalid filter envelope descriptor\n";return EXIT_FAILURE;}ids.emplace(e.id);}
     if(lr608::generated::parameters[lr608::slotFilterEnvelopeDepthParameterIndex].defaultValue!=0.0||lr608::generated::parameters[lr608::slotFilterEnvelopeDecayParameterIndex].defaultValue!=0.0){std::cerr<<"Filter envelope defaults are not backward-compatible\n";return EXIT_FAILURE;}
+    {const auto&a=lr608::generated::parameters[lr608::slotFilterEnvelopeAttackParameterIndex];if(std::string(a.id)!="slotFilterEnvelopeAttack"||a.minimum!=0.0||a.maximum<30.0||a.step<=0.0||std::abs(a.defaultValue-0.004)>1.0e-12){std::cerr<<"Invalid FX envelope attack descriptor\n";return EXIT_FAILURE;}ids.emplace(a.id);}
     for(int index=291;index<348;++index){const auto&c=lr608::generated::parameters[index];if(std::string(c.id).rfind("capturedTimbale",0)!=0||c.step<=0||c.minimum>c.defaultValue||c.defaultValue>c.maximum){std::cerr<<"Invalid captured Timbale descriptor\n";return EXIT_FAILURE;}ids.emplace(c.id);}
     const std::array<const char*,3> kickLabIds{"kickNoiseResonance","kickNoiseGranulation","kickClickBodyCoupling"};
     for(int index=348;index<351;++index){const auto&k=lr608::generated::parameters[index];if(std::string(k.id)!=kickLabIds[std::size_t(index-348)]||k.step<=0||k.minimum>k.defaultValue||k.defaultValue>k.maximum){std::cerr<<"Invalid Kick 808 LAB descriptor\n";return EXIT_FAILURE;}ids.emplace(k.id);}
@@ -238,7 +239,7 @@ int main()
         std::cerr<<"Trigger LFO depths are not backward-compatible\n";
         return EXIT_FAILURE;
     }
-    if (ids.size() != 395)
+    if (ids.size() != 396)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -266,6 +267,6 @@ int main()
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 350 page controls; legacy Tom Pan and Output Mode controls hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 350 page controls; legacy Tom Pan and Output Mode controls hidden\n";
     return EXIT_SUCCESS;
 }

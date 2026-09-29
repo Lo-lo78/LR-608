@@ -412,5 +412,6 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 402, "slotLfoSquarePwm", "LFO Square PWM", 0.05, 0.95, 0.001, 0.5, "" },
     { 403, "slotLfoUpperSquash", "LFO Upper Squash", 0.0, 1.0, 0.01, 0.0, "" },
     { 404, "slotLfoLowerSquash", "LFO Lower Squash", 0.0, 1.0, 0.01, 0.0, "" },
+    { 405, "slotFilterEnvelopeAttack", "Filter Envelope Attack (s)", 0.0, 30.0, 0.001, 0.004, "" },
 };
 }

@@ -977,6 +977,20 @@ void LR608AudioProcessorEditor::updateParameterList()
     }
     if(!globalOpen&&slotFxPage)
     {
+        for(const auto catalog:{lr608::slotLfoWaveParameterIndex,lr608::slotLfoOneShotParameterIndex,lr608::slotLfoOneShotPercentParameterIndex,
+                                lr608::slotLfoPhaseParameterIndex,lr608::slotLfoRateParameterIndex,lr608::slotLfoEnvRateParameterIndex,
+                                lr608::slotLfoDelayParameterIndex,lr608::slotLfoSmoothParameterIndex,lr608::slotLfoSquarePwmParameterIndex,
+                                lr608::slotLfoUpperSquashParameterIndex,lr608::slotLfoLowerSquashParameterIndex,
+                                lr608::slotLfoVolumeDepthParameterIndex,lr608::slotLfoLowPassDepthParameterIndex,
+                                lr608::slotLfoHighPassDepthParameterIndex,lr608::slotLfoPanDepthParameterIndex})
+        {
+            visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back(lr608::generated::parameters[catalog].name);
+            auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();
+            parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));
+        }
+    }
+    if(!globalOpen&&slotFxPage)
+    {
         const auto catalog=lr608::slotVoiceOverlapParameterIndex;
         visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Voice Overlap");
         auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter("slotVoiceOverlap"))label+=", "+parameter->getCurrentValueAsText();

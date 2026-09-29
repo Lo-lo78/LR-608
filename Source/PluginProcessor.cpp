@@ -11,7 +11,12 @@ namespace
 int catalogIndex(juce::StringRef);
 constexpr int slotEngineArchitectureVersion = 12;
 constexpr const char* universalSlotParameterIds[] {
-    "slotPan", "slotPingPongPanDepth", "slotVoiceOverlap",
+    "slotPan", "slotPingPongPanDepth",
+    "slotLfoRate", "slotLfoWave", "slotLfoSmooth",
+    "slotLfoOneShot", "slotLfoOneShotPercent", "slotLfoPhase", "slotLfoEnvRate",
+    "slotLfoDelay", "slotLfoSquarePwm", "slotLfoUpperSquash", "slotLfoLowerSquash",
+    "slotLfoVolumeDepth", "slotLfoLowPassDepth", "slotLfoHighPassDepth", "slotLfoPanDepth",
+    "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
     "slotDelayWet", "slotDelayDivision", "slotDelayFeedback", "slotDelayGlide", "slotDelayFilter",
     "slotDelayLeftOffset", "slotDelayRightOffset", "slotDelayFilterResonance", "slotDelayPitch",

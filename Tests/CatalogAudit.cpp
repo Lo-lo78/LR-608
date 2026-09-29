@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 380
+    if (std::size (lr608::generated::parameters) != 395
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -212,7 +212,33 @@ int main()
         }
         ids.emplace(g.id);
     }
-    if (ids.size() != 380)
+    const std::array<const char*,15> lfoIds{
+        "slotLfoRate", "slotLfoWave", "slotLfoSmooth", "slotLfoVolumeDepth",
+        "slotLfoLowPassDepth", "slotLfoHighPassDepth", "slotLfoPanDepth",
+        "slotLfoOneShot", "slotLfoOneShotPercent", "slotLfoPhase", "slotLfoEnvRate",
+        "slotLfoDelay", "slotLfoSquarePwm", "slotLfoUpperSquash", "slotLfoLowerSquash"
+    };
+    for(int offset=0;offset<int(lfoIds.size());++offset)
+    {
+        const auto index=lr608::slotLfoRateParameterIndex+offset;
+        const auto& lfo=lr608::generated::parameters[index];
+        if(std::string(lfo.id)!=lfoIds[std::size_t(offset)]
+           || lfo.step<=0 || lfo.minimum>lfo.defaultValue || lfo.defaultValue>lfo.maximum)
+        {
+            std::cerr<<"Invalid trigger LFO descriptor\n";
+            return EXIT_FAILURE;
+        }
+        ids.emplace(lfo.id);
+    }
+    if(lr608::generated::parameters[lr608::slotLfoVolumeDepthParameterIndex].defaultValue!=0.0
+       ||lr608::generated::parameters[lr608::slotLfoLowPassDepthParameterIndex].defaultValue!=0.0
+       ||lr608::generated::parameters[lr608::slotLfoHighPassDepthParameterIndex].defaultValue!=0.0
+       ||lr608::generated::parameters[lr608::slotLfoPanDepthParameterIndex].defaultValue!=0.0)
+    {
+        std::cerr<<"Trigger LFO depths are not backward-compatible\n";
+        return EXIT_FAILURE;
+    }
+    if (ids.size() != 395)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -240,6 +266,6 @@ int main()
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 350 page controls; legacy Tom Pan and Output Mode controls hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 350 page controls; legacy Tom Pan and Output Mode controls hidden\n";
     return EXIT_SUCCESS;
 }

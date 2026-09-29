@@ -9,7 +9,7 @@
 namespace
 {
 int catalogIndex(juce::StringRef);
-constexpr int slotEngineArchitectureVersion = 11;
+constexpr int slotEngineArchitectureVersion = 12;
 constexpr const char* universalSlotParameterIds[] {
     "slotPan", "slotVoiceOverlap",
     "slotLowPassCutoff", "slotLowPassResonance", "slotHighPassCutoff", "slotHighPassResonance",
@@ -101,6 +101,45 @@ juce::ValueTree migrateSlotEngineArchitecture (const juce::ValueTree& source)
             if (parameter.getProperty ("id").toString() == id && parameter.hasProperty ("value"))
                 parameter.setProperty ("value", migrate (juce::roundToInt (double (parameter.getProperty ("value")))), nullptr);
         }
+    }
+    if (sourceVersion <= 11)
+    {
+        // Architecture v12 makes the universal Slot Pan the only Tom pan.
+        // Preserve old Tom presets exactly by copying the historical family
+        // pan into Slot Pan once during migration.  The old slider remains in
+        // the catalogue only as legacy state data and is no longer rendered.
+        const auto readStateParameter = [&state] (const juce::String& id, double fallback)
+        {
+            const auto identifier = juce::Identifier (id);
+            if (state.hasProperty (identifier))
+                return double (state.getProperty (identifier));
+            for (int child = 0; child < state.getNumChildren(); ++child)
+            {
+                const auto parameter = state.getChild (child);
+                if (parameter.getProperty ("id").toString() == id && parameter.hasProperty ("value"))
+                    return double (parameter.getProperty ("value"));
+            }
+            return fallback;
+        };
+        if (auto slots = state.getChildWithName ("SlotStates"); slots.isValid())
+            for (int child = 0; child < slots.getNumChildren(); ++child)
+            {
+                auto slotNode = slots.getChild (child);
+                const auto slotIndex = int (slotNode.getProperty ("index", -1));
+                if (! juce::isPositiveAndBelow (slotIndex, lr608::slotCount))
+                    continue;
+                const auto engine = juce::jlimit (0, lr608::slotEngineCount - 1,
+                    juce::roundToInt (readStateParameter (lr608::slotEngineId (slotIndex), lr608::defaultSlotEngine (slotIndex))));
+                if (lr608::isOffEngine (engine))
+                    continue;
+                const auto family = lr608::slotEngines[engine].family;
+                const char* legacyPanId = nullptr;
+                if (family == lr608::SlotFamily::lowTom) legacyPanId = "slider040";
+                else if (family == lr608::SlotFamily::midTom) legacyPanId = "slider048";
+                else if (family == lr608::SlotFamily::highTom) legacyPanId = "slider056";
+                if (legacyPanId != nullptr && slotNode.hasProperty (legacyPanId))
+                    slotNode.setProperty ("slotPan", double (slotNode.getProperty (legacyPanId)), nullptr);
+            }
     }
     if (sourceVersion == 4)
     {
@@ -247,6 +286,12 @@ void LR608AudioProcessor::buildEngineDefaults()
             case lr608::SlotFamily::zap:setPlain("slider199",i.subEngine);zapEngineBanks.switchTo(i.subEngine);break;
         }
         for(int p=0;p<lr608::slotParameterValueCount;++p)engineDefaults[engine][p]=parameters.getRawParameterValue(lr608::generated::parameters[p].id)->load();
+        if(i.family==lr608::SlotFamily::lowTom||i.family==lr608::SlotFamily::midTom||i.family==lr608::SlotFamily::highTom)
+        {
+            const auto* legacyPanId=i.family==lr608::SlotFamily::lowTom?"slider040":i.family==lr608::SlotFamily::midTom?"slider048":"slider056";
+            if(const auto legacyPanIndex=catalogIndex(legacyPanId);legacyPanIndex>=0)
+                engineDefaults[engine][lr608::slotPanParameterIndex]=engineDefaults[engine][legacyPanIndex];
+        }
     }
     setPlain("slider247",0);kickEngineBanks.switchTo(0);
     setPlain("slider248",0);snareEngineBanks.switchTo(0,0);
@@ -561,6 +606,12 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
             slotValues[slot][catalogIndex("slider251")].store(parameters.getRawParameterValue("slider251")->load());
         }
         else captureSlotFromProxy(slot);
+        const auto importedFamily=lr608::slotEngines[engine].family;
+        if(importedFamily==lr608::SlotFamily::lowTom||importedFamily==lr608::SlotFamily::midTom||importedFamily==lr608::SlotFamily::highTom)
+        {
+            const auto* legacyPanId=importedFamily==lr608::SlotFamily::lowTom?"slider040":importedFamily==lr608::SlotFamily::midTom?"slider048":"slider056";
+            slotValues[slot][lr608::slotPanParameterIndex].store(parameters.getRawParameterValue(legacyPanId)->load());
+        }
 
         // The original 808 snare used the main Body Decay for all three body
         // resonators.  Mid/High decay became independent native VST parameters
@@ -583,6 +634,12 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
         setSlotOutput(slot,juce::roundToInt(parameters.getRawParameterValue(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id)->load()));
         if(auto*p=parameters.getParameter(lr608::slotNoteId(slot)))p->setValueNotifyingHost(p->convertTo0to1(float(extraNotes[extra])));
         captureSlotFromProxy(slot);
+        const auto importedFamily=lr608::slotEngines[engine].family;
+        if(importedFamily==lr608::SlotFamily::lowTom||importedFamily==lr608::SlotFamily::midTom||importedFamily==lr608::SlotFamily::highTom)
+        {
+            const auto* legacyPanId=importedFamily==lr608::SlotFamily::lowTom?"slider040":importedFamily==lr608::SlotFamily::midTom?"slider048":"slider056";
+            slotValues[slot][lr608::slotPanParameterIndex].store(parameters.getRawParameterValue(legacyPanId)->load());
+        }
     }
     // The original JSFX has a fixed hi-hat choke: closed (42) and pedal (44)
     // both truncate every voice started by open hi-hat note 46. Factory kits

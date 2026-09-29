@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 375
+    if (std::size (lr608::generated::parameters) != 376
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -180,7 +180,18 @@ int main()
         }
         ids.emplace(t.id);
     }
-    if (ids.size() != 375)
+    const auto& saikeBodyAmpDecay = lr608::generated::parameters[375];
+    if (std::string(saikeBodyAmpDecay.id) != "snare1SaikeBodyAmpDecay"
+        || saikeBodyAmpDecay.minimum != 0.001
+        || saikeBodyAmpDecay.maximum != 10.0
+        || saikeBodyAmpDecay.step != 0.001
+        || saikeBodyAmpDecay.defaultValue != 10.0)
+    {
+        std::cerr << "Invalid Saike Body Amp Decay descriptor\n";
+        return EXIT_FAILURE;
+    }
+    ids.emplace(saikeBodyAmpDecay.id);
+    if (ids.size() != 376)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -203,11 +214,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 349)
+    if (exposed.size() != 350)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 349 page controls; legacy Output Mode hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, 12 pages, 350 page controls; legacy Output Mode hidden\n";
     return EXIT_SUCCESS;
 }

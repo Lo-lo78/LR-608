@@ -26,7 +26,7 @@ private:
     double noiseResLp=0,noiseResBp=0; OrganicGranulator noiseGranulator;
     double state=0,state2=0,state3=0,atk=0,k=0,k2=0,k3=0,kAtk=0,pitchK=0,dt=0,dt2=0,dt3=0,lowScale=1,gain=1;
     double clickK=0,clickDt=0,waveMorph=0,driveMix=0,noiseGain=0;
-    Refined1176 compressor;
+    double panLeft=1,panRight=1; Refined1176 compressor;
     double voicePitchK=0,voiceEnvK=0,voiceNoiseK=0,voiceClickK=0,voiceBodyLpK=0,voiceBase=0,voiceEnd=0,voiceStart=0,voicePitchStep=0;
     Svf bp1,bp2,lp1,lp2;
 };

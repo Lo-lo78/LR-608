@@ -963,7 +963,7 @@ void LR608AudioProcessorEditor::updateParameterList()
     }
     if(!globalOpen&&slotFxPage&&tomFamily)
     {
-        const auto catalog=family==lr608::SlotFamily::lowTom?40:family==lr608::SlotFamily::midTom?48:56;
+        const auto catalog=family==lr608::SlotFamily::lowTom?39:family==lr608::SlotFamily::midTom?47:55;
         visibleCatalogIndices.push_back(catalog);visibleNames.emplace_back("Pan");
         auto label=visibleNames.back();if(auto*parameter=processor.parameters.getParameter(lr608::generated::parameters[catalog].id))label+=", "+parameter->getCurrentValueAsText();
         parameterSelector.addItem(label,static_cast<int>(visibleCatalogIndices.size()));

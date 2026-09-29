@@ -873,7 +873,19 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         {"slider066","slider056","slider057","slider058","slider059","slider060","slider061","slider111","slider120","slider062","slider063","slider123","slider186","slider187","slider188","slider189","slider190","slider191"}
     };
     lr608::TomParameters tomParameters[3];
-    for(int tom=0;tom<3;++tom){for(int p=0;p<18;++p)tomParameters[tom].v[p]=value(tomIds[tom][p]);tomParameters[tom].accentThreshold=value("slider250");tomParameters[tom].accentCharacter=value("slider251");}
+    for(int tom=0;tom<3;++tom){
+        for(int p=0;p<18;++p) tomParameters[tom].v[p]=value(tomIds[tom][p]);
+        constexpr const char* resonanceIds[]{"lowTomNoiseResonance","midTomNoiseResonance","highTomNoiseResonance"};
+        constexpr const char* granulationIds[]{"lowTomNoiseGranulation","midTomNoiseGranulation","highTomNoiseGranulation"};
+        constexpr const char* couplingIds[]{"lowTomClickBodyCoupling","midTomClickBodyCoupling","highTomClickBodyCoupling"};
+        constexpr const char* pitchCurveIds[]{"lowTomPitchDecayCurve","midTomPitchDecayCurve","highTomPitchDecayCurve"};
+        tomParameters[tom].v[18]=value(resonanceIds[tom]);
+        tomParameters[tom].v[19]=value(granulationIds[tom]);
+        tomParameters[tom].v[20]=value(couplingIds[tom]);
+        tomParameters[tom].v[21]=value(pitchCurveIds[tom]);
+        tomParameters[tom].accentThreshold=value("slider250");
+        tomParameters[tom].accentCharacter=value("slider251");
+    }
     const auto tomEngine=juce::roundToInt(value("slider219"));
     if(tomEngine!=lastTomEngine){lowTom.reset();midTom.reset();highTom.reset();lastTomEngine=tomEngine;}
     const int tomRoutes[]{juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeLowTom"))),juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeMidTom"))),juce::jlimit(0,getBusCount(false)-1,juce::roundToInt(value("routeHighTom")))};

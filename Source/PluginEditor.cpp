@@ -1719,9 +1719,14 @@ void LR608AudioProcessorEditor::showHelpLanguageMenu()
     menu.addSectionHeader("Choose Help language");
     menu.addItem(1,"English");menu.addItem(2,"Italiano");menu.addItem(3,juce::String::fromUTF8("Español"));menu.addItem(4,juce::String::fromUTF8("Português"));
     menu.addItem(5,juce::String::fromUTF8("Français"));menu.addItem(6,juce::String::fromUTF8("Русский"));menu.addItem(7,juce::String::fromUTF8("中文"));menu.addItem(8,juce::String::fromUTF8("日本語"));
+
+    // NVDA announces the native peer title before the popup menu.  Give that
+    // window the purpose of this dialog while the language menu is open.
+    if(auto* peer=getPeer())peer->setTitle("Choose Help language");
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&help),[safe=juce::Component::SafePointer(this)](int result)
     {
         if(safe==nullptr)return;
+        if(auto* peer=safe->getPeer())peer->setTitle("LR-608");
         if(result==0){juce::Timer::callAfterDelay(50,[safe]{if(safe!=nullptr)safe->requestShortcutFocus(safe->help);});return;}
         static constexpr const char*codes[]{"en","it","es","pt","fr","ru","zh","ja"};
         if(juce::isPositiveAndBelow(result-1,int(std::size(codes))))safe->openHelp(codes[result-1]);
@@ -2007,11 +2012,28 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     if(alt&&character=='v'){pasteMidiKey();return true;}
     if(alt&&character=='g'){if(globalOpen)closeGlobal(false);else openGlobal();return true;}
     if(globalOpen&&(code==juce::KeyPress::escapeKey||code==juce::KeyPress::returnKey)){closeGlobal(code==juce::KeyPress::returnKey);return true;}
+    const auto shift=key.getModifiers().isShiftDown();
+    // Help is the end of the logical tab ring.  Forward Tab wraps to the
+    // remembered Alt+D column, not unconditionally to Slot.
+    if(source==&help&&code==juce::KeyPress::tabKey&&!shift&&!alt&&!ctrl)
+    {
+        focusSlotColumn(selectedSlotColumn);
+        return true;
+    }
     const auto slotBarSource=source==&slotSelector||source==&engineSelector||source==&noteSelector||source==&chokeTriggerSelector||source==&chokeTargetSelector||source==&outputSelector;
     if(slotBarSource)
     {
         selectedSlotColumn=source==&slotSelector?0:source==&engineSelector?1:source==&noteSelector?2:source==&chokeTriggerSelector?3:source==&chokeTargetSelector?4:5;
-        if(code==juce::KeyPress::tabKey){saveUiPosition(true);requestShortcutFocus(parameterSelector);return true;}
+        if(code==juce::KeyPress::tabKey)
+        {
+            // The Slot area behaves as one logical stop in the plug-in tab ring.
+            // Tab enters the parameter grid; Shift+Tab wraps to the last button.
+            // Keep selectedSlotColumn untouched so returning to Alt+D restores
+            // exactly Slot/Engine/MIDI/Choke/Output instead of always Output.
+            if(shift){saveUiPosition(false);requestShortcutFocus(help);}
+            else{saveUiPosition(true);requestShortcutFocus(parameterSelector);}
+            return true;
+        }
         if(!alt&&code==juce::KeyPress::leftKey){if(selectedSlotColumn>0)focusSlotColumn(selectedSlotColumn-1);return true;}
         if(!alt&&code==juce::KeyPress::rightKey){if(selectedSlotColumn<5)focusSlotColumn(selectedSlotColumn+1);return true;}
         if(!alt&&code==juce::KeyPress::upKey){changeSlotBarValue(-1,false,false,false);return true;}
@@ -2109,6 +2131,13 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     }
     if (source == &parameterSelector)
     {
+        // Reverse traversal from the grid returns to the exact Alt+D column
+        // that was last used, rather than JUCE's fixed previous item (Output).
+        if(code==juce::KeyPress::tabKey&&shift&&!alt&&!ctrl)
+        {
+            focusSlotColumn(selectedSlotColumn);
+            return true;
+        }
         if (! key.getModifiers().isAltDown()
             && ! key.getModifiers().isCtrlDown()
             && ! key.getModifiers().isCommandDown()

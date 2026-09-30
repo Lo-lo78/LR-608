@@ -319,7 +319,10 @@ private:
 class ShortcutLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
-    explicit ShortcutLookAndFeel (ValueEditorShortcut callback) : shortcut (std::move (callback)) {}
+    explicit ShortcutLookAndFeel (ValueEditorShortcut callback,
+                                  juce::String popupWindowTitleToUse = {})
+        : shortcut (std::move (callback)),
+          popupWindowTitle (std::move (popupWindowTitleToUse)) {}
     juce::Label* createSliderTextBox (juce::Slider& slider) override
     {
         auto* label = new ShortcutSliderLabel (shortcut);
@@ -330,8 +333,20 @@ public:
         label->setColour (juce::Label::outlineColourId, slider.findColour (juce::Slider::textBoxOutlineColourId));
         return label;
     }
+
+    void preparePopupMenuWindow (juce::Component& window) override
+    {
+        juce::LookAndFeel_V4::preparePopupMenuWindow (window);
+        if (popupWindowTitle.isNotEmpty())
+        {
+            window.setName (popupWindowTitle);
+            window.setTitle (popupWindowTitle);
+        }
+    }
+
 private:
     ValueEditorShortcut shortcut;
+    juce::String popupWindowTitle;
 };
 
 constexpr int stepWidths[] { 1, 5, 10, 15, 20 };
@@ -391,6 +406,8 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     setLookAndFeel (visualLookAndFeel.get());
     shortcutLookAndFeel = std::make_unique<ShortcutLookAndFeel> (
         [this] (const juce::KeyPress& key, juce::Component* source) { return keyPressed (key, source); });
+    helpMenuLookAndFeel = std::make_unique<ShortcutLookAndFeel> (
+        ValueEditorShortcut {}, "Choose Help language");
     setSize (900, 570);
     setFocusContainerType (juce::Component::FocusContainerType::keyboardFocusContainer);
     setWantsKeyboardFocus (true);
@@ -615,6 +632,7 @@ LR608AudioProcessorEditor::~LR608AudioProcessorEditor()
     pendingShortcutFocusTarget = nullptr;
     parameterValue.setLookAndFeel (nullptr);
     setLookAndFeel (nullptr);
+    helpMenuLookAndFeel.reset();
     shortcutLookAndFeel.reset();
     visualLookAndFeel.reset();
 }
@@ -1756,17 +1774,14 @@ void LR608AudioProcessorEditor::confirmPresetOverwrite(){if(!presetOverwriteConf
 void LR608AudioProcessorEditor::showHelpLanguageMenu()
 {
     juce::PopupMenu menu;
-    menu.addSectionHeader("Choose Help language");
+    menu.setLookAndFeel (helpMenuLookAndFeel.get());
+    menu.addSectionHeader("Help language");
     menu.addItem(1,"English");menu.addItem(2,"Italiano");menu.addItem(3,juce::String::fromUTF8("Español"));menu.addItem(4,juce::String::fromUTF8("Português"));
     menu.addItem(5,juce::String::fromUTF8("Français"));menu.addItem(6,juce::String::fromUTF8("Русский"));menu.addItem(7,juce::String::fromUTF8("中文"));menu.addItem(8,juce::String::fromUTF8("日本語"));
 
-    // NVDA announces the native peer title before the popup menu.  Give that
-    // window the purpose of this dialog while the language menu is open.
-    if(auto* peer=getPeer())peer->setTitle("Choose Help language");
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&help),[safe=juce::Component::SafePointer(this)](int result)
     {
         if(safe==nullptr)return;
-        if(auto* peer=safe->getPeer())peer->setTitle("LR-608");
         if(result==0){juce::Timer::callAfterDelay(50,[safe]{if(safe!=nullptr)safe->requestShortcutFocus(safe->help);});return;}
         static constexpr const char*codes[]{"en","it","es","pt","fr","ru","zh","ja"};
         if(juce::isPositiveAndBelow(result-1,int(std::size(codes))))safe->openHelp(codes[result-1]);

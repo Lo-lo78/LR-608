@@ -27,6 +27,7 @@ private:
     LR608AudioProcessor& processor;
     std::unique_ptr<juce::LookAndFeel_V4> visualLookAndFeel;
     std::unique_ptr<juce::LookAndFeel_V4> shortcutLookAndFeel;
+    std::unique_ptr<juce::LookAndFeel_V4> helpMenuLookAndFeel;
     juce::Label title;
     juce::Label status;
     juce::ComboBox pageSelector;

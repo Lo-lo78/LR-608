@@ -978,10 +978,14 @@ void LR608AudioProcessorEditor::toggleSlotParameterPage()
 
 int LR608AudioProcessorEditor::currentGridRows() const
 {
-    if(!globalOpen&&slotFxPage)return 8;
-    const auto pageIndex=pageSelector.getSelectedItemIndex();
-    return juce::isPositiveAndBelow(pageIndex,static_cast<int>(std::size(lr608::generated::pages)))
-        ? lr608::generated::pages[pageIndex].rowsPerColumn : 8;
+    return juce::jmax (1, gridRowsPerColumn);
+}
+
+void LR608AudioProcessorEditor::adjustGridRows (int delta)
+{
+    const auto count = juce::jmax (1, static_cast<int> (visibleCatalogIndices.size()));
+    gridRowsPerColumn = juce::jlimit (1, count, gridRowsPerColumn + delta);
+    announce ("Grid " + juce::String (gridRowsPerColumn));
 }
 
 void LR608AudioProcessorEditor::updateParameterList()
@@ -1995,6 +1999,16 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         const auto engine = juce::jlimit (0, lr608::slotEngineCount - 1,
             juce::roundToInt (processor.parameters.getRawParameterValue (lr608::slotEngineId (selectedSlot))->load()));
         announce ("Engine, " + juce::String (lr608::slotEngines[engine].name));
+        return true;
+    }
+    if (alt && (character == '.' || code == '.'))
+    {
+        adjustGridRows (1);
+        return true;
+    }
+    if (alt && (character == ',' || code == ','))
+    {
+        adjustGridRows (-1);
         return true;
     }
     if(slotReportOpen)

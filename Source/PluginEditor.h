@@ -106,6 +106,7 @@ private:
     std::array<int, lr608::slotCount> rememberedGridIndices {};
     std::array<int, lr608::slotCount> rememberedFxGridIndices {};
     int globalGridIndex = 0;
+    int gridRowsPerColumn = 8;
     bool updatingSlotBar = false;
     bool globalOpen = false;
     bool slotFxPage = false;
@@ -135,6 +136,7 @@ private:
     void announcePage();
     void toggleSlotParameterPage();
     int currentGridRows() const;
+    void adjustGridRows (int delta);
     void announce (const juce::String&);
     void announceMidiNavigation (const juce::String&);
     void resetSelected();

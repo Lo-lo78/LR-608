@@ -585,7 +585,22 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
             slotValues[slot][catalogIndex("slider250")].store(parameters.getRawParameterValue("slider250")->load());
             slotValues[slot][catalogIndex("slider251")].store(parameters.getRawParameterValue("slider251")->load());
         }
-        else captureSlotFromProxy(slot);
+        else
+        {
+            captureSlotFromProxy(slot);
+            // Tom Pan is intentionally hidden from the Toms page and exposed
+            // through the common FX Pan control, but legacy/factory RPL kits
+            // still carry the three historical pan values. Preserve those
+            // values explicitly because captureSlotFromProxy() only captures
+            // parameters exposed by the current page. This changes only kits
+            // whose historical Tom pans differ from the defaults.
+            if (slot == 5)
+                slotValues[slot][catalogIndex("slider040")].store(parameters.getRawParameterValue("slider040")->load());
+            else if (slot == 6)
+                slotValues[slot][catalogIndex("slider048")].store(parameters.getRawParameterValue("slider048")->load());
+            else if (slot == 7)
+                slotValues[slot][catalogIndex("slider056")].store(parameters.getRawParameterValue("slider056")->load());
+        }
         // The original 808 snare used the main Body Decay for all three body
         // resonators.  Mid/High decay became independent native VST parameters
         // later, so legacy/factory presets must inherit the historical main
@@ -607,6 +622,16 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
         setSlotOutput(slot,juce::roundToInt(parameters.getRawParameterValue(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id)->load()));
         if(auto*p=parameters.getParameter(lr608::slotNoteId(slot)))p->setValueNotifyingHost(p->convertTo0to1(float(extraNotes[extra])));
         captureSlotFromProxy(slot);
+        // Keep the duplicated legacy Tom slots byte-for-byte equivalent to
+        // their source Tom, including the hidden historical pan parameter.
+        // This matters for the seven factory kits whose Mid/High Tom pans are
+        // intentionally different from the normal 0 / +0.5 defaults.
+        if (extra == 0)
+            slotValues[slot][catalogIndex("slider040")].store(slotValues[5][catalogIndex("slider040")].load());
+        else if (extra == 2)
+            slotValues[slot][catalogIndex("slider048")].store(slotValues[6][catalogIndex("slider048")].load());
+        else if (extra == 3)
+            slotValues[slot][catalogIndex("slider056")].store(slotValues[7][catalogIndex("slider056")].load());
     }
     // The original JSFX has a fixed hi-hat choke: closed (42) and pedal (44)
     // both truncate every voice started by open hi-hat note 46. Factory kits

@@ -1384,7 +1384,6 @@ void LR608AudioProcessorEditor::focusValueAndAnnounce()
     if (auto* parameter = processor.parameters.getParameter (id))
         message += ", " + parameter->getCurrentValueAsText();
     requestShortcutFocus (parameterValue);
-    lr608::announceToActiveScreenReader (parameterValue, message);
     status.setText (message, juce::dontSendNotification);
 }
 

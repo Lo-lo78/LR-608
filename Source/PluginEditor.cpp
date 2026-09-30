@@ -2130,7 +2130,8 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     if(alt&&character=='i'&&!globalOpen){initialize.triggerClick();return true;}
     if(alt&&character=='c'){copyMidiKey(false);return true;}
     if(alt&&character=='x'){copyMidiKey(true);return true;}
-    if(alt&&character=='v'){pasteMidiKey();return true;}
+    if(alt&&key.getModifiers().isShiftDown()&&character=='v'){pasteMidiKey();return true;}
+    if(alt&&!key.getModifiers().isShiftDown()&&character=='v'){focusValueAndAnnounce();return true;}
     if(alt&&character=='g'){if(globalOpen)closeGlobal(false);else openGlobal();return true;}
     if(globalOpen&&(code==juce::KeyPress::escapeKey||code==juce::KeyPress::returnKey)){closeGlobal(code==juce::KeyPress::returnKey);return true;}
     const auto shift=key.getModifiers().isShiftDown();
@@ -2185,13 +2186,20 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             return true;
         }
     }
-    if (code == juce::KeyPress::returnKey)
-        if (auto* editor = dynamic_cast<juce::TextEditor*> (source);
-            editor != nullptr && parameterValue.isParentOf (editor))
+    if (auto* editor = dynamic_cast<juce::TextEditor*> (source);
+        editor != nullptr && parameterValue.isParentOf (editor))
+    {
+        if (code == juce::KeyPress::escapeKey)
+        {
+            focusValueAndAnnounce();
+            return true;
+        }
+        if (code == juce::KeyPress::returnKey)
         {
             requestShortcutFocus (parameterSelector);
             return true;
         }
+    }
     const auto focusControl = [this, source] (juce::Component& target)
     {
         if (dynamic_cast<juce::TextEditor*> (source) != nullptr)

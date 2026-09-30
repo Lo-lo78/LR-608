@@ -10,6 +10,47 @@
 
 namespace
 {
+
+juce::File gridSettingsFile()
+{
+    auto directory = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+        .getChildFile ("Lo-lo78")
+        .getChildFile ("LR-608");
+    return directory.getChildFile ("settings.xml");
+}
+
+int loadGridRowsPreference()
+{
+    const auto file = gridSettingsFile();
+    if (! file.existsAsFile())
+        return 8;
+
+    juce::XmlDocument document (file);
+    if (auto xml = document.getDocumentElement())
+        if (xml->hasTagName ("SETTINGS"))
+            return juce::jmax (1, xml->getIntAttribute ("gridRows", 8));
+
+    return 8;
+}
+
+void saveGridRowsPreference (int rows)
+{
+    const auto file = gridSettingsFile();
+    file.getParentDirectory().createDirectory();
+
+    std::unique_ptr<juce::XmlElement> xml;
+    if (file.existsAsFile())
+    {
+        juce::XmlDocument document (file);
+        xml = document.getDocumentElement();
+    }
+
+    if (xml == nullptr || ! xml->hasTagName ("SETTINGS"))
+        xml = std::make_unique<juce::XmlElement> ("SETTINGS");
+
+    xml->setAttribute ("gridRows", juce::jmax (1, rows));
+    file.replaceWithText (xml->toString());
+}
 using ValueEditorShortcut = std::function<bool (const juce::KeyPress&, juce::Component*)>;
 
 juce::String parameterNameWithoutElement (juce::String name)
@@ -398,6 +439,7 @@ struct LR608AudioProcessorEditor::SlotReportModel final : public juce::ListBoxMo
 LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
+    gridRowsPerColumn = loadGridRowsPreference();
     visualLookAndFeel = std::make_unique<juce::LookAndFeel_V4>();
     visualLookAndFeel->setColour (juce::PopupMenu::backgroundColourId, juce::Colour::fromRGB (0x20, 0x25, 0x2a));
     visualLookAndFeel->setColour (juce::PopupMenu::textColourId, foreground);
@@ -985,6 +1027,7 @@ void LR608AudioProcessorEditor::adjustGridRows (int delta)
 {
     const auto count = juce::jmax (1, static_cast<int> (visibleCatalogIndices.size()));
     gridRowsPerColumn = juce::jlimit (1, count, gridRowsPerColumn + delta);
+    saveGridRowsPreference (gridRowsPerColumn);
     announce ("Grid " + juce::String (gridRowsPerColumn));
 }
 

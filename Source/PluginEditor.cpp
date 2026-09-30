@@ -26,6 +26,40 @@ juce::String parameterNameWithoutElement (juce::String name)
     return name;
 }
 
+
+juce::String parameterNameWithoutEngineVariant (juce::String name)
+{
+    // Keep the instrument/family part of the parameter name (Kick, Snare, Tom,
+    // etc.) but remove the synthesis-engine qualifier.  This is presentation
+    // only: parameter IDs and stored names remain untouched.
+    static constexpr const char* prefixes[] {
+        "Saike 909 Variant ",
+        "Saike Type 0 ", "Saike Type 1 ", "Saike Type 2 ", "Saike Type 3 ",
+        "Linn Acoustic ", "Linn ", "Hybrid FM ",
+        "808 Circuit ", "909 Crunch ", "Roland 808 909 ",
+        "Acoustic ", "Simmons ", "808 ", "909 ",
+        "LR-608 ", "Ring Alloy ", "Noise PM ", "Modal Shell ",
+        "Clocked Alarm ", "Particle Beacon ", "Modal UFO ",
+        "Karplus Wire Tune - ", "Karplus Wire ", "FM Siren ",
+        "Grain Laser ", "Chaos Relay ", "Hyper Spring ", "Bouncing Coin ",
+        "Physical ", "Wave Mesh ", "Sample Captured "
+    };
+
+    bool stripped = true;
+    while (stripped)
+    {
+        stripped = false;
+        for (const auto* prefix : prefixes)
+            if (name.startsWithIgnoreCase (prefix))
+            {
+                name = name.substring (static_cast<int> (std::char_traits<char>::length (prefix)));
+                stripped = true;
+                break;
+            }
+    }
+    return name;
+}
+
 juce::String mappedName (juce::StringRef name,
                          std::initializer_list<std::pair<const char*, const char*>> names)
 {
@@ -1085,7 +1119,7 @@ void LR608AudioProcessorEditor::updateParameterList()
             visibleCatalogIndices.push_back (catalog);
             auto spokenName = globalOpen
                             ? parameterNameWithoutElement (juce::String (page.parameterNames[item]))
-                            : contextualParameterName (selectedEngine, juce::String (page.parameterNames[item]));
+                            : parameterNameWithoutElement (parameterNameWithoutEngineVariant (contextualParameterName (selectedEngine, juce::String (page.parameterNames[item]))));
             visibleNames.emplace_back (spokenName);
             auto label = visibleNames.back();
             if (auto* parameter = processor.parameters.getParameter (descriptor.id))
@@ -1190,7 +1224,8 @@ void LR608AudioProcessorEditor::moveInGrid (int rowDelta, int columnDelta)
     setListIndex (target);
 }
 
-bool LR608AudioProcessorEditor::selectNextParameterStartingWith (juce::juce_wchar character)
+bool LR608AudioProcessorEditor::selectNextParameterStartingWith (juce::juce_wchar character,
+                                                                    bool backwards)
 {
     const auto initial = juce::CharacterFunctions::toLowerCase (character);
     if (! juce::CharacterFunctions::isLetterOrDigit (initial) || visibleNames.empty())
@@ -1198,9 +1233,11 @@ bool LR608AudioProcessorEditor::selectNextParameterStartingWith (juce::juce_wcha
 
     const auto count = static_cast<int> (visibleNames.size());
     const auto current = parameterSelector.getSelectedItemIndex();
+    const auto start = current >= 0 ? current : (backwards ? 0 : -1);
+    const auto direction = backwards ? -1 : 1;
     for (int offset = 1; offset <= count; ++offset)
     {
-        const auto target = (juce::jmax (-1, current) + offset) % count;
+        const auto target = (start + direction * offset + count * 2) % count;
         const auto name = visibleNames[static_cast<std::size_t> (target)].trimStart();
         if (name.isNotEmpty()
             && juce::CharacterFunctions::toLowerCase (name[0]) == initial)
@@ -1209,6 +1246,9 @@ bool LR608AudioProcessorEditor::selectNextParameterStartingWith (juce::juce_wcha
             return true;
         }
     }
+
+    // Consume valid type-navigation keys even when this page has no match,
+    // so JUCE does not perform a different ComboBox action.
     return true;
 }
 
@@ -1933,6 +1973,15 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     const auto alt = key.getModifiers().isAltDown();
     const auto ctrl = key.getModifiers().isCtrlDown()||key.getModifiers().isCommandDown();
     const auto character = juce::CharacterFunctions::toLowerCase (key.getTextCharacter());
+    // Alt+T is a read-only context shortcut available throughout the editor.
+    // It never moves focus or changes the current page/selection.
+    if (alt && character == 't')
+    {
+        const auto engine = juce::jlimit (0, lr608::slotEngineCount - 1,
+            juce::roundToInt (processor.parameters.getRawParameterValue (lr608::slotEngineId (selectedSlot))->load()));
+        announce ("Engine, " + juce::String (lr608::slotEngines[engine].name));
+        return true;
+    }
     if(slotReportOpen)
     {
         if(code==juce::KeyPress::escapeKey||(alt&&character=='r')){closeSlotReport();return true;}
@@ -2141,14 +2190,33 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if (! key.getModifiers().isAltDown()
             && ! key.getModifiers().isCtrlDown()
             && ! key.getModifiers().isCommandDown()
-            && selectNextParameterStartingWith (key.getTextCharacter()))
+            && selectNextParameterStartingWith (key.getTextCharacter(), shift))
             return true;
+        if (ctrl && code == juce::KeyPress::homeKey)
+        {
+            setListIndex (0);
+            return true;
+        }
+        if (ctrl && code == juce::KeyPress::endKey)
+        {
+            setListIndex (static_cast<int> (visibleCatalogIndices.size()) - 1);
+            return true;
+        }
         if (code == juce::KeyPress::upKey) { moveInGrid (-1, 0); return true; }
         if (code == juce::KeyPress::downKey) { moveInGrid (1, 0); return true; }
         if (code == juce::KeyPress::leftKey) { moveInGrid (0, -1); return true; }
         if (code == juce::KeyPress::rightKey) { moveInGrid (0, 1); return true; }
-        if (code == juce::KeyPress::pageUpKey) { setListIndex (parameterSelector.getSelectedItemIndex() - parameterPageStep); return true; }
-        if (code == juce::KeyPress::pageDownKey) { setListIndex (parameterSelector.getSelectedItemIndex() + parameterPageStep); return true; }
+        if (code == juce::KeyPress::pageUpKey || code == juce::KeyPress::pageDownKey)
+        {
+            const auto rows = currentGridRows();
+            const auto current = parameterSelector.getSelectedItemIndex();
+            const auto columnStart = (current / rows) * rows;
+            const auto columnEnd = std::min (columnStart + rows - 1,
+                                             static_cast<int> (visibleCatalogIndices.size()) - 1);
+            const auto delta = code == juce::KeyPress::pageUpKey ? -parameterPageStep : parameterPageStep;
+            setListIndex (std::clamp (current + delta, columnStart, columnEnd));
+            return true;
+        }
         if (code == juce::KeyPress::returnKey) { focusValueAndAnnounce(); return true; }
         if (code == juce::KeyPress::backspaceKey) { resetSelected(); return true; }
         if(code==juce::KeyPress::escapeKey){focusSlotColumn(selectedSlotColumn);return true;}

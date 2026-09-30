@@ -140,7 +140,7 @@ private:
     void initializeAll();
     void clearAllSlots();
     void moveInGrid (int rowDelta, int columnDelta);
-    bool selectNextParameterStartingWith (juce::juce_wchar);
+    bool selectNextParameterStartingWith (juce::juce_wchar, bool backwards = false);
     void setListIndex (int, bool notifyAccessibility = true);
     void changeStepWidth (int);
     void changeValue (int direction, bool pageStep);

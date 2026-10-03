@@ -2322,5 +2322,16 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if (code == juce::KeyPress::endKey) { setValueBoundary (false); return true; }
         if (code == juce::KeyPress::backspaceKey) { resetSelected(); return true; }
     }
+    // Keep unused arrow keys on buttons inside the plug-in. Without consuming
+    // them, REAPER can treat Right/Down as host navigation and move focus out
+    // of LR-608. Any modal or control-specific arrow handling above takes
+    // precedence; this is only the safe fallback for ordinary buttons.
+    if (! alt && ! ctrl
+        && dynamic_cast<juce::Button*> (source) != nullptr
+        && (code == juce::KeyPress::leftKey
+            || code == juce::KeyPress::rightKey
+            || code == juce::KeyPress::upKey
+            || code == juce::KeyPress::downKey))
+        return true;
     return false;
 }

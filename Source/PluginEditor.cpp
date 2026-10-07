@@ -11,6 +11,11 @@
 namespace
 {
 
+constexpr auto lr608Version = "0.99.3";
+constexpr auto lr608ReleaseDate = "7 October 2026";
+constexpr auto lr608ProjectUrl = "https://github.com/Lo-lo78/LR-608";
+constexpr auto lr608ContactEmail = "vmanolo301@gmail.com";
+
 juce::File gridSettingsFile()
 {
     auto directory = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
@@ -536,11 +541,52 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     help.setExplicitFocusOrder (16);
     help.setDescription("Alt+H");
     help.onClick = [this] { showHelpLanguageMenu(); };
+    aboutButton.setExplicitFocusOrder (17);
+    aboutButton.setButtonText("About  Alt+A");
+    aboutButton.setDescription("Alt+A");
+    aboutButton.onClick = [this] { openAbout(); };
 
-    for (auto* component : std::array<juce::Component*, 18> {
+    const auto aboutText = juce::String("LR-608\nVersion: ") + lr608Version
+        + "\nRelease date: " + lr608ReleaseDate
+        + "\nProject: " + lr608ProjectUrl
+        + "\nContact: " + lr608ContactEmail;
+    aboutInfo.setTitle("About LR-608");
+    aboutInfo.setMultiLine(true, true);
+    aboutInfo.setReturnKeyStartsNewLine(false);
+    aboutInfo.setReadOnly(true);
+    aboutInfo.setScrollbarsShown(true);
+    aboutInfo.setCaretVisible(true);
+    aboutInfo.setPopupMenuEnabled(false);
+    aboutInfo.setTabKeyUsedAsCharacter(false);
+    aboutInfo.setText(aboutText, false);
+    aboutInfo.setDescription(aboutText);
+    aboutInfo.setWantsKeyboardFocus(true);
+    aboutInfo.setExplicitFocusOrder(1);
+    aboutInfo.setKeyHandler([this](const juce::KeyPress& key) { return keyPressed(key, &aboutInfo); });
+    aboutInfo.onEscapeKey = [this] { closeAbout(); };
+    addAndMakeVisible(aboutInfo); aboutInfo.setVisible(false);
+
+    aboutProject.setButtonText(juce::String("Project: ") + lr608ProjectUrl);
+    aboutProject.setDescription("LR-608 GitHub project URL. Press Enter to open in the default browser.");
+    aboutProject.setWantsKeyboardFocus(true); aboutProject.setExplicitFocusOrder(2);
+    aboutProject.onClick = [this] { openProjectPage(); }; aboutProject.addKeyListener(this);
+    addAndMakeVisible(aboutProject); aboutProject.setVisible(false);
+
+    aboutContact.setButtonText(juce::String("Contact: ") + lr608ContactEmail);
+    aboutContact.setDescription("LR-608 contact email. Press Enter to open the default email application.");
+    aboutContact.setWantsKeyboardFocus(true); aboutContact.setExplicitFocusOrder(3);
+    aboutContact.onClick = [this] { openContactEmail(); }; aboutContact.addKeyListener(this);
+    addAndMakeVisible(aboutContact); aboutContact.setVisible(false);
+
+    aboutClose.setDescription("Closes About. Shortcut Alt+C");
+    aboutClose.setWantsKeyboardFocus(true); aboutClose.setExplicitFocusOrder(4);
+    aboutClose.onClick = [this] { closeAbout(); }; aboutClose.addKeyListener(this);
+    addAndMakeVisible(aboutClose); aboutClose.setVisible(false);
+
+    for (auto* component : std::array<juce::Component*, 19> {
                               &title, &status, &slotSelector, &engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,
                               &parameterValue, &reset, &initialize, &clearSlots, &previousPreset,
-                              &nextPreset, &loadPreset,&savePreset,&help })
+                              &nextPreset, &loadPreset,&savePreset,&help,&aboutButton })
     {
         component->setColour (juce::Label::textColourId, foreground);
         addAndMakeVisible (*component);
@@ -559,9 +605,9 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
         box->setColour (juce::ComboBox::focusedOutlineColourId, cyan);
     }
 
-    for (auto* button : std::array<juce::TextButton*, 8> { &reset, &initialize, &clearSlots, &previousPreset,
+    for (auto* button : std::array<juce::TextButton*, 9> { &reset, &initialize, &clearSlots, &previousPreset,
                                                            &nextPreset, &loadPreset, &savePreset,
-                                                           &help })
+                                                           &help, &aboutButton })
     {
         button->setColour (juce::TextButton::buttonColourId, juce::Colour::fromRGB (0x2a, 0x30, 0x35));
         button->setColour (juce::TextButton::buttonOnColourId, orange);
@@ -573,6 +619,7 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     loadPreset.setColour (juce::TextButton::buttonColourId, cyan.darker (0.58f));
     savePreset.setColour (juce::TextButton::buttonColourId, cyan.darker (0.58f));
     help.setColour (juce::TextButton::buttonColourId, yellow.darker (0.58f));
+    aboutButton.setColour (juce::TextButton::buttonColourId, yellow.darker (0.58f));
     // Previous/Next preset remain available through Alt+- and Alt++, but the
     // redundant buttons are hidden from both the visual and keyboard UI.
     previousPreset.setVisible(false);
@@ -756,7 +803,7 @@ void LR608AudioProcessorEditor::paint (juce::Graphics& g)
     {
         g.setFont (juce::FontOptions (12.0f));
         g.setColour (mutedText);
-        g.drawText ("Keyboard:  Alt+D Slot area   |   Alt+L Parameters   |   Alt+B Presets   |   Alt+H Complete guide",
+        g.drawText ("Keyboard:  Alt+D Slot area   |   Alt+L Parameters   |   Alt+B Presets   |   Alt+H Complete guide   |   Alt+A About",
                     34, status.getY() - 42, getWidth() - 68, 24,
                     juce::Justification::centred, true);
     }
@@ -775,7 +822,7 @@ void LR608AudioProcessorEditor::resized()
     area.removeFromTop (12);
     parameterValue.setBounds (area.removeFromTop (82));
     area.removeFromTop (10);
-    auto actions=area.removeFromTop(36);reset.setBounds(actions.removeFromLeft(180));actions.removeFromLeft(16);initialize.setBounds(actions.removeFromLeft(130));actions.removeFromLeft(10);clearSlots.setBounds(actions.removeFromLeft(130));help.setBounds(actions.removeFromRight(100));
+    auto actions=area.removeFromTop(36);reset.setBounds(actions.removeFromLeft(180));actions.removeFromLeft(16);initialize.setBounds(actions.removeFromLeft(130));actions.removeFromLeft(10);clearSlots.setBounds(actions.removeFromLeft(130));aboutButton.setBounds(actions.removeFromRight(100));actions.removeFromRight(10);help.setBounds(actions.removeFromRight(100));
     area.removeFromTop(10);
     auto buttons=area.removeFromTop(36);const auto width=(buttons.getWidth()-30)/4;previousPreset.setBounds(buttons.removeFromLeft(width));buttons.removeFromLeft(10);nextPreset.setBounds(buttons.removeFromLeft(width));buttons.removeFromLeft(10);loadPreset.setBounds(buttons.removeFromLeft(width));buttons.removeFromLeft(10);savePreset.setBounds(buttons);
     status.setBounds (area.removeFromBottom (44));
@@ -785,6 +832,7 @@ void LR608AudioProcessorEditor::resized()
     auto saveArea=getLocalBounds().withSizeKeepingCentre(520,190);presetSaveLabel.setBounds(saveArea.removeFromTop(36));saveArea.removeFromTop(8);presetSaveName.setBounds(saveArea.removeFromTop(38));saveArea.removeFromTop(20);auto saveButtons=saveArea.removeFromTop(36);presetSaveConfirm.setBounds(saveButtons.removeFromLeft(150));presetSaveCancel.setBounds(saveButtons.removeFromRight(150));
     auto overwriteArea=getLocalBounds().withSizeKeepingCentre(560,190);presetOverwriteLabel.setBounds(overwriteArea.removeFromTop(76));overwriteArea.removeFromTop(18);auto overwriteButtons=overwriteArea.removeFromTop(38);presetOverwriteYes.setBounds(overwriteButtons.removeFromLeft(140));overwriteButtons.removeFromLeft(20);presetOverwriteClose.setBounds(overwriteButtons.removeFromRight(140));overwriteButtons.removeFromRight(20);presetOverwriteNo.setBounds(overwriteButtons);
     auto slotNameArea=getLocalBounds().withSizeKeepingCentre(520,190);slotNameLabel.setBounds(slotNameArea.removeFromTop(36));slotNameArea.removeFromTop(8);slotNameEditor.setBounds(slotNameArea.removeFromTop(38));slotNameArea.removeFromTop(20);auto slotNameButtons=slotNameArea.removeFromTop(36);slotNameConfirm.setBounds(slotNameButtons.removeFromLeft(150));slotNameCancel.setBounds(slotNameButtons.removeFromRight(150));
+    auto aboutArea=getLocalBounds().withSizeKeepingCentre(700,430);auto aboutCloseArea=aboutArea.removeFromBottom(42);aboutArea.removeFromBottom(10);auto aboutContactArea=aboutArea.removeFromBottom(38);aboutArea.removeFromBottom(8);auto aboutProjectArea=aboutArea.removeFromBottom(38);aboutArea.removeFromBottom(10);aboutInfo.setBounds(aboutArea);aboutProject.setBounds(aboutProjectArea);aboutContact.setBounds(aboutContactArea);aboutClose.setBounds(aboutCloseArea.withSizeKeepingCentre(140,36));
     auto reportArea=getLocalBounds().reduced(30);slotReportSummary.setBounds(reportArea.removeFromTop(38));reportArea.removeFromTop(6);auto reportHeadings=reportArea.removeFromTop(34);const auto reportGap=12;const auto reportWidth=(reportHeadings.getWidth()-reportGap)/2;slotReportFilledLabel.setBounds(reportHeadings.removeFromLeft(reportWidth));reportHeadings.removeFromLeft(reportGap);slotReportEmptyLabel.setBounds(reportHeadings);auto reportButtonArea=reportArea.removeFromBottom(38);slotReportClose.setBounds(reportButtonArea.withSizeKeepingCentre(150,38));reportArea.removeFromBottom(8);auto filledArea=reportArea.removeFromLeft(reportWidth);reportArea.removeFromLeft(reportGap);slotReportFilled.setBounds(filledArea);slotReportEmpty.setBounds(reportArea);
 }
 
@@ -979,7 +1027,7 @@ void LR608AudioProcessorEditor::openGlobal()
     positionWasInGrid=focused==&parameterSelector||focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused));
     positionBeforeGlobalColumn=selectedSlotColumn;positionBeforeGlobalSlot=selectedSlot;
     globalSnapshot.clear();for(const auto*id:{"slider249","slider253","slider254","slider256"})globalSnapshot.emplace_back(id,processor.parameters.getRawParameterValue(id)->load());
-    globalOpen=true;slotSelector.setVisible(false);engineSelector.setVisible(false);noteSelector.setVisible(false);chokeTriggerSelector.setVisible(false);chokeTargetSelector.setVisible(false);outputSelector.setVisible(false);initialize.setVisible(false);clearSlots.setVisible(false);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(false);title.setText("Global",juce::dontSendNotification);parameterSelector.setTitle("Global");pageSelector.setSelectedItemIndex(11,juce::dontSendNotification);updateParameterList();setListIndex(globalGridIndex);requestShortcutFocus(parameterSelector);announce("Global");
+    globalOpen=true;slotSelector.setVisible(false);engineSelector.setVisible(false);noteSelector.setVisible(false);chokeTriggerSelector.setVisible(false);chokeTargetSelector.setVisible(false);outputSelector.setVisible(false);initialize.setVisible(false);clearSlots.setVisible(false);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(false);aboutButton.setVisible(false);title.setText("Global",juce::dontSendNotification);parameterSelector.setTitle("Global");pageSelector.setSelectedItemIndex(11,juce::dontSendNotification);updateParameterList();setListIndex(globalGridIndex);requestShortcutFocus(parameterSelector);announce("Global");
 }
 
 void LR608AudioProcessorEditor::closeGlobal(bool accept)
@@ -987,7 +1035,7 @@ void LR608AudioProcessorEditor::closeGlobal(bool accept)
     if(!globalOpen)return;
     if(!accept)for(const auto&entry:globalSnapshot)if(auto*p=processor.parameters.getParameter(entry.first)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(entry.second));p->endChangeGesture();}
     const auto globalItem=parameterSelector.getSelectedItemIndex();if(globalItem>=0){globalGridIndex=globalItem;processor.parameters.state.setProperty("uiGlobalGrid",globalItem,nullptr);}
-    globalOpen=false;title.setText("LR-608",juce::dontSendNotification);parameterSelector.setTitle("Parameter");slotSelector.setVisible(true);engineSelector.setVisible(true);noteSelector.setVisible(true);chokeTriggerSelector.setVisible(true);chokeTargetSelector.setVisible(true);outputSelector.setVisible(true);initialize.setVisible(true);clearSlots.setVisible(true);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(true);selectedSlot=positionBeforeGlobalSlot;selectedSlotColumn=positionBeforeGlobalColumn;syncSlotBar(true);saveUiPosition(positionWasInGrid);
+    globalOpen=false;title.setText("LR-608",juce::dontSendNotification);parameterSelector.setTitle("Parameter");slotSelector.setVisible(true);engineSelector.setVisible(true);noteSelector.setVisible(true);chokeTriggerSelector.setVisible(true);chokeTargetSelector.setVisible(true);outputSelector.setVisible(true);initialize.setVisible(true);clearSlots.setVisible(true);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(true);aboutButton.setVisible(true);selectedSlot=positionBeforeGlobalSlot;selectedSlotColumn=positionBeforeGlobalColumn;syncSlotBar(true);saveUiPosition(positionWasInGrid);
     if(positionWasInGrid)requestShortcutFocus(parameterSelector);else focusSlotColumn(selectedSlotColumn);
     announce(accept?"Global confirmed":"Global cancelled");
 }
@@ -1672,7 +1720,7 @@ juce::String LR608AudioProcessorEditor::currentFocusValueAnnouncement() const
 
 void LR608AudioProcessorEditor::setMainControlsEnabled(bool enabled)
 {
-    for(auto*control:std::array<juce::Component*,16>{&slotSelector,&engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help})control->setEnabled(enabled);
+    for(auto*control:std::array<juce::Component*,17>{&slotSelector,&engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help,&aboutButton})control->setEnabled(enabled);
 }
 
 void LR608AudioProcessorEditor::togglePresetBrowser(){if(presetBrowserOpen)closePresetBrowser();else openPresetBrowser();}
@@ -1690,7 +1738,7 @@ void LR608AudioProcessorEditor::openPresetBrowser()
     presetBrowserReturnGridIndex=parameterSelector.getSelectedItemIndex();
     if(auto* focused=juce::Component::getCurrentlyFocusedComponent())
     {
-        for(auto* control:std::array<juce::Component*,16>{&slotSelector,&engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help})
+        for(auto* control:std::array<juce::Component*,17>{&slotSelector,&engineSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help,&aboutButton})
             if(focused==control||control->isParentOf(focused)){presetBrowserReturnFocus=control;break;}
         presetBrowserReturnWasInGrid=presetBrowserReturnFocus==&parameterSelector;
     }
@@ -1816,6 +1864,39 @@ void LR608AudioProcessorEditor::commitPresetSave(){if(presetOverwriteConfirmatio
 void LR608AudioProcessorEditor::showPresetOverwriteConfirmation(const juce::File&file){presetOverwriteConfirmationOpen=true;presetOverwriteFile=file;for(auto*c:std::array<juce::Component*,4>{&presetSaveLabel,&presetSaveName,&presetSaveConfirm,&presetSaveCancel})c->setVisible(false);presetOverwriteLabel.setText("Preset "+file.getFileNameWithoutExtension()+" already exists. Overwrite?",juce::dontSendNotification);for(auto*c:std::array<juce::Component*,4>{&presetOverwriteLabel,&presetOverwriteYes,&presetOverwriteNo,&presetOverwriteClose}){c->setVisible(true);c->toFront(false);}repaint();juce::MessageManager::callAsync([safe=juce::Component::SafePointer(this)]{if(safe!=nullptr&&safe->presetOverwriteConfirmationOpen){safe->presetOverwriteNo.grabKeyboardFocus();safe->announce(safe->presetOverwriteLabel.getText()+" No");}});}
 void LR608AudioProcessorEditor::dismissPresetOverwriteConfirmation(){if(!presetOverwriteConfirmationOpen)return;presetOverwriteConfirmationOpen=false;presetOverwriteFile={};for(auto*c:std::array<juce::Component*,4>{&presetOverwriteLabel,&presetOverwriteYes,&presetOverwriteNo,&presetOverwriteClose})c->setVisible(false);for(auto*c:std::array<juce::Component*,4>{&presetSaveLabel,&presetSaveName,&presetSaveConfirm,&presetSaveCancel}){c->setVisible(true);c->toFront(false);}repaint();presetSaveName.grabKeyboardFocus();announce("Preset not overwritten. Enter another name");}
 void LR608AudioProcessorEditor::confirmPresetOverwrite(){if(!presetOverwriteConfirmationOpen||!presetOverwriteFile.existsAsFile()){dismissPresetOverwriteConfirmation();return;}juce::File saved;const auto result=processor.presetManager.savePreset(presetSaveName.getText(),processor.presetManager.getLibraryRoot(),saved,true);if(result.failed()){announce(result.getErrorMessage());return;}const auto name=saved.getFileNameWithoutExtension();if(presetSaveFromBrowser){presetBrowserOriginalPatch=processor.presetManager.capturePatchSnapshot();presetBrowserPreviewFile=saved;presetBrowserHasPreview=true;presetSaveReturnFile=saved;}closePresetSave();announce("Preset overwritten. "+name);}
+
+void LR608AudioProcessorEditor::openAbout()
+{
+    if(aboutOpen)return;
+    aboutReturnFocus=juce::Component::getCurrentlyFocusedComponent();
+    aboutOpen=true;setMainControlsEnabled(false);
+    aboutInfo.setVisible(true);aboutProject.setVisible(true);aboutContact.setVisible(true);aboutClose.setVisible(true);
+    aboutInfo.toFront(false);aboutProject.toFront(false);aboutContact.toFront(false);aboutClose.toFront(false);repaint();
+    aboutInfo.setCaretPosition(0);juce::AccessibilityHandler::clearCurrentlyFocusedHandler();aboutInfo.grabKeyboardFocus();
+    if(auto*handler=aboutInfo.getAccessibilityHandler())handler->grabFocus();
+}
+void LR608AudioProcessorEditor::closeAbout()
+{
+    if(!aboutOpen)return;aboutOpen=false;aboutInfo.setVisible(false);aboutProject.setVisible(false);aboutContact.setVisible(false);aboutClose.setVisible(false);setMainControlsEnabled(true);repaint();
+    auto*target=aboutReturnFocus.getComponent();if(target==nullptr||!target->isShowing()||!target->isEnabled())target=&aboutButton;aboutReturnFocus=nullptr;
+    juce::AccessibilityHandler::clearCurrentlyFocusedHandler();target->grabKeyboardFocus();if(auto*handler=target->getAccessibilityHandler())handler->grabFocus();
+}
+void LR608AudioProcessorEditor::openProjectPage()
+{
+    if(juce::URL(lr608ProjectUrl).launchInDefaultBrowser())announce("Opening LR-608 GitHub project page");else announce("Cannot open the LR-608 GitHub project page");
+}
+void LR608AudioProcessorEditor::openContactEmail()
+{
+    const auto mailUrl=juce::String("mailto:")+lr608ContactEmail;if(juce::URL(mailUrl).launchInDefaultBrowser())announce("Opening email to "+juce::String(lr608ContactEmail));else announce("Cannot open the email application");
+}
+bool LR608AudioProcessorEditor::navigateAboutText(const juce::KeyPress&key)
+{
+    const auto code=key.getKeyCode();const auto mods=key.getModifiers();const bool selecting=mods.isShiftDown();const bool byWordOrDocument=mods.isCtrlDown()||mods.isCommandDown();
+    if(code==juce::KeyPress::leftKey){aboutInfo.moveCaretLeft(byWordOrDocument,selecting);return true;}if(code==juce::KeyPress::rightKey){aboutInfo.moveCaretRight(byWordOrDocument,selecting);return true;}
+    if(code==juce::KeyPress::upKey){if(byWordOrDocument&&selecting)aboutInfo.moveCaretToTop(true);else aboutInfo.moveCaretUp(selecting);return true;}if(code==juce::KeyPress::downKey){if(byWordOrDocument&&selecting)aboutInfo.moveCaretToEnd(true);else aboutInfo.moveCaretDown(selecting);return true;}
+    if(code==juce::KeyPress::homeKey){if(byWordOrDocument)aboutInfo.moveCaretToTop(selecting);else aboutInfo.moveCaretToStartOfLine(selecting);return true;}if(code==juce::KeyPress::endKey){if(byWordOrDocument)aboutInfo.moveCaretToEnd(selecting);else aboutInfo.moveCaretToEndOfLine(selecting);return true;}
+    if(code==juce::KeyPress::pageUpKey){aboutInfo.pageUp(selecting);return true;}if(code==juce::KeyPress::pageDownKey){aboutInfo.pageDown(selecting);return true;}return false;
+}
 
 void LR608AudioProcessorEditor::showHelpLanguageMenu()
 {
@@ -2034,6 +2115,22 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     const auto alt = key.getModifiers().isAltDown();
     const auto ctrl = key.getModifiers().isCtrlDown()||key.getModifiers().isCommandDown();
     const auto character = juce::CharacterFunctions::toLowerCase (key.getTextCharacter());
+    if(aboutOpen)
+    {
+        const auto mods=key.getModifiers();
+        if(code==juce::KeyPress::escapeKey||(mods.isAltDown()&&!mods.isCtrlDown()&&character=='c')){closeAbout();return true;}
+        if(code==juce::KeyPress::tabKey)
+        {
+            const bool backwards=mods.isShiftDown();juce::Component*target=nullptr;
+            if(!backwards){if(source==&aboutInfo)target=&aboutProject;else if(source==&aboutProject)target=&aboutContact;else if(source==&aboutContact)target=&aboutClose;else target=&aboutInfo;}
+            else{if(source==&aboutInfo)target=&aboutClose;else if(source==&aboutClose)target=&aboutContact;else if(source==&aboutContact)target=&aboutProject;else target=&aboutInfo;}
+            target->grabKeyboardFocus();if(auto*handler=target->getAccessibilityHandler())handler->grabFocus();return true;
+        }
+        if(source==&aboutInfo&&navigateAboutText(key))return true;
+        if(code==juce::KeyPress::returnKey&&source==&aboutInfo){closeAbout();return true;}
+        if(code==juce::KeyPress::returnKey||key.getTextCharacter()==' '){if(source==&aboutProject){openProjectPage();return true;}if(source==&aboutContact){openContactEmail();return true;}if(source==&aboutClose){closeAbout();return true;}}
+        return true;
+    }
     // Alt+T is a read-only context shortcut available throughout the editor.
     // It never moves focus or changes the current page/selection.
     if (alt && character == 't')
@@ -2134,9 +2231,14 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     if(alt&&character=='g'){if(globalOpen)closeGlobal(false);else openGlobal();return true;}
     if(globalOpen&&(code==juce::KeyPress::escapeKey||code==juce::KeyPress::returnKey)){closeGlobal(code==juce::KeyPress::returnKey);return true;}
     const auto shift=key.getModifiers().isShiftDown();
-    // Help is the end of the logical tab ring.  Forward Tab wraps to the
-    // remembered Alt+D column, not unconditionally to Slot.
     if(source==&help&&code==juce::KeyPress::tabKey&&!shift&&!alt&&!ctrl)
+    {
+        requestShortcutFocus(aboutButton);
+        return true;
+    }
+    // About is the end of the logical tab ring. Forward Tab wraps to the
+    // remembered Alt+D column, not unconditionally to Slot.
+    if(source==&aboutButton&&code==juce::KeyPress::tabKey&&!shift&&!alt&&!ctrl)
     {
         focusSlotColumn(selectedSlotColumn);
         return true;
@@ -2151,7 +2253,7 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             // Tab enters the parameter grid; Shift+Tab wraps to the last button.
             // Keep selectedSlotColumn untouched so returning to Alt+D restores
             // exactly Slot/Engine/MIDI/Choke/Output instead of always Output.
-            if(shift){saveUiPosition(false);requestShortcutFocus(help);}
+            if(shift){saveUiPosition(false);requestShortcutFocus(aboutButton);}
             else{saveUiPosition(true);requestShortcutFocus(parameterSelector);}
             return true;
         }
@@ -2242,6 +2344,7 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if (character == 'd') { focusSlotColumn(selectedSlotColumn); return true; }
         if (character == 'l') {saveUiPosition(true);focusControl (parameterSelector); return true; }
         if (character == 'e') { parameterValue.showTextBox(); return true; }
+        if (character == 'a') { aboutButton.triggerClick(); return true; }
         if (character == 'h') { help.triggerClick(); return true; }
         // Value-edit navigation is intentionally local to the Parameter grid.
         // Everywhere else these Alt combinations remain available to REAPER.

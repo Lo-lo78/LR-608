@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(LR608 VERSION 0.1.0 LANGUAGES C CXX)
+project(LR608 VERSION 0.99.31 LANGUAGES C CXX)
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

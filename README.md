@@ -1,55 +1,65 @@
-# LR-608 VST3
+# LR-608 0.99.31 — accessible drum synthesizer (Windows VST3)
 
-Native JUCE/VST3 migration of the LR-608 REAPER JSFX drum machine.
+**Release:** 14 October 2026  
+**Source:** https://github.com/Lo-lo78/LR-608  
+**Licence:** AGPL-3.0-or-later (see source-file headers).
 
-## Current status
+LR-608 is a synthesised drum instrument designed for keyboard and screen-reader use. It does not depend on a drum sample library. The native JUCE/VST3 implementation is derived from the LR-608 REAPER JSFX and includes **90 playable synthesis engines**, plus **Off - No sound** as a separate engine-selector choice.
 
-The foundation is buildable and contains all 256 stable JSFX parameters plus
-14 VST3-only output-routing parameters, the 12
-native pages from the Speak FX Params profile, page-specific grid navigation,
-APVTS state, MIDI capability, and a 32-bus stereo output layout.
-Every instrument can independently select any stereo pair from 1/2 to
-63/64, and multiple instruments may share a pair. The original RPL is embedded,
-audited, and converted on first use into 14 readable `.LR608` files under
-`Documents/LR-608/Factory`. Alt++ and Alt+- load the next/previous preset.
+## Instruments and architecture
 
-DSP migration is now active. The native processor contains the JSFX shared-grid
-Hold Roll, pitch-bend division selection, CC1 three-hit Drag gesture, and
-sample-offset MIDI dispatch. All seven original Kick engines are connected:
-808, Simmons, 909, and Saike Types 0 through 3. Their native branches include
-accent, envelopes, oscillator/filter state, click/noise paths, drive and the
-common local compressor. MIDI note 36 follows the new Kick output route.
+- 128 independent Slots, up to 128 voices of global polyphony.
+- Up to 8 Slots on a MIDI note, with copy/cut/paste of complete layered MIDI-note setups.
+- 32 stereo output pairs (channels 1/2 through 63/64), selectable per Slot.
+- Drum families include Kick, Snare, Clap, Rim, Low/Mid/High Tom, Closed/Open Hi-Hat, Crash, Ride, Maracas, Clave/Cowbell/Timbales and Zap.
+- Synthesis families include 808/909, Simmons, Linn-inspired, Saike variants, FM, physical and modal modelling, and experimental percussion.
+- Per-Slot engine, note, choke trigger/target, output routing and Sound/FX settings. Complete kits are saved as `.LR608` presets.
 
-Each Kick engine owns its JSFX Factory Init bank. User edits remain in that
-engine's in-memory bank when moving between engines, while a loaded host or
-LR-608 preset remains authoritative for its selected engine. The output path
-now follows the JSFX DC, glue, gain staging, limiter, level-match and master
-order, with an additional native non-finite/catastrophic-value boundary before
-samples reach the host.
+## Sound and FX
 
-This remains a migration checkpoint: the other thirteen voices are not yet
-ported. Unsupported instruments remain
-silent rather than being replaced by approximate synthesis.
+Each Slot has **Sound** parameters for its current synthesis engine and **FX** parameters shared across engines. The FX section includes:
 
-The editor focus hand-off follows LJuno-116: its ignored accessibility root
-exposes the real controls, and delayed initial focus is allowed only while the
-native plug-in peer itself is focused. Selecting LR-608 among several effects
-therefore does not let the JUCE editor capture the FX Chain cursor.
+- Stereo Pan and Ping Pong Pan depth.
+- LFO with wave, one-shot behaviour, phase, frequency, smoothing, PWM/squash controls and bipolar modulation depths for Volume, Low Pass, High Pass and Pan.
+- Attack/Decay FX Envelope with bipolar modulation of Volume, Low Pass, High Pass and Pan.
+- Resonant Low Pass and High Pass filtering.
+- Delay with Wet, Time, Feedback, Speed Glide, repeat Pitch, feedback filtering/resonance and independent Left/Right offsets.
+- Degrade (Amount, Bits, Hold and Jitter), Voice Overlap, Roll and Accent controls.
 
-See `Documentation/MIGRATION-AUDIT.md` and the generated CSV maps before
-changing DSP, MIDI scheduling, contextual engine banks, or routing.
+## Keyboard access
 
-## Generate catalogues
+The interface is designed to work without a mouse:
 
-```powershell
-python Tools/generate_catalog.py
-```
+| Shortcut | Action |
+| --- | --- |
+| `Alt+D` | Main Slot area |
+| `Alt+L` or `Tab` | Parameter grid |
+| `Alt+F` | Toggle Sound/FX pages |
+| `Alt+V` | Value mode |
+| `Alt+E` | Numeric editing |
+| `Alt+P` / `Alt+N` | Previous/next Slot |
+| `Alt+M` | MIDI-key editing |
+| `Alt+C` / `Alt+X` / `Alt+Shift+V` | Copy/cut/paste MIDI layers while MIDI editing is enabled |
+| `Alt+B` / `Alt+S` | Preset browser / Save kit |
+| `Alt+G` | Global controls |
+| `Alt+R` | Slot totals; press R again while Alt is held for a grouped report |
+| `Alt+T` | Announce the selected engine |
+| `Alt+H` | Choose one of eight Help languages |
+| `Alt+A` | Accessible About dialog |
+| `Ctrl+A` / `Ctrl+C` (inside About text) | Select all / Copy selected text to the clipboard |
 
-## Build and test on Windows
+In the About text panel, keyboard selection is supported (including Shift+arrows). Ctrl+A selects all and Ctrl+C copies the selection.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File Tools/build-windows.ps1
-```
+See **Documentation/LR608Help.html** for the complete shortcut list, navigation conventions and translated manuals (English, Italian, Spanish, Portuguese, French, Russian, Chinese and Japanese).
 
-The VST3 bundle is generated under
-`build/nmake-release/LR608_artefacts/Release/VST3/LR-608.vst3`.
+## Installation
+
+Download the **Windows VST3 release ZIP** from the project's GitHub Releases page. Extract the `LR-608.vst3` plug-in into the Windows VST3 directory (usually `C:\Program Files\Common Files\VST3`), then rescan plug-ins in your DAW. The source ZIP is for development and **does not contain a compiled VST3**.
+
+Factory kit data are embedded in the project and the instrument creates its readable factory presets under `Documents/LR-608/Factory` when needed.
+
+## Building from source
+
+The project uses CMake, JUCE 8.0.15, C++20, and the Windows build script in `Tools/build-windows.ps1`. GitHub Actions uses `.github/workflows/build-windows.yml`; it is recommended for reproducible release builds. This source package has **not** been compiled locally as part of the documentation update.
+
+The generated catalogues under `Documentation/` and existing tests under `Tests/` are development references, not evidence of a completed test run for this documentation update.

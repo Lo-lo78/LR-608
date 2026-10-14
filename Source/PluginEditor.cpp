@@ -11,8 +11,8 @@
 namespace
 {
 
-constexpr auto lr608Version = "0.99.3";
-constexpr auto lr608ReleaseDate = "7 October 2026";
+constexpr auto lr608Version = "0.99.31";
+constexpr auto lr608ReleaseDate = "14 October 2026";
 constexpr auto lr608ProjectUrl = "https://github.com/Lo-lo78/LR-608";
 constexpr auto lr608ContactEmail = "vmanolo301@gmail.com";
 
@@ -1895,7 +1895,30 @@ bool LR608AudioProcessorEditor::navigateAboutText(const juce::KeyPress&key)
     if(code==juce::KeyPress::leftKey){aboutInfo.moveCaretLeft(byWordOrDocument,selecting);return true;}if(code==juce::KeyPress::rightKey){aboutInfo.moveCaretRight(byWordOrDocument,selecting);return true;}
     if(code==juce::KeyPress::upKey){if(byWordOrDocument&&selecting)aboutInfo.moveCaretToTop(true);else aboutInfo.moveCaretUp(selecting);return true;}if(code==juce::KeyPress::downKey){if(byWordOrDocument&&selecting)aboutInfo.moveCaretToEnd(true);else aboutInfo.moveCaretDown(selecting);return true;}
     if(code==juce::KeyPress::homeKey){if(byWordOrDocument)aboutInfo.moveCaretToTop(selecting);else aboutInfo.moveCaretToStartOfLine(selecting);return true;}if(code==juce::KeyPress::endKey){if(byWordOrDocument)aboutInfo.moveCaretToEnd(selecting);else aboutInfo.moveCaretToEndOfLine(selecting);return true;}
-    if(code==juce::KeyPress::pageUpKey){aboutInfo.pageUp(selecting);return true;}if(code==juce::KeyPress::pageDownKey){aboutInfo.pageDown(selecting);return true;}return false;
+    if(code==juce::KeyPress::pageUpKey){aboutInfo.pageUp(selecting);return true;}
+    if(code==juce::KeyPress::pageDownKey){aboutInfo.pageDown(selecting);return true;}
+
+    // About is read-only, but its selection must work like a normal JUCE text field.
+    // The modal editor key handler consumes events before the TextEditor does,
+    // so forward Ctrl+A / Ctrl+C explicitly, as in LJuno-116 and LSampler-24.
+    // On Windows a VST host may report Ctrl+letters as control characters.
+    const auto lowerKeyCode = juce::CharacterFunctions::toLowerCase(
+        static_cast<juce::juce_wchar>(code));
+    const auto lowerTextCharacter = juce::CharacterFunctions::toLowerCase(key.getTextCharacter());
+    if(byWordOrDocument && !mods.isAltDown())
+    {
+        if(lowerKeyCode=='a' || lowerTextCharacter=='a' || code==1 || lowerTextCharacter==1)
+        {
+            aboutInfo.selectAll();
+            return true;
+        }
+        if(lowerKeyCode=='c' || lowerTextCharacter=='c' || code==3 || lowerTextCharacter==3)
+        {
+            aboutInfo.copyToClipboard();
+            return true;
+        }
+    }
+    return false;
 }
 
 void LR608AudioProcessorEditor::showHelpLanguageMenu()

@@ -40,6 +40,9 @@ The interface is designed to work without a mouse:
 | `Alt+P` / `Alt+N` | Previous/next Slot |
 | `Alt+M` | MIDI-key editing |
 | `Alt+C` / `Alt+X` / `Alt+Shift+V` | Copy/cut/paste MIDI layers while MIDI editing is enabled |
+| `Alt+Delete` | Remove the selected MIDI layer (MIDI editing mode) |
+| `Alt+Shift+Delete` | Remove all layers from the captured MIDI note (MIDI editing mode) |
+| `Ctrl+Alt+Shift+Delete` | Clear all 128 Slots (same as Clear All Slots button) |
 | `Alt+B` / `Alt+S` | Preset browser / Save kit |
 | `Alt+G` | Global controls |
 | `Alt+R` | Slot totals; press R again while Alt is held for a grouped report |

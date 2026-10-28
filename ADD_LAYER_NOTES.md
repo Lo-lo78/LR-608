@@ -18,3 +18,16 @@ inside REAPER in this environment; build and runtime validation are required.
 
 Layer ordering is saved separately from physical Slot IDs so each added layer
 appends to the end even if its allocated Slot number is lower.
+
+## Keyboard navigation and Clear All — follow-up fix
+
+- Up increments Layer 1 -> Layer 2 -> Add Layer, matching Engine and the
+  neighbouring MIDI ComboBoxes; Down decrements. Add Layer still requires Enter.
+- Alt+Delete removes just the selected layer (MIDI editing enabled).
+- Alt+Shift+Delete removes every layer of the captured MIDI note
+  (MIDI editing enabled).
+- Ctrl+Alt+Shift+Delete invokes Clear All Slots for all 128 Slots,
+  with the same action and accessible button description. It does not require Alt+M.
+- No changes to Ctrl+X/C/V or GitHub Actions.
+- These are source changes only; REAPER may intercept key combinations before
+  JUCE receives them. Verify all three Delete combinations in a freshly built VST3.

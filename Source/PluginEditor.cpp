@@ -548,7 +548,7 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     initialize.setDescription ("Alt+I");
     initialize.onClick = [this] { initializeAll(); };
     initialize.setExplicitFocusOrder (11);
-    clearSlots.setDescription ("Alt+Shift+Delete");
+    clearSlots.setDescription ("Ctrl+Alt+Shift+Delete");
     clearSlots.onClick = [this] { clearAllSlots(); };
     clearSlots.setExplicitFocusOrder (12);
     previousPreset.setDescription ({});
@@ -1049,11 +1049,10 @@ void LR608AudioProcessorEditor::changeSlotBarValue(int direction,bool pageStep,b
 {
     std::array<juce::ComboBox*,7> columns{&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&outputSelector};auto* box=columns[std::size_t(juce::jlimit(0,6,selectedSlotColumn))];
     const auto count=box->getNumItems();const auto previous=box->getSelectedItemIndex();auto target=previous;
-    // Engine keeps its established keyboard direction (Up advances through the
-    // engine catalogue) even though the popup is now displayed naturally as
-    // Off, Kick ... Zap from top to bottom. The three MIDI columns use the same
-    // increasing-on-Up convention.
-    const auto reversed=selectedSlotColumn==1||(selectedSlotColumn>=3&&selectedSlotColumn<=5);
+    // Engine, Layer and the three MIDI columns all advance with Up.
+    // In particular, Up goes Layer 1 -> Layer 2 -> Add Layer; reaching
+    // Add Layer with the arrows does not allocate it until Enter is pressed.
+    const auto reversed=selectedSlotColumn>=1&&selectedSlotColumn<=5;
     const auto valueDirection=reversed?-direction:direction;
     if(boundary)
     {
@@ -2290,9 +2289,16 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     if(alt&&character=='s'){showPresetSave();return true;}
     if(alt&&!key.getModifiers().isShiftDown()&&character=='f'&&!globalOpen){toggleSlotParameterPage();return true;}
     if(alt&&character=='r'){if(globalOpen)announce("Slot report is available in the Slot area");else handleSlotReportShortcut();return true;}
-    if(alt&&key.getModifiers().isShiftDown()&&code==juce::KeyPress::deleteKey&&!globalOpen){clearMidiKey();return true;}
-    if(alt&&code==juce::KeyPress::deleteKey&&!globalOpen){clearCurrentMidiLayer();return true;}
-    if(code==juce::KeyPress::deleteKey){announce("Delete alone does not erase sounds. Use Alt Delete for the selected layer or Alt Shift Delete for the complete MIDI Note");return true;}
+    // Deletion shortcuts, from narrowest to widest scope:
+    // Alt+Delete: one selected layer (MIDI editing required).
+    // Alt+Shift+Delete: every layer of the captured MIDI note (MIDI editing required).
+    // Ctrl+Alt+Shift+Delete: the same Clear All Slots operation as the button.
+    // Test the complete modifier combination first to avoid accidental
+    // fallthrough from the global clear to a smaller delete operation.
+    if(alt&&ctrl&&key.getModifiers().isShiftDown()&&code==juce::KeyPress::deleteKey&&!globalOpen){clearAllSlots();return true;}
+    if(alt&&!ctrl&&key.getModifiers().isShiftDown()&&code==juce::KeyPress::deleteKey&&!globalOpen){clearMidiKey();return true;}
+    if(alt&&!ctrl&&!key.getModifiers().isShiftDown()&&code==juce::KeyPress::deleteKey&&!globalOpen){clearCurrentMidiLayer();return true;}
+    if(code==juce::KeyPress::deleteKey){announce("Delete alone does not erase sounds. Use Alt Delete for the selected layer, Alt Shift Delete for its MIDI Note, or Ctrl Alt Shift Delete to clear all Slots");return true;}
     if(ctrl&&!alt&&character=='c'){copyMidiKey(false);return true;}
     if(ctrl&&!alt&&character=='x'){copyMidiKey(true);return true;}
     if(ctrl&&!alt&&character=='v'){pasteMidiKey();return true;}

@@ -3,6 +3,8 @@
 #include "PluginEditor.h"
 #include "GeneratedParameters.h"
 #include "GeneratedPages.h"
+#include <algorithm>
+#include <iterator>
 #include <limits>
 #include <cmath>
 
@@ -340,10 +342,10 @@ juce::String LR608AudioProcessor::copyMidiKeyToText(int note,bool cut,int&layerC
     juce::ValueTree root("LR608MidiKeyClipboard");
     root.setProperty("version",1,nullptr);root.setProperty("engineArchitectureVersion",slotEngineArchitectureVersion,nullptr);root.setProperty("sourceNote",note,nullptr);
     std::vector<int> sourceSlots;
-    for(int slot=0;slot<lr608::slotCount;++slot)
+    for(const auto slot:getLayerSlotsForMidiNote(note))
     {
         const auto engine=slotEngineIndices[slot].load(std::memory_order_relaxed);
-        if(slotMidiNotes[slot].load(std::memory_order_relaxed)!=note||lr608::isOffEngine(engine))continue;
+        if(lr608::isOffEngine(engine))continue;
         if(currentProxySlot.load()==slot)captureSlotFromProxy(slot);
         juce::ValueTree layer("Layer");
         layer.setProperty("engine",engine,nullptr);layer.setProperty("output",slotOutputs[slot].load(),nullptr);
@@ -356,7 +358,7 @@ juce::String LR608AudioProcessor::copyMidiKeyToText(int note,bool cut,int&layerC
     if(layerCount==0)return {};
     auto xml=root.createXml();if(xml==nullptr){layerCount=0;return {};}
     const auto text="LR-608 MIDI KEY CLIPBOARD 1\n"+xml->toString();
-    if(cut)for(const auto slot:sourceSlots)setSlotEngine(slot,lr608::offEngineIndex);
+    if(cut)for(const auto slot:sourceSlots){setSlotEngine(slot,lr608::offEngineIndex);setSlotReservedLayer(slot,false);}
     return text;
 }
 
@@ -428,19 +430,33 @@ juce::Result LR608AudioProcessor::pasteMidiKeyFromText(int note,const juce::Stri
         layers.push_back(layer);
     }
     const auto existingLayers=getActiveSlotCountForMidiNote(note);
-    const auto freeLayers=8-existingLayers;
+    int reusableOffLayers=0;
+    for(int slot=0;slot<lr608::slotCount;++slot)
+        if(isSlotReservedLayer(slot)&&slotMidiNotes[slot].load(std::memory_order_relaxed)==note
+            &&lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))++reusableOffLayers;
+    const auto freeLayers=lr608::maxMidiNoteLayers-existingLayers+reusableOffLayers;
     if(int(layers.size())>freeLayers)
         return juce::Result::fail(freeLayers<=0
             ? "Destination MIDI Note "+juce::String(note)+" already has 8 layers"
             : "Destination MIDI Note "+juce::String(note)+" has only "+juce::String(freeLayers)+(freeLayers==1?" free layer":" free layers"));
     std::vector<int> destinations;
-    for(int pass=0;pass<2;++pass)for(int slot=0;slot<lr608::slotCount;++slot)
-        if(lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed))&&((slotMidiNotes[slot].load(std::memory_order_relaxed)==note)==(pass==0)))destinations.push_back(slot);
+    // Fill explicitly allocated Off layers first, then genuinely free Slots.
+    for(int pass=0;pass<3;++pass)for(int slot=0;slot<lr608::slotCount;++slot)
+    {
+        if(!lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))continue;
+        const bool sameNote=slotMidiNotes[slot].load(std::memory_order_relaxed)==note;
+        const bool reserved=isSlotReservedLayer(slot);
+        if((pass==0&&sameNote&&reserved)||(pass==1&&sameNote&&!reserved)
+            ||(pass==2&&!sameNote&&!reserved))destinations.push_back(slot);
+    }
     if(destinations.size()<layers.size())return juce::Result::fail("Not enough Off Slots for all copied layers");
     const auto setPlain=[this](const juce::String&id,int value){if(auto*p=parameters.getParameter(id))p->setValueNotifyingHost(p->convertTo0to1(float(value)));};
     for(std::size_t index=0;index<layers.size();++index)
     {
-        const auto slot=destinations[index];const auto&layer=layers[index];setSlotEngine(slot,layer.sound.engine);
+        const auto slot=destinations[index];const auto&layer=layers[index];
+        const bool wasReserved=isSlotReservedLayer(slot);
+        setSlotEngine(slot,layer.sound.engine);
+        if(!wasReserved)appendLayerOrder(slot);
         for(int p=0;p<lr608::slotParameterValueCount;++p)slotValues[slot][p].store(layer.sound.values[std::size_t(p)]);
         setSlotOutput(slot,layer.output);setPlain(lr608::slotNoteId(slot),note);setPlain(lr608::slotChokeTriggerId(slot),layer.chokeTrigger);setPlain(lr608::slotChokeTargetId(slot),layer.chokeTarget);
         if(currentProxySlot.load()==slot)loadSlotToProxy(slot);
@@ -450,10 +466,9 @@ juce::Result LR608AudioProcessor::pasteMidiKeyFromText(int note,const juce::Stri
 
 bool LR608AudioProcessor::clearSlot(int slot)
 {
-    if(!juce::isPositiveAndBelow(slot,lr608::slotCount)
-        ||lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))return false;
+    if(!juce::isPositiveAndBelow(slot,lr608::slotCount)||!isSlotLayerAllocated(slot))return false;
     const auto setOff=[this](const juce::String&id){if(auto*p=parameters.getParameter(id))p->setValueNotifyingHost(p->convertTo0to1(0.0f));};
-    setSlotEngine(slot,lr608::offEngineIndex);setSlotOutput(slot,0);
+    setSlotEngine(slot,lr608::offEngineIndex);setSlotReservedLayer(slot,false);setSlotOutput(slot,0);
     setOff(lr608::slotChokeTriggerId(slot));setOff(lr608::slotChokeTargetId(slot));
     return true;
 }
@@ -464,7 +479,7 @@ int LR608AudioProcessor::clearMidiKey(int note)
     int cleared=0;
     for(int slot=0;slot<lr608::slotCount;++slot)
     {
-        if(slotMidiNotes[slot].load(std::memory_order_relaxed)!=note||lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))continue;
+        if(slotMidiNotes[slot].load(std::memory_order_relaxed)!=note||!isSlotLayerAllocated(slot))continue;
         if(clearSlot(slot))++cleared;
     }
     return cleared;
@@ -473,30 +488,119 @@ int LR608AudioProcessor::getSlotGridPosition(int slot)const{return juce::isPosit
 void LR608AudioProcessor::setSlotGridPosition(int slot,int value){if(juce::isPositiveAndBelow(slot,lr608::slotCount))slotGrid[slot].store(juce::jmax(0,value));}
 int LR608AudioProcessor::getSlotOutput(int slot)const{return juce::isPositiveAndBelow(slot,lr608::slotCount)?slotOutputs[slot].load():0;}
 void LR608AudioProcessor::setSlotOutput(int slot,int output){if(juce::isPositiveAndBelow(slot,lr608::slotCount))slotOutputs[slot].store(juce::jlimit(0,lr608::OutputStage::stemCount-1,output));}
-int LR608AudioProcessor::findFirstSlotForMidiNote(int note)const{if(!juce::isPositiveAndBelow(note,128))return-1;for(int slot=0;slot<lr608::slotCount;++slot)if(slotMidiNotes[slot].load(std::memory_order_relaxed)==note&&!lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))return slot;return-1;}
-int LR608AudioProcessor::findNextSlotForMidiNote(int note,int afterSlot)const{if(!juce::isPositiveAndBelow(note,128))return-1;const auto matches=[this,note](int slot){return juce::isPositiveAndBelow(slot,lr608::slotCount)&&slotMidiNotes[slot].load(std::memory_order_relaxed)==note&&!lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed));};if(matches(afterSlot))for(int slot=afterSlot+1;slot<lr608::slotCount;++slot)if(matches(slot))return slot;return findFirstSlotForMidiNote(note);}
+bool LR608AudioProcessor::isSlotReservedLayer(int slot) const
+{
+    return juce::isPositiveAndBelow(slot,lr608::slotCount)
+        &&reservedLayer[slot].load(std::memory_order_relaxed);
+}
+
+bool LR608AudioProcessor::isSlotLayerAllocated(int slot) const
+{
+    return juce::isPositiveAndBelow(slot,lr608::slotCount)
+        &&(isSlotReservedLayer(slot)
+            ||!lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)));
+}
+
+void LR608AudioProcessor::setSlotReservedLayer(int slot,bool reserved)
+{
+    if(juce::isPositiveAndBelow(slot,lr608::slotCount))
+    {
+        reservedLayer[slot].store(reserved,std::memory_order_relaxed);
+        if(!reserved)layerOrder[slot].store(0,std::memory_order_relaxed);
+    }
+}
+
+void LR608AudioProcessor::appendLayerOrder(int slot)
+{
+    if(!juce::isPositiveAndBelow(slot,lr608::slotCount))return;
+    int greatest=0;
+    for(int candidate=0;candidate<lr608::slotCount;++candidate)
+        greatest=juce::jmax(greatest,layerOrder[candidate].load(std::memory_order_relaxed));
+    layerOrder[slot].store(greatest+1,std::memory_order_relaxed);
+}
+
+std::vector<int> LR608AudioProcessor::getLayerSlotsForMidiNote(int note) const
+{
+    std::vector<int> result;
+    if(juce::isPositiveAndBelow(note,128))
+        for(int slot=0;slot<lr608::slotCount;++slot)
+            if(slotMidiNotes[slot].load(std::memory_order_relaxed)==note&&isSlotLayerAllocated(slot))
+                result.push_back(slot);
+    std::sort(result.begin(),result.end(),[this](int first,int second)
+    {
+        const auto a=layerOrder[first].load(std::memory_order_relaxed);
+        const auto b=layerOrder[second].load(std::memory_order_relaxed);
+        return a==b?first<second:a<b;
+    });
+    return result;
+}
+
+int LR608AudioProcessor::addEmptyLayerForMidiNote(int note,int selectedSlot)
+{
+    if(!juce::isPositiveAndBelow(note,128))return -1;
+    auto layers=getLayerSlotsForMidiNote(note);
+    if(layers.size()>=std::size_t(lr608::maxMidiNoteLayers))return -1;
+
+    // With a completely cleared kit, the selected Off Slot is the implicit
+    // first layer. Allocate it before creating the second layer.
+    const bool reserveImplicitFirst=layers.empty()
+        &&juce::isPositiveAndBelow(selectedSlot,lr608::slotCount)
+        &&slotMidiNotes[selectedSlot].load(std::memory_order_relaxed)==note
+        &&!isSlotLayerAllocated(selectedSlot);
+
+    int destination=-1;
+    // Prefer a free, unallocated Slot with the same MIDI Note. An Off Slot
+    // already reserved for another layer must never be stolen.
+    for(int pass=0;pass<2&&destination<0;++pass)
+        for(int slot=0;slot<lr608::slotCount;++slot)
+            if(slot!=selectedSlot&&!isSlotLayerAllocated(slot)
+                &&((slotMidiNotes[slot].load(std::memory_order_relaxed)==note)==(pass==0)))
+            { destination=slot; break; }
+    if(destination<0)return -1;
+    if(reserveImplicitFirst)setSlotReservedLayer(selectedSlot,true);
+
+    setSlotEngine(destination,lr608::offEngineIndex);
+    setSlotOutput(destination,0);
+    setSlotName(destination,{});
+    if(auto* p=parameters.getParameter(lr608::slotNoteId(destination)))
+        p->setValueNotifyingHost(p->convertTo0to1(float(note)));
+    if(auto* p=parameters.getParameter(lr608::slotChokeTriggerId(destination)))
+        p->setValueNotifyingHost(0.0f);
+    if(auto* p=parameters.getParameter(lr608::slotChokeTargetId(destination)))
+        p->setValueNotifyingHost(0.0f);
+    appendLayerOrder(destination);
+    setSlotReservedLayer(destination,true);
+    return destination;
+}
+
+int LR608AudioProcessor::findFirstSlotForMidiNote(int note)const
+{
+    const auto layers=getLayerSlotsForMidiNote(note);
+    return layers.empty()?-1:layers.front();
+}
+int LR608AudioProcessor::findNextSlotForMidiNote(int note,int afterSlot)const
+{
+    const auto layers=getLayerSlotsForMidiNote(note);
+    if(layers.empty())return -1;
+    const auto it=std::find(layers.begin(),layers.end(),afterSlot);
+    return it!=layers.end()&&std::next(it)!=layers.end()?*std::next(it):layers.front();
+}
 int LR608AudioProcessor::getActiveSlotCountForMidiNote(int note,int excludedSlot)const
 {
     if(!juce::isPositiveAndBelow(note,128))return 0;
     int count=0;
     for(int slot=0;slot<lr608::slotCount;++slot)
         if(slot!=excludedSlot&&slotMidiNotes[slot].load(std::memory_order_relaxed)==note
-            &&!lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))
+            &&isSlotLayerAllocated(slot))
             ++count;
     return count;
 }
 int LR608AudioProcessor::getActiveSlotLayerNumber(int note,int targetSlot)const
 {
     if(!juce::isPositiveAndBelow(note,128)||!juce::isPositiveAndBelow(targetSlot,lr608::slotCount))return 0;
-    int layer=0;
-    for(int slot=0;slot<lr608::slotCount;++slot)
-    {
-        if(slotMidiNotes[slot].load(std::memory_order_relaxed)!=note
-            ||lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))continue;
-        ++layer;
-        if(slot==targetSlot)return layer;
-    }
-    return 0;
+    const auto layers=getLayerSlotsForMidiNote(note);
+    const auto match=std::find(layers.begin(),layers.end(),targetSlot);
+    return match==layers.end()?0:int(std::distance(layers.begin(),match))+1;
 }
 bool LR608AudioProcessor::canAssignSlotToMidiNote(int slot,int note)const
 {
@@ -563,7 +667,7 @@ void LR608AudioProcessor::importLegacyPresetAsKit()
     // optional Off engine was introduced.  Legacy JSFX kits overwrite their
     // first 19 Slots below; the remaining Slots retain their original engine,
     // MIDI note and per-engine init values.
-    for(int slot=0;slot<lr608::slotCount;++slot){setSlotEngine(slot,lr608::defaultSlotEngine(slot));setSlotOutput(slot,0);if(auto*p=parameters.getParameter(lr608::slotNoteId(slot)))p->setValueNotifyingHost(p->convertTo0to1(float(lr608::defaultSlotNote(slot))));if(auto*p=parameters.getParameter(lr608::slotChokeTriggerId(slot)))p->setValueNotifyingHost(0);if(auto*p=parameters.getParameter(lr608::slotChokeTargetId(slot)))p->setValueNotifyingHost(0);}
+    for(int slot=0;slot<lr608::slotCount;++slot){setSlotEngine(slot,lr608::defaultSlotEngine(slot));setSlotReservedLayer(slot,false);setSlotOutput(slot,0);if(auto*p=parameters.getParameter(lr608::slotNoteId(slot)))p->setValueNotifyingHost(p->convertTo0to1(float(lr608::defaultSlotNote(slot))));if(auto*p=parameters.getParameter(lr608::slotChokeTriggerId(slot)))p->setValueNotifyingHost(0);if(auto*p=parameters.getParameter(lr608::slotChokeTargetId(slot)))p->setValueNotifyingHost(0);}
     for(int slot=0;slot<15;++slot)
     {
         const auto sub=juce::roundToInt(parameters.getRawParameterValue(selectors[slot])->load());
@@ -1074,7 +1178,7 @@ void LR608AudioProcessor::storeSlotStates()
     juce::ValueTree slots("SlotStates");
     for(int slot=0;slot<lr608::slotCount;++slot)
     {
-        juce::ValueTree node("Slot");node.setProperty("index",slot,nullptr);node.setProperty("grid",slotGrid[slot].load(),nullptr);node.setProperty("output",slotOutputs[slot].load(),nullptr);node.setProperty("name",slotNames[std::size_t(slot)],nullptr);for(const auto*id:universalSlotParameterIds)node.setProperty(id,slotValues[slot][catalogIndex(id)].load(),nullptr);
+        juce::ValueTree node("Slot");node.setProperty("index",slot,nullptr);node.setProperty("grid",slotGrid[slot].load(),nullptr);node.setProperty("output",slotOutputs[slot].load(),nullptr);node.setProperty("name",slotNames[std::size_t(slot)],nullptr);node.setProperty("reservedLayer",isSlotReservedLayer(slot),nullptr);node.setProperty("layerOrder",layerOrder[slot].load(),nullptr);for(const auto*id:universalSlotParameterIds)node.setProperty(id,slotValues[slot][catalogIndex(id)].load(),nullptr);
         const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));if(lr608::isOffEngine(engine)){slots.addChild(node,-1,nullptr);continue;}const auto&page=lr608::generated::pages[lr608::slotEngines[engine].page];
         for(std::size_t item=0;item<page.parameterCount;++item)if(!lr608::isEngineSelectorId(page.parameterIds[item]))if(const auto p=catalogIndex(page.parameterIds[item]);p>=0)node.setProperty(juce::Identifier(page.parameterIds[item]),slotValues[slot][p].load(),nullptr);
         slots.addChild(node,-1,nullptr);
@@ -1087,8 +1191,8 @@ void LR608AudioProcessor::restoreSlotStates()
     for(auto& delay:slotDelays)delay.reset();
     slotPingPongRight.fill(false);
     const auto legacyAccentThreshold=parameters.getRawParameterValue("slider250")->load(),legacyAccentCharacter=parameters.getRawParameterValue("slider251")->load();
-    for(int slot=0;slot<lr608::slotCount;++slot){const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));for(int p=0;p<lr608::slotParameterValueCount;++p)slotValues[slot][p].store(engineDefaults[engine][p]);slotGrid[slot].store(0);slotOutputs[slot].store(0);slotNames[std::size_t(slot)].clear();}
-    if(const auto slots=parameters.state.getChildWithName("SlotStates");slots.isValid())for(int child=0;child<slots.getNumChildren();++child){const auto node=slots.getChild(child);const auto slot=int(node.getProperty("index",-1));if(!juce::isPositiveAndBelow(slot,lr608::slotCount))continue;slotGrid[slot].store(juce::jmax(0,int(node.getProperty("grid",0))));slotNames[std::size_t(slot)]=node.getProperty("name").toString().trim().substring(0,48);const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));int legacyOutput=0;if(!lr608::isOffEngine(engine)){const auto routeName=juce::Identifier(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id);legacyOutput=int(node.getProperty(routeName,0));}const auto output=node.hasProperty("output")?int(node.getProperty("output")):legacyOutput;slotOutputs[slot].store(juce::jlimit(0,lr608::OutputStage::stemCount-1,output));if(!node.hasProperty("slider250"))slotValues[slot][catalogIndex("slider250")].store(legacyAccentThreshold);if(!node.hasProperty("slider251"))slotValues[slot][catalogIndex("slider251")].store(legacyAccentCharacter);for(int property=0;property<node.getNumProperties();++property){const auto name=node.getPropertyName(property);if(name==juce::Identifier("index")||name==juce::Identifier("grid")||name==juce::Identifier("output")||name==juce::Identifier("name"))continue;if(const auto p=catalogIndex(name.toString());p>=0)slotValues[slot][p].store(float(node.getProperty(name)));}}
+    for(int slot=0;slot<lr608::slotCount;++slot){const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));for(int p=0;p<lr608::slotParameterValueCount;++p)slotValues[slot][p].store(engineDefaults[engine][p]);slotGrid[slot].store(0);slotOutputs[slot].store(0);slotNames[std::size_t(slot)].clear();setSlotReservedLayer(slot,false);}
+    if(const auto slots=parameters.state.getChildWithName("SlotStates");slots.isValid())for(int child=0;child<slots.getNumChildren();++child){const auto node=slots.getChild(child);const auto slot=int(node.getProperty("index",-1));if(!juce::isPositiveAndBelow(slot,lr608::slotCount))continue;slotGrid[slot].store(juce::jmax(0,int(node.getProperty("grid",0))));slotNames[std::size_t(slot)]=node.getProperty("name").toString().trim().substring(0,48);setSlotReservedLayer(slot,bool(node.getProperty("reservedLayer",false)));layerOrder[slot].store(juce::jmax(0,int(node.getProperty("layerOrder",0))),std::memory_order_relaxed);const auto engine=juce::jlimit(0,lr608::slotEngineCount-1,juce::roundToInt(parameters.getRawParameterValue(lr608::slotEngineId(slot))->load()));int legacyOutput=0;if(!lr608::isOffEngine(engine)){const auto routeName=juce::Identifier(lr608::generated::parameters[lr608::slotEngines[engine].routeParameterIndex].id);legacyOutput=int(node.getProperty(routeName,0));}const auto output=node.hasProperty("output")?int(node.getProperty("output")):legacyOutput;slotOutputs[slot].store(juce::jlimit(0,lr608::OutputStage::stemCount-1,output));if(!node.hasProperty("slider250"))slotValues[slot][catalogIndex("slider250")].store(legacyAccentThreshold);if(!node.hasProperty("slider251"))slotValues[slot][catalogIndex("slider251")].store(legacyAccentCharacter);for(int property=0;property<node.getNumProperties();++property){const auto name=node.getPropertyName(property);if(name==juce::Identifier("index")||name==juce::Identifier("grid")||name==juce::Identifier("output")||name==juce::Identifier("name")||name==juce::Identifier("reservedLayer")||name==juce::Identifier("layerOrder"))continue;if(const auto p=catalogIndex(name.toString());p>=0)slotValues[slot][p].store(float(node.getProperty(name)));}}
     refreshSlotTriggerCache();
     const auto selected=juce::jlimit(0,lr608::slotCount-1,int(parameters.state.getProperty("uiSelectedSlot",0)));loadSlotToProxy(selected);
 }

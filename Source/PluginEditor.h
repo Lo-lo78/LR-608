@@ -57,6 +57,7 @@ private:
     juce::ComboBox pageSelector;
     juce::ComboBox slotSelector;
     juce::ComboBox engineSelector;
+    juce::ComboBox layerSelector;
     juce::ComboBox noteSelector;
     juce::ComboBox chokeTriggerSelector;
     juce::ComboBox chokeTargetSelector;
@@ -155,6 +156,7 @@ private:
 
     void updateParameterList();
     void syncSlotBar (bool updateGrid, bool notifyGrid = true);
+    void addLayerFromSelector();
     void changeSlotBarValue (int direction, bool pageStep, bool boundary, bool maximum);
     void focusSlotColumn (int);
     void saveUiPosition (bool inGrid);

@@ -24,6 +24,7 @@
 #include "SlotArchitecture.h"
 #include "PolyphonicVoice.h"
 #include <atomic>
+#include <vector>
 #include "OutputStage.h"
 #include "SlotDelay.h"
 
@@ -72,6 +73,12 @@ public:
     bool pasteSlotSound(int,const SlotSoundSnapshot&);
     int getLastPlayedMidiNote() const { return lastPlayedMidiNote.load(std::memory_order_relaxed); }
     std::uint64_t getMidiNavigationEvent() const { return midiNavigationEvent.load(std::memory_order_acquire); }
+    // Off layers created in the UI remain allocated even before an Engine is selected.
+    bool isSlotLayerAllocated(int) const;
+    bool isSlotReservedLayer(int) const;
+    void setSlotReservedLayer(int,bool);
+    std::vector<int> getLayerSlotsForMidiNote(int) const;
+    int addEmptyLayerForMidiNote(int note,int selectedSlot);
     int findFirstSlotForMidiNote(int) const;
     int findNextSlotForMidiNote(int,int) const;
     int getActiveSlotCountForMidiNote(int,int excludedSlot=-1) const;
@@ -111,6 +118,10 @@ private:
     std::array<std::atomic<int>,lr608::slotCount> slotOutputs{};
     std::array<std::atomic<int>,lr608::slotCount> slotMidiNotes{};
     std::array<std::atomic<int>,lr608::slotCount> slotEngineIndices{};
+    std::array<std::atomic<bool>,lr608::slotCount> reservedLayer{};
+    // Layer order is independent of physical Slot order. Old presets default to 0.
+    std::array<std::atomic<int>,lr608::slotCount> layerOrder{};
+    void appendLayerOrder(int slot);
     std::array<std::atomic<int>,lr608::slotCount> slotChokeTriggers{};
     std::array<std::atomic<int>,lr608::slotCount> slotChokeTargets{};
     std::array<bool,lr608::slotCount> slotPingPongRight{};

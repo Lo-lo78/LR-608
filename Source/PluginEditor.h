@@ -6,6 +6,7 @@
 #include <functional>
 #include <utility>
 #include "PluginProcessor.h"
+#include "IncrementalParameterSearch.h"
 
 
 class LR608AboutTextEditor final : public juce::TextEditor
@@ -109,6 +110,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
     std::vector<int> visibleCatalogIndices;
     std::vector<juce::String> visibleNames;
+    lr608::IncrementalParameterSearch parameterSearch;
     std::vector<lr608::PresetManager::BrowserEntry> presetBrowserEntries;
     juce::File presetBrowserDirectory;
     juce::File presetBrowserPreviewFile;

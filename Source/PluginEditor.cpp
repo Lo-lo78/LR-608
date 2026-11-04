@@ -3,6 +3,7 @@
 #include "GeneratedPages.h"
 #include "GeneratedParameters.h"
 #include "ScreenReaderAnnouncer.h"
+#include "ParameterSearchKey.h"
 #include <BinaryData.h>
 #include <algorithm>
 #include <array>
@@ -11,8 +12,8 @@
 namespace
 {
 
-constexpr auto lr608Version = "0.99.31";
-constexpr auto lr608ReleaseDate = "14 October 2026";
+constexpr auto lr608Version = "0.99.32";
+constexpr auto lr608ReleaseDate = "4 November 2026";
 constexpr auto lr608ProjectUrl = "https://github.com/Lo-lo78/LR-608";
 constexpr auto lr608ContactEmail = "vmanolo301@gmail.com";
 
@@ -572,7 +573,12 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     const auto aboutText = juce::String("LR-608\nVersion: ") + lr608Version
         + "\nRelease date: " + lr608ReleaseDate
         + "\nProject: " + lr608ProjectUrl
-        + "\nContact: " + lr608ContactEmail;
+        + "\nContact: " + lr608ContactEmail
+        + "\nNew in 0.99.32: incremental keyboard search on Sound, FX and Global parameter grids. "
+          "Type consecutive letters or numbers to find a parameter by its name or a word within it. "
+          "Shift searches backwards, including Shift+digits; repeated characters cycle; "
+          "the search resets after one second or navigation keys. "
+          "Preset browser and MIDI-layer shortcuts remain unchanged.";
     aboutInfo.setTitle("About LR-608");
     aboutInfo.setMultiLine(true, true);
     aboutInfo.setReturnKeyStartsNewLine(false);
@@ -1137,6 +1143,8 @@ void LR608AudioProcessorEditor::adjustGridRows (int delta)
 
 void LR608AudioProcessorEditor::updateParameterList()
 {
+    // A different Slot, Sound/FX page or Global context starts a fresh search.
+    parameterSearch.reset();
     attachment.reset();
     visibleCatalogIndices.clear();
     visibleNames.clear();
@@ -1394,30 +1402,26 @@ void LR608AudioProcessorEditor::moveInGrid (int rowDelta, int columnDelta)
 }
 
 bool LR608AudioProcessorEditor::selectNextParameterStartingWith (juce::juce_wchar character,
-                                                                    bool backwards)
+                                                                  bool backwards)
 {
-    const auto initial = juce::CharacterFunctions::toLowerCase (character);
-    if (! juce::CharacterFunctions::isLetterOrDigit (initial) || visibleNames.empty())
-        return false;
+    if (visibleNames.empty())
+        return true;
 
-    const auto count = static_cast<int> (visibleNames.size());
     const auto current = parameterSelector.getSelectedItemIndex();
-    const auto start = current >= 0 ? current : (backwards ? 0 : -1);
-    const auto direction = backwards ? -1 : 1;
-    for (int offset = 1; offset <= count; ++offset)
-    {
-        const auto target = (start + direction * offset + count * 2) % count;
-        const auto name = visibleNames[static_cast<std::size_t> (target)].trimStart();
-        if (name.isNotEmpty()
-            && juce::CharacterFunctions::toLowerCase (name[0]) == initial)
+    const auto found = parameterSearch.next (
+        static_cast<wchar_t> (character), current < 0 ? 0 : current,
+        static_cast<int> (visibleNames.size()), backwards ? -1 : 1,
+        juce::Time::getMillisecondCounter(),
+        // Match the name only: the ComboBox label also contains a live value.
+        [this] (int index)
         {
-            setListIndex (target);
-            return true;
-        }
-    }
-
-    // Consume valid type-navigation keys even when this page has no match,
-    // so JUCE does not perform a different ComboBox action.
+            return std::wstring (visibleNames[static_cast<std::size_t> (index)]
+                                    .trimStart().toWideCharPointer());
+        });
+    if (found >= 0 && found != current)
+        setListIndex (found);
+    // Even when there is no match, consume the key so JUCE's native
+    // one-character ComboBox search cannot override the progressive prefix.
     return true;
 }
 
@@ -2187,6 +2191,8 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     const auto alt = key.getModifiers().isAltDown();
     const auto ctrl = key.getModifiers().isCtrlDown()||key.getModifiers().isCommandDown();
     const auto character = juce::CharacterFunctions::toLowerCase (key.getTextCharacter());
+    if (source != &parameterSelector || lr608ParameterSearchCharacter(key) == 0)
+        parameterSearch.reset();
     if(aboutOpen)
     {
         const auto mods=key.getModifiers();
@@ -2453,11 +2459,9 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             focusSlotColumn(selectedSlotColumn);
             return true;
         }
-        if (! key.getModifiers().isAltDown()
-            && ! key.getModifiers().isCtrlDown()
-            && ! key.getModifiers().isCommandDown()
-            && selectNextParameterStartingWith (key.getTextCharacter(), shift))
-            return true;
+        if (const auto searchCharacter = lr608ParameterSearchCharacter(key);
+            searchCharacter != 0)
+            return selectNextParameterStartingWith (searchCharacter, shift);
         if (ctrl && code == juce::KeyPress::homeKey)
         {
             setListIndex (0);

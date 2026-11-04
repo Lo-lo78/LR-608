@@ -1,6 +1,6 @@
-# LR-608 0.99.31 — accessible drum synthesizer (Windows VST3)
+# LR-608 0.99.32 — accessible drum synthesizer (Windows VST3)
 
-**Release:** 14 October 2026  
+**Release:** 4 November 2026  
 **Source:** https://github.com/Lo-lo78/LR-608  
 **Licence:** AGPL-3.0-or-later (see source-file headers).
 
@@ -34,6 +34,8 @@ The interface is designed to work without a mouse:
 | --- | --- |
 | `Alt+D` | Main Slot area |
 | `Alt+L` or `Tab` | Parameter grid |
+| Letters/digits in Grid | Incremental parameter search by name or word beginning (Sound/FX/Global; 1-second prefix) |
+| `Shift`+letters/digits in Grid | Search backwards; Shift+1 searches digit 1 rather than the symbol |
 | `Alt+F` | Toggle Sound/FX pages |
 | `Alt+V` | Value mode |
 | `Alt+E` | Numeric editing |
@@ -51,6 +53,8 @@ The interface is designed to work without a mouse:
 | `Alt+A` | Accessible About dialog |
 | `Ctrl+A` / `Ctrl+C` (inside About text) | Select all / Copy selected text to the clipboard |
 
+In the parameter grid, a repeated single key cycles matching parameters with wrap-around. An arrow or other navigation key starts a fresh search. The preset browser retains its original initial-letter navigation. Search affects only navigation, not parameter values or MIDI layer commands.
+
 In the About text panel, keyboard selection is supported (including Shift+arrows). Ctrl+A selects all and Ctrl+C copies the selection.
 
 See **Documentation/LR608Help.html** for the complete shortcut list, navigation conventions and translated manuals (English, Italian, Spanish, Portuguese, French, Russian, Chinese and Japanese).
@@ -63,6 +67,6 @@ Factory kit data are embedded in the project and the instrument creates its read
 
 ## Building from source
 
-The project uses CMake, JUCE 8.0.15, C++20, and the Windows build script in `Tools/build-windows.ps1`. GitHub Actions uses `.github/workflows/build-windows.yml`; it is recommended for reproducible release builds. This source package has **not** been compiled locally as part of the documentation update.
+The project uses CMake, JUCE 8.0.15, C++20, and the Windows build script in `Tools/build-windows.ps1`. GitHub Actions uses `.github/workflows/build-windows.yml`; it is recommended for reproducible release builds. The search helper has standalone C++ tests. The full Windows VST3 build and screen-reader behaviour still need to be confirmed by GitHub Actions and testing in REAPER.
 
 The generated catalogues under `Documentation/` and existing tests under `Tests/` are development references, not evidence of a completed test run for this documentation update.

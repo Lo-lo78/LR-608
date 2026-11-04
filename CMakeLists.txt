@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(LR608 VERSION 0.99.31 LANGUAGES C CXX)
+project(LR608 VERSION 0.99.32 LANGUAGES C CXX)
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -44,6 +44,8 @@ target_sources(LR608 PRIVATE
     Source/PluginProcessor.h
     Source/PluginEditor.cpp
     Source/PluginEditor.h
+    Source/IncrementalParameterSearch.h
+    Source/ParameterSearchKey.h
     Source/ParameterCatalog.cpp
     Source/ParameterCatalog.h
     Source/PresetManager.cpp
@@ -114,6 +116,16 @@ endif()
 
 option(LR608_BUILD_CATALOG_TEST "Build catalogue audit test" ON)
 if(LR608_BUILD_CATALOG_TEST)
+    # Stand-alone search regression: no audio engine or JUCE required.
+    add_executable(LR608SearchTest Tests/IncrementalParameterSearchTest.cpp)
+    target_compile_features(LR608SearchTest PRIVATE cxx_std_20)
+    target_include_directories(LR608SearchTest PRIVATE Source)
+    if(WIN32)
+        target_link_libraries(LR608SearchTest PRIVATE user32)
+    endif()
+    enable_testing()
+    add_test(NAME LR608IncrementalSearch COMMAND LR608SearchTest)
+
     add_executable(LR608CatalogTest Tests/CatalogAudit.cpp)
     target_compile_features(LR608CatalogTest PRIVATE cxx_std_20)
     target_include_directories(LR608CatalogTest PRIVATE Source)

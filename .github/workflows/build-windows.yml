@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify incremental search integration
+      - name: Verify incremental search and Alt+T audition
         shell: powershell
         run: python Tests/verify_incremental_search_integration.py
 
@@ -33,6 +33,6 @@ jobs:
       - name: Upload VST3 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LR-608-0.99.32-TEST32-Windows-VST3
+          name: LR-608-0.99.32-TEST33-Windows-VST3
           path: LR-608-Windows-VST3.zip
           if-no-files-found: error

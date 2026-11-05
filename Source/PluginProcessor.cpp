@@ -238,6 +238,12 @@ void LR608AudioProcessor::refreshSlotTriggerCache()
     }
 }
 
+void LR608AudioProcessor::requestSlotAudition(int slot) noexcept
+{
+    if (juce::isPositiveAndBelow(slot, lr608::slotCount))
+        pendingSlotAudition.store(slot, std::memory_order_release);
+}
+
 void LR608AudioProcessor::prepareToPlay (double sampleRate, int)
 {
     currentSampleRate = sampleRate;
@@ -246,6 +252,7 @@ void LR608AudioProcessor::prepareToPlay (double sampleRate, int)
     for(auto& delay:slotDelays)delay.prepare(sampleRate);
     slotPingPongRight.fill(false);
     voiceCounter=0;activeVoiceCount=0;outputIdleLatched=false;
+    pendingSlotAudition.store(-1, std::memory_order_relaxed);
     voiceStealCounter.store(0);
     outputStage.prepare (sampleRate);
 }
@@ -786,7 +793,8 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // At true silence the only mandatory operation is clearing the synth
         // outputs. Delay send tails keep
         // the renderer alive even after the source voice has finished.
-        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail)
+        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail
+           && pendingSlotAudition.load(std::memory_order_acquire)<0)
         {
             if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
             return;
@@ -816,7 +824,8 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             slotDelays[std::size_t(slot)].setSettings(settings);
         }
         hasDelayTail=false;for(const auto&delay:slotDelays)if(delay.isActive()){hasDelayTail=true;break;}
-        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail)
+        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail
+           && pendingSlotAudition.load(std::memory_order_acquire)<0)
         {
             if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
             return;
@@ -824,6 +833,53 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         const auto masterDb=double(parameters.getRawParameterValue("slider256")->load());
         std::array<float*,lr608::OutputStage::stemCount> outputLeft{},outputRight{};
         for(int bus=0;bus<getBusCount(false);++bus)if(getBus(false,bus)->isEnabled()){auto destination=getBusBuffer(buffer,false,bus);outputLeft[std::size_t(bus)]=destination.getWritePointer(0);outputRight[std::size_t(bus)]=destination.getWritePointer(1);}
+        // Start one physical Slot using the same voice/overlap/routing/FX path
+        // as an incoming MIDI hit. Alt+T calls this directly for just the
+        // selected Slot, even when several Slots share its MIDI note.
+        auto triggerSlot = [&] (int slot, int velocity, int note, std::uint64_t hitGeneration)
+        {
+            if (!juce::isPositiveAndBelow(slot, lr608::slotCount)) return;
+            if (lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed))) return;
+            const auto overlap=juce::jlimit(1,2,juce::roundToInt(slotValues[slot][lr608::slotVoiceOverlapParameterIndex].load(std::memory_order_relaxed)));
+            std::array<std::uint64_t,2> generations{};
+            int generationCount=0;
+            std::uint64_t oldestGeneration=std::numeric_limits<std::uint64_t>::max();
+            for(int active=0;active<activeVoiceCount;++active)
+            {
+                const auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
+                if(!voice.isActive()||voice.getSlot()!=slot)continue;
+                const auto age=voice.getAge();
+                bool known=false;for(int generation=0;generation<generationCount;++generation)if(generations[std::size_t(generation)]==age){known=true;break;}
+                if(!known&&generationCount<2)generations[std::size_t(generationCount++)]=age;
+                oldestGeneration=std::min(oldestGeneration,age);
+            }
+            if(generationCount>=overlap)
+            {
+                for(int active=0;active<activeVoiceCount;)
+                {
+                    auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
+                    if(voice.isActive()&&voice.getSlot()==slot&&(overlap==1||voice.getAge()==oldestGeneration))
+                    {
+                        voice.reset();
+                        activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];
+                        continue;
+                    }
+                    ++active;
+                }
+            }
+            int targetIndex=-1;
+            for(int voice=0;voice<int(voicePool->size());++voice)if(!(*voicePool)[std::size_t(voice)].isActive()){targetIndex=voice;break;}
+            if(targetIndex<0){targetIndex=int(std::distance(voicePool->begin(),std::min_element(voicePool->begin(),voicePool->end(),[](const auto&a,const auto&b){return a.getAge()<b.getAge();})));voiceStealCounter.fetch_add(1,std::memory_order_relaxed);}
+            else activeVoiceIndices[std::size_t(activeVoiceCount++)]=targetIndex;
+            const auto pingPongDepth=juce::jlimit(-1.0f,1.0f,slotValues[slot][lr608::slotPingPongPanDepthParameterIndex].load(std::memory_order_relaxed));
+            bool pingPongRight=false;
+            if(std::abs(pingPongDepth)>1.0e-9f)
+            {
+                pingPongRight=slotPingPongRight[std::size_t(slot)];
+                slotPingPongRight[std::size_t(slot)]=!pingPongRight;
+            }
+            (*voicePool)[std::size_t(targetIndex)].start(slotEngineIndices[slot].load(std::memory_order_relaxed),velocity,slotOutputs[slot].load(),note,slot,slotValues[slot],timing.tempo,hitGeneration,pingPongRight);
+        };
         auto trigger=[&](lr608::DrumTrigger hit)
         {
             lastPlayedMidiNote.store(hit.note,std::memory_order_relaxed);
@@ -842,48 +898,8 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
             const auto hitGeneration=++voiceCounter;
             for(int slot=0;slot<lr608::slotCount;++slot)
-            {
-                if(slotMidiNotes[slot].load(std::memory_order_relaxed)!=hit.note||lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))continue;
-                const auto overlap=juce::jlimit(1,2,juce::roundToInt(slotValues[slot][lr608::slotVoiceOverlapParameterIndex].load(std::memory_order_relaxed)));
-                std::array<std::uint64_t,2> generations{};
-                int generationCount=0;
-                std::uint64_t oldestGeneration=std::numeric_limits<std::uint64_t>::max();
-                for(int active=0;active<activeVoiceCount;++active)
-                {
-                    const auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
-                    if(!voice.isActive()||voice.getSlot()!=slot)continue;
-                    const auto age=voice.getAge();
-                    bool known=false;for(int generation=0;generation<generationCount;++generation)if(generations[std::size_t(generation)]==age){known=true;break;}
-                    if(!known&&generationCount<2)generations[std::size_t(generationCount++)]=age;
-                    oldestGeneration=std::min(oldestGeneration,age);
-                }
-                if(generationCount>=overlap)
-                {
-                    for(int active=0;active<activeVoiceCount;)
-                    {
-                        auto&voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];
-                        if(voice.isActive()&&voice.getSlot()==slot&&(overlap==1||voice.getAge()==oldestGeneration))
-                        {
-                            voice.reset();
-                            activeVoiceIndices[std::size_t(active)]=activeVoiceIndices[std::size_t(--activeVoiceCount)];
-                            continue;
-                        }
-                        ++active;
-                    }
-                }
-                int targetIndex=-1;
-                for(int voice=0;voice<int(voicePool->size());++voice)if(!(*voicePool)[std::size_t(voice)].isActive()){targetIndex=voice;break;}
-                if(targetIndex<0){targetIndex=int(std::distance(voicePool->begin(),std::min_element(voicePool->begin(),voicePool->end(),[](const auto&a,const auto&b){return a.getAge()<b.getAge();})));voiceStealCounter.fetch_add(1,std::memory_order_relaxed);}
-                else activeVoiceIndices[std::size_t(activeVoiceCount++)]=targetIndex;
-                const auto pingPongDepth=juce::jlimit(-1.0f,1.0f,slotValues[slot][lr608::slotPingPongPanDepthParameterIndex].load(std::memory_order_relaxed));
-                bool pingPongRight=false;
-                if(std::abs(pingPongDepth)>1.0e-9f)
-                {
-                    pingPongRight=slotPingPongRight[std::size_t(slot)];
-                    slotPingPongRight[std::size_t(slot)]=!pingPongRight;
-                }
-                (*voicePool)[std::size_t(targetIndex)].start(slotEngineIndices[slot].load(std::memory_order_relaxed),hit.velocity,slotOutputs[slot].load(),hit.note,slot,slotValues[slot],timing.tempo,hitGeneration,pingPongRight);
-            }
+                if(slotMidiNotes[slot].load(std::memory_order_relaxed)==hit.note)
+                    triggerSlot(slot, hit.velocity, hit.note, hitGeneration);
         };
         juce::MidiBuffer incomingMidi;
         incomingMidi.swapWith(midi);
@@ -893,6 +909,16 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             auto emitMidi=[&](lr608::GeneratedDrumMidi event){const auto channel=juce::jlimit(1,16,event.channel+1);midi.addEvent(event.noteOn?juce::MidiMessage::noteOn(channel,event.note,juce::uint8(event.velocity)):juce::MidiMessage::noteOff(channel,event.note),sample);};
             while(iterator!=incomingMidi.cend()&&(*iterator).samplePosition==sample){const auto message=(*iterator).getMessage();const auto*bytes=message.getRawData();bool consumed=false;if(message.getRawDataSize()>=3)consumed=timingEngine.handleMidi(bytes[0],bytes[1],bytes[2],trigger,emitMidi);if(!consumed)midi.addEvent(message,sample);++iterator;}
             timingEngine.tick(trigger,emitMidi);
+            if(sample==0)
+            {
+                // A UI audition is not a MIDI input event: only the selected
+                // Slot is played, at velocity 115, without note output, MIDI
+                // navigation changes, or any screen-reader announcement.
+                const int auditionSlot=pendingSlotAudition.exchange(-1,std::memory_order_acq_rel);
+                if(juce::isPositiveAndBelow(auditionSlot,lr608::slotCount)
+                   && !lr608::isOffEngine(slotEngineIndices[auditionSlot].load(std::memory_order_relaxed)))
+                    triggerSlot(auditionSlot,115,slotMidiNotes[auditionSlot].load(std::memory_order_relaxed),++voiceCounter);
+            }
 
             std::array<lr608::StereoSample,lr608::OutputStage::stemCount>buses{};
             std::array<lr608::StereoSample,lr608::slotCount> slotSends{};

@@ -2209,13 +2209,12 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         if(code==juce::KeyPress::returnKey||key.getTextCharacter()==' '){if(source==&aboutProject){openProjectPage();return true;}if(source==&aboutContact){openContactEmail();return true;}if(source==&aboutClose){closeAbout();return true;}}
         return true;
     }
-    // Alt+T is a read-only context shortcut available throughout the editor.
-    // It never moves focus or changes the current page/selection.
+    // Alt+T auditions only the currently selected Slot at MIDI velocity 115.
+    // Playback is queued safely for the audio thread; focus and selection stay
+    // unchanged, and there is deliberately no screen-reader announcement.
     if (alt && character == 't')
     {
-        const auto engine = juce::jlimit (0, lr608::slotEngineCount - 1,
-            juce::roundToInt (processor.parameters.getRawParameterValue (lr608::slotEngineId (selectedSlot))->load()));
-        announce ("Engine, " + juce::String (lr608::slotEngines[engine].name));
+        processor.requestSlotAudition(selectedSlot);
         return true;
     }
     if (alt && (character == '.' || code == '.'))

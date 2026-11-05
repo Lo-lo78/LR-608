@@ -48,7 +48,7 @@ The interface is designed to work without a mouse:
 | `Alt+B` / `Alt+S` | Preset browser / Save kit |
 | `Alt+G` | Global controls |
 | `Alt+R` | Slot totals; press R again while Alt is held for a grouped report |
-| `Alt+T` | Announce the selected engine |
+| `Alt+T` | Audition only the current Slot Engine at velocity 115 (no screen-reader announcement) |
 | `Alt+H` | Choose one of eight Help languages |
 | `Alt+A` | Accessible About dialog |
 | `Ctrl+A` / `Ctrl+C` (inside About text) | Select all / Copy selected text to the clipboard |

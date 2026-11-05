@@ -71,6 +71,9 @@ public:
     void setSlotEngine(int,int);
     SlotSoundSnapshot copySlotSound(int);
     bool pasteSlotSound(int,const SlotSoundSnapshot&);
+    // UI-only one-shot audition: the audio thread starts exactly this Slot,
+    // without broadcasting its MIDI note to the other layers on the same key.
+    void requestSlotAudition(int slot) noexcept;
     int getLastPlayedMidiNote() const { return lastPlayedMidiNote.load(std::memory_order_relaxed); }
     std::uint64_t getMidiNavigationEvent() const { return midiNavigationEvent.load(std::memory_order_acquire); }
     // Off layers created in the UI remain allocated even before an Engine is selected.
@@ -127,6 +130,8 @@ private:
     std::array<bool,lr608::slotCount> slotPingPongRight{};
     std::array<juce::String,lr608::slotCount> slotNames{};
     std::atomic<int> currentProxySlot{0};
+    // -1 means no preview pending. Written by the editor, consumed by processBlock.
+    std::atomic<int> pendingSlotAudition{-1};
     std::atomic<int> lastPlayedMidiNote{-1};
     std::atomic<std::uint64_t> midiNavigationEvent{0};
     std::uint64_t midiNavigationSerial=0;

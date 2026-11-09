@@ -1,6 +1,6 @@
-# LR-608 0.99.32 — accessible drum synthesizer (Windows VST3)
+# LR-608 0.99.33 — accessible drum synthesizer (Windows VST3)
 
-**Release:** 4 November 2026  
+**Release:** 9 November 2026  
 **Source:** https://github.com/Lo-lo78/LR-608  
 **Licence:** AGPL-3.0-or-later (see source-file headers).
 

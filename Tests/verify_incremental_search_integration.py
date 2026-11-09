@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static integration guard for LR-608 0.99.32 / TEST33.
+"""Static integration guard for LR-608 0.99.33 / TEST33.
 
 The actual search algorithm is tested by LR608SearchTest in CTest.
 """
@@ -27,7 +27,7 @@ assert 'if (code >= juce::KeyPress::F1Key' in key
 assert key.index("if (code >= '0' && code <= '9')") < key.index('const auto typed')
 assert 'numberPad0' in key and 'numberPad9' in key
 assert 'mods.isCtrlDown() || mods.isAltDown() || mods.isCommandDown()' in key
-assert '0.99.32' in editor and '4 November 2026' in editor
+assert '0.99.33' in editor and '9 November 2026' in editor
 assert 'LR608SearchTest' in cmake and 'LR608IncrementalSearch' in cmake
 assert 'verify_incremental_search_integration.py' in workflow
 assert 'TEST33' in workflow
@@ -54,7 +54,7 @@ articles = re.findall(r'<article id="([a-z]+)"[^>]*>(.*?)</article>', help_html,
 assert len(articles) == 8
 assert {lang for lang, _ in articles} == {'en', 'it', 'es', 'pt', 'fr', 'ru', 'zh', 'ja'}
 for lang, body in articles:
-    assert '0.99.32' in body, lang
+    assert '0.99.33' in body, lang
     assert 'TEST32' in body and 'Shift+1' in body and '115' in body, lang
-assert '0.99.31' not in help_html
+assert '0.99.32' not in help_html
 print('PASS LR-608 TEST33: incremental search + Alt+T slot audition, shortcuts, eight translated manuals, workflow')

@@ -26,6 +26,8 @@ Each Slot has **Sound** parameters for its current synthesis engine and **FX** p
 - Delay with Wet, Time, Feedback, Speed Glide, repeat Pitch, feedback filtering/resonance and independent Left/Right offsets.
 - Degrade (Amount, Bits, Hold and Jitter), Voice Overlap, Roll and Accent controls.
 
+**TEST34 experimental output stage:** `Alt+G` includes `Output Warmth (%)`, an optional harmonic body enhancement that processes each stereo output pair separately. 0% is identical to the historical output, while 25-35% is a cautious starting point for listening comparisons. This adds low-order harmonics generated from the bass; it is not a low-shelf EQ, and it does not remove the existing output dynamics.
+
 ## Keyboard access
 
 The interface is designed to work without a mouse:

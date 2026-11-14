@@ -417,5 +417,6 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 407, "slotEnvLowPassDepth", "Env Depth Filter LP", -8.0, 8.0, 0.01, 0.0, "" },
     { 408, "slotEnvHighPassDepth", "Env Depth Filter HP", -8.0, 8.0, 0.01, 0.0, "" },
     { 409, "slotEnvPanDepth", "Env Depth Pan", -1.0, 1.0, 0.01, 0.0, "" },
+    { 410, "outputWarmth", "Output Warmth (%)", 0.0, 100.0, 1.0, 0.0, "" },
 };
 }

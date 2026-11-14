@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static integration guard for LR-608 0.99.33 / TEST33.
+"""Static integration guard for LR-608 incremental search and slot audition.
 
 The actual search algorithm is tested by LR608SearchTest in CTest.
 """
@@ -30,7 +30,14 @@ assert 'mods.isCtrlDown() || mods.isAltDown() || mods.isCommandDown()' in key
 assert '0.99.33' in editor and '9 November 2026' in editor
 assert 'LR608SearchTest' in cmake and 'LR608IncrementalSearch' in cmake
 assert 'verify_incremental_search_integration.py' in workflow
-assert 'TEST33' in workflow
+# Validate the actual CI checks and packaging stages, without coupling this
+# integration audit to a TEST number in the artifact display name.
+assert 'actions/checkout@v4' in workflow
+assert 'python Tests/verify_incremental_search_integration.py' in workflow
+assert 'powershell -ExecutionPolicy Bypass -File Tools/build-windows.ps1' in workflow
+assert 'Compress-Archive -Path $vst3' in workflow
+assert 'actions/upload-artifact@v4' in workflow
+assert 'LR-608-Windows-VST3.zip' in workflow
 processor = (root / 'Source/PluginProcessor.cpp').read_text(encoding='utf-8')
 processor_header = (root / 'Source/PluginProcessor.h').read_text(encoding='utf-8')
 assert 'void requestSlotAudition(int slot) noexcept;' in processor_header
@@ -57,4 +64,4 @@ for lang, body in articles:
     assert '0.99.33' in body, lang
     assert 'TEST32' in body and 'Shift+1' in body and '115' in body, lang
 assert '0.99.32' not in help_html
-print('PASS LR-608 TEST33: incremental search + Alt+T slot audition, shortcuts, eight translated manuals, workflow')
+print('PASS LR-608: incremental search + Alt+T slot audition, shortcuts, eight translated manuals, CI workflow')

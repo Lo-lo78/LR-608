@@ -7,6 +7,16 @@ namespace lr608
 {
 struct StereoSample { double left = 0.0, right = 0.0; };
 
+// Global transient controls; zero Attack/Sustain reproduces TEST34.1 exactly.
+// Focus: 0 = Low (kick/tom body), 1 = Full (entire spectrum).
+struct TransientControls
+{
+    double attackPercent = 0.0;
+    double sustainPercent = 0.0;
+    double speedMs = 40.0;
+    int focus = 0;
+};
+
 class OutputStage
 {
 public:
@@ -17,7 +27,8 @@ public:
     // 0% is the historical, uncoloured output. Warmth applies separately to
     // every output pair; it does not change the per-Slot routing.
     void process (std::array<StereoSample, stemCount>& stems, bool multichannel,
-                  double masterDb, int zapEngine, double warmthPercent = 0.0);
+                  double masterDb, int zapEngine, double warmthPercent = 0.0,
+                  TransientControls transient = {});
 
 private:
     struct DcState { double xL {}, yL {}, xR {}, yR {}; };
@@ -38,6 +49,26 @@ private:
     std::array<WarmPair, stemCount> warmState {};
     static double warmHarmonics (double input, WarmChannel& state,
                                  double lowPassCoefficient, double dcCoefficient);
+    // Differential-envelope transient shaper, per stereo bus with linked L/R
+    // detection; Low focus modulates only a complementary low-band wet delta.
+    struct TransientPair
+    {
+        double lowL1 {}, lowL2 {}, lowR1 {}, lowR2 {};
+        double fast {}, slow {}, gain = 1.0;
+    };
+    std::array<TransientPair, stemCount> transientState {};
+    double transientLowCoefficient = 0.03;
+    double transientControlCoefficient = 0.001;
+    double transientGainAttackCoefficient = 0.08;
+    double transientGainReleaseCoefficient = 0.015;
+    double transientAttack = 0.0, transientSustain = 0.0;
+    double transientFocus = 0.0;
+    double transientFastAttack = 0.0, transientFastRelease = 0.0;
+    double transientSlowAttack = 0.0, transientSlowRelease = 0.0;
+    double cachedTransientSpeed = -1.0;
+    bool transientWasActive = false;
+    void updateTransientSpeed (double speedMs);
+    void shapeTransient (StereoSample& signal, TransientPair& state);
     DcState stereoDc;
     std::array<DcState, stemCount> stemDc {};
 };

@@ -26,6 +26,8 @@ Each Slot has **Sound** parameters for its current synthesis engine and **FX** p
 - Delay with Wet, Time, Feedback, Speed Glide, repeat Pitch, feedback filtering/resonance and independent Left/Right offsets.
 - Degrade (Amount, Bits, Hold and Jitter), Voice Overlap, Roll and Accent controls.
 
+**TEST35 experimental global Transient Designer:** `Alt+G` adds four controls after Output Warmth: **Transient Attack (%)** (-100 to +100, default 0), **Transient Sustain (%)** (-100 to +100, default 0), **Transient Speed (ms)** (8 to 120, default 40), and **Transient Focus** (Low/Full, default Low). Attack raises/softens the initial impact; Sustain boosts/reduces the post-hit tail; Speed adjusts the envelope detector; Focus Low shapes mainly bass/kick body while Full shapes the entire spectrum. Processing is per stereo bus (32 separate L/R-linked detectors); 0 Attack + 0 Sustain reproduces TEST34.1 exactly. Higher positive Attack can raise output peaks: watch host meters and allow headroom. Experimental testing recommended before a release.
+
 **TEST34 experimental output stage:** `Alt+G` includes `Output Warmth (%)`, an optional harmonic body enhancement that processes each stereo output pair separately. 0% is identical to the historical output, while 25-35% is a cautious starting point for listening comparisons. This adds low-order harmonics generated from the bass; it is not a low-shelf EQ, and it does not remove the existing output dynamics.
 
 ## Keyboard access

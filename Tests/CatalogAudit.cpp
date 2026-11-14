@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 401
+    if (std::size (lr608::generated::parameters) != 405
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -263,7 +263,30 @@ int main()
         return EXIT_FAILURE;
     }
     ids.emplace (outputWarmth.id);
-    if (ids.size() != 401)
+    // TEST35: global transient parameters are appended after Output Warmth.
+    // No existing ID or any of the 400 per-Slot positions may move.
+    struct ExpectedGlobal { const char* id; const char* name; int number; double minimum, maximum, step, initial; const char* choices; };
+    constexpr ExpectedGlobal expectedTransient[] = {
+        { "transientAttack", "Transient Attack (%)", 411, -100, 100, 1, 0, "" },
+        { "transientSustain", "Transient Sustain (%)", 412, -100, 100, 1, 0, "" },
+        { "transientSpeed", "Transient Speed (ms)", 413, 8, 120, 1, 40, "" },
+        { "transientFocus", "Transient Focus", 414, 0, 1, 1, 0, "Low|Full" }
+    };
+    for (std::size_t i = 0; i < std::size (expectedTransient); ++i)
+    {
+        const auto& actual = lr608::generated::parameters[lr608::slotParameterValueCount + 1 + i];
+        const auto& expected = expectedTransient[i];
+        if (std::string (actual.id) != expected.id || std::string (actual.name) != expected.name
+            || actual.sliderNumber != expected.number || actual.minimum != expected.minimum
+            || actual.maximum != expected.maximum || actual.step != expected.step
+            || actual.defaultValue != expected.initial || std::string (actual.choices) != expected.choices)
+        {
+            std::cerr << "Invalid Transient Designer descriptor " << i << '\n';
+            return EXIT_FAILURE;
+        }
+        ids.emplace (actual.id);
+    }
+    if (ids.size() != 405)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -286,11 +309,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 351)
+    if (exposed.size() != 355)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 351 page controls including global Output Warmth; legacy Tom Pan and Output Mode controls hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 355 page controls including global Output Warmth and Transient Designer; legacy Tom Pan and Output Mode controls hidden\n";
     return EXIT_SUCCESS;
 }

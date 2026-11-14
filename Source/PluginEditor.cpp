@@ -1088,7 +1088,7 @@ void LR608AudioProcessorEditor::openGlobal()
     auto* focused=juce::Component::getCurrentlyFocusedComponent();
     positionWasInGrid=focused==&parameterSelector||focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused));
     positionBeforeGlobalColumn=selectedSlotColumn;positionBeforeGlobalSlot=selectedSlot;
-    globalSnapshot.clear();for(const auto*id:{"slider249","slider253","slider254","slider256","outputWarmth"})globalSnapshot.emplace_back(id,processor.parameters.getRawParameterValue(id)->load());
+    globalSnapshot.clear();for(const auto*id:{"slider249","slider253","slider254","slider256","outputWarmth","transientAttack","transientSustain","transientSpeed","transientFocus"})globalSnapshot.emplace_back(id,processor.parameters.getRawParameterValue(id)->load());
     globalOpen=true;slotSelector.setVisible(false);engineSelector.setVisible(false);layerSelector.setVisible(false);noteSelector.setVisible(false);chokeTriggerSelector.setVisible(false);chokeTargetSelector.setVisible(false);outputSelector.setVisible(false);initialize.setVisible(false);clearSlots.setVisible(false);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(false);aboutButton.setVisible(false);title.setText("Global",juce::dontSendNotification);parameterSelector.setTitle("Global");pageSelector.setSelectedItemIndex(11,juce::dontSendNotification);updateParameterList();setListIndex(globalGridIndex);requestShortcutFocus(parameterSelector);announce("Global");
 }
 

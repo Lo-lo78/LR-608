@@ -832,6 +832,11 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         }
         const auto masterDb=double(parameters.getRawParameterValue("slider256")->load());
         const auto outputWarmth=double(parameters.getRawParameterValue("outputWarmth")->load());
+        lr608::TransientControls transient;
+        transient.attackPercent=double(parameters.getRawParameterValue("transientAttack")->load());
+        transient.sustainPercent=double(parameters.getRawParameterValue("transientSustain")->load());
+        transient.speedMs=double(parameters.getRawParameterValue("transientSpeed")->load());
+        transient.focus=juce::roundToInt(parameters.getRawParameterValue("transientFocus")->load());
         std::array<float*,lr608::OutputStage::stemCount> outputLeft{},outputRight{};
         for(int bus=0;bus<getBusCount(false);++bus)if(getBus(false,bus)->isEnabled()){auto destination=getBusBuffer(buffer,false,bus);outputLeft[std::size_t(bus)]=destination.getWritePointer(0);outputRight[std::size_t(bus)]=destination.getWritePointer(1);}
         // Start one physical Slot using the same voice/overlap/routing/FX path
@@ -974,7 +979,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                 continue;
             }
             outputIdleLatched=false;
-            outputStage.process(buses,true,masterDb,0,outputWarmth);
+            outputStage.process(buses,true,masterDb,0,outputWarmth,transient);
             for(int bus=0;bus<getBusCount(false);++bus)if(outputLeft[std::size_t(bus)]!=nullptr&&(buses[bus].left!=0||buses[bus].right!=0)){outputLeft[std::size_t(bus)][sample]+=float(buses[bus].left);outputRight[std::size_t(bus)][sample]+=float(buses[bus].right);}
         }
         return;

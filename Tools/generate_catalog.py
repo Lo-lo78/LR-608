@@ -86,6 +86,10 @@ UNIVERSAL_SLOT_PARAMETERS = [
 # Do not add these to slot snapshots or engine-default arrays.
 GLOBAL_OUTPUT_PARAMETERS = [
     (410, "outputWarmth", "Output Warmth (%)", 0, 100, 1, 0, ""),
+    (411, "transientAttack", "Transient Attack (%)", -100, 100, 1, 0, ""),
+    (412, "transientSustain", "Transient Sustain (%)", -100, 100, 1, 0, ""),
+    (413, "transientSpeed", "Transient Speed (ms)", 8, 120, 1, 40, ""),
+    (414, "transientFocus", "Transient Focus", 0, 1, 1, 0, "Low|Full"),
 ]
 
 # Native parameters added by the Kick 808 LAB TEST11 migration.  They are

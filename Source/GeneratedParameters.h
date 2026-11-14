@@ -418,5 +418,9 @@ inline constexpr ParameterDescriptor parameters[] = {
     { 408, "slotEnvHighPassDepth", "Env Depth Filter HP", -8.0, 8.0, 0.01, 0.0, "" },
     { 409, "slotEnvPanDepth", "Env Depth Pan", -1.0, 1.0, 0.01, 0.0, "" },
     { 410, "outputWarmth", "Output Warmth (%)", 0.0, 100.0, 1.0, 0.0, "" },
+    { 411, "transientAttack", "Transient Attack (%)", -100.0, 100.0, 1.0, 0.0, "" },
+    { 412, "transientSustain", "Transient Sustain (%)", -100.0, 100.0, 1.0, 0.0, "" },
+    { 413, "transientSpeed", "Transient Speed (ms)", 8.0, 120.0, 1.0, 40.0, "" },
+    { 414, "transientFocus", "Transient Focus", 0.0, 1.0, 1.0, 0.0, "Low|Full" },
 };
 }

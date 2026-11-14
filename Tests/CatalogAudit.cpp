@@ -37,7 +37,7 @@ int main()
             return EXIT_FAILURE;
         }
     }
-    if (std::size (lr608::generated::parameters) != 400
+    if (std::size (lr608::generated::parameters) != 401
         || std::size (lr608::generated::pages) != 12)
     {
         std::cerr << "Unexpected catalogue/page count\n";
@@ -250,7 +250,20 @@ int main()
         }
         ids.emplace(e.id);
     }
-    if (ids.size() != 400)
+    // The 400 original descriptors stay fixed for per-Slot snapshots.
+    // Output Warmth is a separate, global descriptor appended at index 400.
+    const auto& outputWarmth = lr608::generated::parameters[lr608::slotParameterValueCount];
+    if (std::string (outputWarmth.id) != "outputWarmth"
+        || outputWarmth.sliderNumber != 410
+        || std::string (outputWarmth.name) != "Output Warmth (%)"
+        || outputWarmth.minimum != 0.0 || outputWarmth.maximum != 100.0
+        || outputWarmth.step != 1.0 || outputWarmth.defaultValue != 0.0)
+    {
+        std::cerr << "Invalid global Output Warmth descriptor\n";
+        return EXIT_FAILURE;
+    }
+    ids.emplace (outputWarmth.id);
+    if (ids.size() != 401)
     {
         std::cerr << "Duplicate parameter IDs\n";
         return EXIT_FAILURE;
@@ -273,11 +286,11 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 350)
+    if (exposed.size() != 351)
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 350 page controls; legacy Tom Pan and Output Mode controls hidden\n";
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 351 page controls including global Output Warmth; legacy Tom Pan and Output Mode controls hidden\n";
     return EXIT_SUCCESS;
 }

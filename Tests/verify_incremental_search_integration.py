@@ -62,6 +62,22 @@ assert len(articles) == 8
 assert {lang for lang, _ in articles} == {'en', 'it', 'es', 'pt', 'fr', 'ru', 'zh', 'ja'}
 for lang, body in articles:
     assert '0.99.33' in body, lang
-    assert 'TEST32' in body and 'Shift+1' in body and '115' in body, lang
+    assert ('TEST32' in body or 'TEST35.5' in body) and 'Shift+1' in body and '115' in body, lang
 assert '0.99.32' not in help_html
 print('PASS LR-608: incremental search + Alt+T slot audition, shortcuts, eight translated manuals, CI workflow')
+
+# TEST35.5: Alt+D is a second grid; both share the same prefix algorithm,
+# but only Alt+L has a numerical editor.
+geometry = (root / 'Source/SlotGridNavigation.h').read_text(encoding='utf-8')
+assert 'slotUiNavigate' in geometry and 'slotUiReverseValueOrder' in geometry
+assert 'lr608::slotUiNavigate(selectedSlotColumn,rowDelta,columnDelta)' in editor
+assert 'lr608::slotUiReverseValueOrder(column)' in editor
+assert 'lr608::IncrementalParameterSearch slotParameterSearch;' in header
+assert 'slotParameterSearch.next(' in editor
+assert 'selectNextSlotParameterStartingWith(searchKey,shift)' in editor
+assert 'juce::TextButton slotValue' in header
+assert 'slotValue.setWantsKeyboardFocus(true)' in editor
+assert 'if(code==juce::KeyPress::returnKey){focusSlotValueAndAnnounce();return true;}' in editor
+assert 'if(slotBarSource||source==&slotValue){announce("Alt+D Value has no numeric editor");return true;}' in editor
+assert 'LR608SlotGridNavigation' in cmake
+print('PASS TEST35.5: two grids, Alt+D non-numeric Value, roll direction and incremental search')

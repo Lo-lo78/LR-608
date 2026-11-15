@@ -74,3 +74,7 @@ Factory kit data are embedded in the project and the instrument creates its read
 The project uses CMake, JUCE 8.0.15, C++20, and the Windows build script in `Tools/build-windows.ps1`. GitHub Actions uses `.github/workflows/build-windows.yml`; it is recommended for reproducible release builds. The search helper has standalone C++ tests. The full Windows VST3 build and screen-reader behaviour still need to be confirmed by GitHub Actions and testing in REAPER.
 
 The generated catalogues under `Documentation/` and existing tests under `Tests/` are development references, not evidence of a completed test run for this documentation update.
+
+### TEST35.5: Two accessible keyboard grids
+
+Alt+D is a 4-column vertical grid (Slot/Engine/Layer; MIDI Note/Choke Trigger/Choke Target; per-slot Roll Division/Shuffle/Second Hit Velocity Reduction; Output). Navigate with the plain arrows, Page, Home/End; Ctrl+Home/End jumps to the first/last cell. Alt+arrows, Alt+Page, Alt+Home/End change the selected value; Up means increase, Down means decrease. Enter opens the dedicated non-numeric Alt+D Value control; Enter/Escape returns. Layer > Add Layer is confirmed by Enter inside Value. Typing letters or digits performs progressive incremental search in both Alt+D and Alt+L, with Shift reversing direction. The original Alt+L parameter grid and numeric editor remain unchanged.

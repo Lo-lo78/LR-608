@@ -66,6 +66,7 @@ private:
     juce::ComboBox rollShuffleSelector;
     juce::ComboBox rollReductionSelector;
     juce::ComboBox outputSelector;
+    juce::TextButton slotValue { "Value" }; // non-numeric value focus for Alt+D
     juce::ComboBox parameterSelector;
     juce::Slider parameterValue;
     juce::TextButton reset { "Reset parameter" };
@@ -114,6 +115,7 @@ private:
     std::vector<int> visibleCatalogIndices;
     std::vector<juce::String> visibleNames;
     lr608::IncrementalParameterSearch parameterSearch;
+    lr608::IncrementalParameterSearch slotParameterSearch;
     std::vector<lr608::PresetManager::BrowserEntry> presetBrowserEntries;
     juce::File presetBrowserDirectory;
     juce::File presetBrowserPreviewFile;
@@ -163,6 +165,10 @@ private:
     void syncSlotBar (bool updateGrid, bool notifyGrid = true);
     void addLayerFromSelector();
     void changeSlotBarValue (int direction, bool pageStep, bool boundary, bool maximum);
+    void moveInSlotGrid (int rowDelta, int columnDelta);
+    void focusSlotValueAndAnnounce();
+    void updateSlotValueLabel();
+    bool selectNextSlotParameterStartingWith (juce::juce_wchar, bool backwards);
     void focusSlotColumn (int);
     void saveUiPosition (bool inGrid);
     void openGlobal();

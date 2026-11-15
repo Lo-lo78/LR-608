@@ -4,6 +4,7 @@
 #include "GeneratedParameters.h"
 #include "ScreenReaderAnnouncer.h"
 #include "ParameterSearchKey.h"
+#include "SlotGridNavigation.h"
 #include <BinaryData.h>
 #include <algorithm>
 #include <array>
@@ -399,6 +400,14 @@ private:
 constexpr int stepWidths[] { 1, 5, 10, 15, 20 };
 constexpr int parameterPageStep = 5;
 constexpr int valuePageStep = 40;
+// Alt+D has four VERTICAL columns (3, 3, 3, 1), not Alt+L's
+// user-configurable fixed-height grid.  The order is also the search order.
+constexpr const char* slotParameterNames[10] {
+    "Slot", "Engine", "Layer", "MIDI Note", "MIDI Choke Trigger",
+    "MIDI Choke Target", "Roll Division", "Roll Shuffle",
+    "Roll Second Hit Velocity Reduction", "Output"
+};
+
 // A restrained hybrid of classic analogue and early-digital drum-machine colours.
 // These are deliberately high-contrast: the visual skin must remain as readable as
 // the keyboard/screen-reader interface is usable.
@@ -537,8 +546,20 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     rollReductionSelector.onChange=[this,setRoll]{if(!updatingSlotBar&&!globalOpen)setRoll(lr608::slotRollReductionId(selectedSlot),float(rollReductionSelector.getSelectedItemIndex())/10.0f);};
     outputSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.setSlotOutput(selectedSlot,outputSelector.getSelectedId()-1);saveUiPosition(false);};
 
+    // Alt+D Value follows Alt+L Value focus/arrow behaviour, but is an
+    // ordinary keyboard-focusable button: no popup, slider text editor or
+    // numeric-entry box can intercept NVDA/OSARA shortcuts.
+    slotValue.setWantsKeyboardFocus(true);
+    slotValue.setTitle("Value");
+    slotValue.setDescription("Enter returns to the Alt+D grid; arrows change the current value");
+    slotValue.setExplicitFocusOrder(11);
+    slotValue.onClick=[this] {
+        if (selectedSlotColumn==2 && layerSelector.getText()=="Add Layer")
+            addLayerFromSelector();
+        focusSlotColumn(selectedSlotColumn);
+    };
     parameterSelector.setTitle ("Parameter");
-    parameterSelector.setExplicitFocusOrder (11);
+    parameterSelector.setExplicitFocusOrder (12);
     parameterSelector.onChange = [this] { selectParameter(); };
     parameterValue.setLookAndFeel (shortcutLookAndFeel.get());
     parameterValue.setSliderStyle (juce::Slider::LinearHorizontal);
@@ -626,9 +647,9 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     aboutClose.onClick = [this] { closeAbout(); }; aboutClose.addKeyListener(this);
     addAndMakeVisible(aboutClose); aboutClose.setVisible(false);
 
-    for (auto* component : std::array<juce::Component*, 23> {
+    for (auto* component : std::array<juce::Component*, 24> {
                               &title, &status, &slotSelector, &engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector,&parameterSelector,
-                              &parameterValue, &reset, &initialize, &clearSlots, &previousPreset,
+                              &parameterValue, &slotValue, &reset, &initialize, &clearSlots, &previousPreset,
                               &nextPreset, &loadPreset,&savePreset,&help,&aboutButton })
     {
         component->setColour (juce::Label::textColourId, foreground);
@@ -746,11 +767,12 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     }
 
     selectedSlot=juce::jlimit(0,lr608::slotCount-1,int(processor.parameters.state.getProperty("uiSelectedSlot",0)));
-    selectedSlotColumn=0;
+    selectedSlotColumn=juce::jlimit(0,9,int(processor.parameters.state.getProperty("uiSelectedColumn",0)));
     positionWasInGrid=false;
     for(int slot=0;slot<lr608::slotCount;++slot)rememberedGridIndices[slot]=processor.getSlotGridPosition(slot);
     globalGridIndex=juce::jmax(0,int(processor.parameters.state.getProperty("uiGlobalGrid",0)));
     syncSlotBar(true);
+    updateSlotValueLabel();
     lastMidiNavigationEvent=processor.getMidiNavigationEvent();
     midiCycleSlots.fill(-1);
     startTimerHz(30);
@@ -805,7 +827,7 @@ void LR608AudioProcessorEditor::paint (juce::Graphics& g)
     {
         auto slotPanel = slotSelector.getBounds().getUnion (rollReductionSelector.getBounds()).getUnion(outputSelector.getBounds()).expanded (10, 27);
         slotPanel.setTop (slotSelector.getY() - 23);
-        slotPanel.setBottom (slotSelector.getBottom() + 10);
+        slotPanel.setBottom (rollReductionSelector.getBottom() + 10);
         g.setColour (panel);
         g.fillRoundedRectangle (slotPanel.toFloat(), 6.0f);
         g.setColour (panelEdge);
@@ -837,7 +859,7 @@ void LR608AudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (mutedText);
     const auto guide = globalOpen
         ? juce::String ("Choose a global parameter, then drag the control or use the keyboard.  Enter confirms - Escape cancels")
-        : juce::String ("Alt+D: Slot / Engine / Layer, MIDI Note / Choke, independent Roll, Output");
+        : juce::String ("Alt+D: four vertical columns. Arrows navigate; Alt+arrows adjust; Enter Value. Alt+L: engine parameters.");
     g.drawText (guide, 34, title.getBottom() - 2, getWidth() - 68, 22,
                 juce::Justification::centred, true);
 
@@ -866,7 +888,9 @@ void LR608AudioProcessorEditor::resized()
     setThree(col2,noteSelector,chokeTriggerSelector,chokeTargetSelector);
     setThree(col3,rollDivisionSelector,rollShuffleSelector,rollReductionSelector);
     outputSelector.setBounds(col4.removeFromTop(38));
-    area.removeFromTop (32);
+    area.removeFromTop(12);
+    slotValue.setBounds(area.removeFromTop(34));
+    area.removeFromTop(28);
     parameterSelector.setBounds (area.removeFromTop (42));
     area.removeFromTop (12);
     parameterValue.setBounds (area.removeFromTop (82));
@@ -907,6 +931,7 @@ void LR608AudioProcessorEditor::focusOfChildComponentChanged(FocusChangeType)
     else if(focused==&rollShuffleSelector){selectedSlotColumn=7;saveUiPosition(false);newArea=1;}
     else if(focused==&rollReductionSelector){selectedSlotColumn=8;saveUiPosition(false);newArea=1;}
     else if(focused==&outputSelector){selectedSlotColumn=9;saveUiPosition(false);newArea=1;}
+    else if(focused==&slotValue){saveUiPosition(false);newArea=3;}
     else if(focused==&parameterSelector){saveUiPosition(true);newArea=2;}
     else if(focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused))){saveUiPosition(true);newArea=3;}
     else if(focused!=nullptr)newArea=3;
@@ -1018,6 +1043,7 @@ void LR608AudioProcessorEditor::saveUiPosition(bool inGrid)
     processor.parameters.state.setProperty("uiInGrid",inGrid,nullptr);
     const auto item=parameterSelector.getSelectedItemIndex();
     if(!globalOpen&&item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}
+    if (!inGrid && !globalOpen) updateSlotValueLabel();
 }
 
 void LR608AudioProcessorEditor::syncSlotBar(bool updateGrid, bool notifyGrid)
@@ -1047,6 +1073,7 @@ void LR608AudioProcessorEditor::syncSlotBar(bool updateGrid, bool notifyGrid)
     rollShuffleSelector.setSelectedItemIndex(juce::jlimit(0,100,juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotRollShuffleId(selectedSlot))->load())),juce::dontSendNotification);
     rollReductionSelector.setSelectedItemIndex(juce::jlimit(0,1000,juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotRollReductionId(selectedSlot))->load()*10.0f)),juce::dontSendNotification);
     outputSelector.setSelectedId(output+1,juce::dontSendNotification);
+    updateSlotValueLabel();
     if(updateGrid&&!globalOpen){if(!lr608::isOffEngine(engine)){processor.loadSlotToProxy(selectedSlot);pageSelector.setSelectedItemIndex(lr608::slotEngines[engine].page,juce::dontSendNotification);}updateParameterList();setListIndex(slotFxPage?rememberedFxGridIndices[selectedSlot]:rememberedGridIndices[selectedSlot],notifyGrid);}
 }
 
@@ -1073,39 +1100,98 @@ void LR608AudioProcessorEditor::addLayerFromSelector()
 void LR608AudioProcessorEditor::focusSlotColumn(int column)
 {
     selectedSlotColumn=juce::jlimit(0,9,column);saveUiPosition(false);
+    slotParameterSearch.reset();
     std::array<juce::Component*,10> columns{&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector};
     requestShortcutFocus(*columns[std::size_t(selectedSlotColumn)]);
 }
 
+void LR608AudioProcessorEditor::moveInSlotGrid(int rowDelta, int columnDelta)
+{
+    const int next=lr608::slotUiNavigate(selectedSlotColumn,rowDelta,columnDelta);
+    if(next!=selectedSlotColumn)focusSlotColumn(next);
+}
+
+void LR608AudioProcessorEditor::updateSlotValueLabel()
+{
+    const std::array<const juce::ComboBox*,10> boxes {
+        &slotSelector,&engineSelector,&layerSelector,&noteSelector,
+        &chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,
+        &rollShuffleSelector,&rollReductionSelector,&outputSelector
+    };
+    const int index=juce::jlimit(0,9,selectedSlotColumn);
+    const auto value=index==0?slotDisplayName(selectedSlot):boxes[std::size_t(index)]->getText();
+    slotValue.setTitle("Value. " + juce::String(slotParameterNames[index]));
+    slotValue.setButtonText("Value: " + value);
+    slotValue.setDescription(juce::String(slotParameterNames[index])+", "+value
+       +". Up and Down adjust, Page Up and Down adjust faster, Home and End set boundaries. No numeric editor.");
+}
+
+void LR608AudioProcessorEditor::focusSlotValueAndAnnounce()
+{
+    if(globalOpen)return;
+    updateSlotValueLabel();
+    requestShortcutFocus(slotValue);
+    announce("Value. " + juce::String(slotParameterNames[selectedSlotColumn])
+             +", " +(selectedSlotColumn==0?slotDisplayName(selectedSlot):
+                 std::array<juce::ComboBox*,10>{&slotSelector,&engineSelector,&layerSelector,
+                 &noteSelector,&chokeTriggerSelector,&chokeTargetSelector,
+                 &rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,
+                 &outputSelector}[std::size_t(selectedSlotColumn)]->getText()));
+}
+
+bool LR608AudioProcessorEditor::selectNextSlotParameterStartingWith(juce::juce_wchar character,
+                                                                     bool backwards)
+{
+    const auto found=slotParameterSearch.next(static_cast<wchar_t>(character),selectedSlotColumn,
+        10,backwards?-1:1,juce::Time::getMillisecondCounter(),
+        [](int index) {return std::wstring(juce::String(slotParameterNames[index]).toWideCharPointer());});
+    if(found>=0 && found!=selectedSlotColumn)
+    {
+        // Do not reset the progressive search when focus moves to another cell.
+        selectedSlotColumn=found;
+        saveUiPosition(false);
+        updateSlotValueLabel();
+        const std::array<juce::Component*,10> boxes {&slotSelector,&engineSelector,
+            &layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,
+            &rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector};
+        requestShortcutFocus(*boxes[std::size_t(found)]);
+    }
+    return true; // stop the ComboBox's native one-character search
+}
+
 void LR608AudioProcessorEditor::changeSlotBarValue(int direction,bool pageStep,bool boundary,bool maximum)
 {
-    std::array<juce::ComboBox*,10> columns{&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector};auto* box=columns[std::size_t(juce::jlimit(0,9,selectedSlotColumn))];
-    const auto count=box->getNumItems();const auto previous=box->getSelectedItemIndex();auto target=previous;
-    // Engine, Layer and the three MIDI columns all advance with Up.
-    // In particular, Up goes Layer 1 -> Layer 2 -> Add Layer; reaching
-    // Add Layer with the arrows does not allocate it until Enter is pressed.
-    const auto reversed=selectedSlotColumn>=1&&selectedSlotColumn<=5;
-    const auto valueDirection=reversed?-direction:direction;
+    std::array<juce::ComboBox*,10> boxes {&slotSelector,&engineSelector,&layerSelector,
+        &noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,
+        &rollShuffleSelector,&rollReductionSelector,&outputSelector};
+    const int column=juce::jlimit(0,9,selectedSlotColumn);
+    auto* box=boxes[std::size_t(column)];
+    const int count=box->getNumItems();
+    if(count<=0)return;
+    const int previous=box->getSelectedItemIndex();
+    // Slot/Output are displayed in reverse order.  Alt+Up must nevertheless
+    // INCREASE the real parameter (same direction as the Alt+L value editor).
+    const bool reverseDisplayedOrder=lr608::slotUiReverseValueOrder(column);
+    const int indexDirection=reverseDisplayedOrder?-direction:direction;
+    int target=previous;
     if(boundary)
-    {
-        const auto reverseEngineOrMidiBoundary=reversed;
-        const auto selectLast=reverseEngineOrMidiBoundary?!maximum:maximum;
-        target=selectLast?count-1:0;
-    }
-    else target+=valueDirection*(pageStep?((selectedSlotColumn>=3&&selectedSlotColumn<=5)?12:(selectedSlotColumn==2?1:5)):1);
+        target=(reverseDisplayedOrder? !maximum:maximum)?count-1:0;
+    else
+        target+=indexDirection*(pageStep?(column>=3&&column<=5?12:column==2?1:5):1);
     target=juce::jlimit(0,count-1,target);
-    if(selectedSlotColumn==3&&target!=previous)
+    if(column==3 && target!=previous)
     {
-        const auto searchDirection=boundary?(target==count-1?-1:1):(valueDirection<0?-1:1);
+        const int searchDirection=boundary?(target==count-1?-1:1):(indexDirection<0?-1:1);
         target=processor.findAssignableMidiNote(target,searchDirection,selectedSlot);
         if(target<0){announce("No MIDI Note available in this direction. Maximum 8 layers per note");return;}
     }
     if(target==previous)return;
-    // Arrow keys may highlight Add Layer, but only Enter creates it.
-    const bool isAddLayer=selectedSlotColumn==2&&target==count-1&&box->getItemText(target)=="Add Layer";
+    // Highlight Add Layer without allocating.  Value/Enter explicitly adds it.
+    const bool isAddLayer=column==2 && target==count-1 && box->getItemText(target)=="Add Layer";
     box->setSelectedItemIndex(target,isAddLayer?juce::dontSendNotification:juce::sendNotificationSync);
-    const auto value=selectedSlotColumn==0?slotDisplayName(selectedSlot):selectedSlotColumn==1?juce::String(lr608::slotEngines[juce::jlimit(0,lr608::slotEngineCount-1,engineSelector.getSelectedId()-1)].name):box->getText();
-    const char* names[]{"Slot, ","Engine, ","Layer, ","MIDI Note, ","MIDI Choke Trigger, ","MIDI Choke Target, ","Roll Division, ","Roll Shuffle, ","Roll Second Hit Velocity Reduction, ","Output, "};announce(juce::String(names[selectedSlotColumn])+value);
+    updateSlotValueLabel();
+    announce(juce::String(slotParameterNames[column])+", "+
+             (column==0?slotDisplayName(selectedSlot):box->getText()));
 }
 
 void LR608AudioProcessorEditor::openGlobal()
@@ -1115,7 +1201,7 @@ void LR608AudioProcessorEditor::openGlobal()
     positionWasInGrid=focused==&parameterSelector||focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused));
     positionBeforeGlobalColumn=selectedSlotColumn;positionBeforeGlobalSlot=selectedSlot;
     globalSnapshot.clear();for(const auto*id:{"slider256","outputWarmth","transientAttack","transientSustain","transientSpeed","transientFocus"})globalSnapshot.emplace_back(id,processor.parameters.getRawParameterValue(id)->load());
-    globalOpen=true;slotSelector.setVisible(false);engineSelector.setVisible(false);layerSelector.setVisible(false);noteSelector.setVisible(false);chokeTriggerSelector.setVisible(false);chokeTargetSelector.setVisible(false);rollDivisionSelector.setVisible(false);rollShuffleSelector.setVisible(false);rollReductionSelector.setVisible(false);outputSelector.setVisible(false);initialize.setVisible(false);clearSlots.setVisible(false);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(false);aboutButton.setVisible(false);title.setText("Global",juce::dontSendNotification);parameterSelector.setTitle("Global");pageSelector.setSelectedItemIndex(11,juce::dontSendNotification);updateParameterList();setListIndex(globalGridIndex);requestShortcutFocus(parameterSelector);announce("Global");
+    globalOpen=true;slotSelector.setVisible(false);engineSelector.setVisible(false);layerSelector.setVisible(false);noteSelector.setVisible(false);chokeTriggerSelector.setVisible(false);chokeTargetSelector.setVisible(false);rollDivisionSelector.setVisible(false);rollShuffleSelector.setVisible(false);rollReductionSelector.setVisible(false);outputSelector.setVisible(false);slotValue.setVisible(false);initialize.setVisible(false);clearSlots.setVisible(false);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(false);aboutButton.setVisible(false);title.setText("Global",juce::dontSendNotification);parameterSelector.setTitle("Global");pageSelector.setSelectedItemIndex(11,juce::dontSendNotification);updateParameterList();setListIndex(globalGridIndex);requestShortcutFocus(parameterSelector);announce("Global");
 }
 
 void LR608AudioProcessorEditor::closeGlobal(bool accept)
@@ -1123,7 +1209,7 @@ void LR608AudioProcessorEditor::closeGlobal(bool accept)
     if(!globalOpen)return;
     if(!accept)for(const auto&entry:globalSnapshot)if(auto*p=processor.parameters.getParameter(entry.first)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(entry.second));p->endChangeGesture();}
     const auto globalItem=parameterSelector.getSelectedItemIndex();if(globalItem>=0){globalGridIndex=globalItem;processor.parameters.state.setProperty("uiGlobalGrid",globalItem,nullptr);}
-    globalOpen=false;title.setText("LR-608",juce::dontSendNotification);parameterSelector.setTitle("Parameter");slotSelector.setVisible(true);engineSelector.setVisible(true);layerSelector.setVisible(true);noteSelector.setVisible(true);chokeTriggerSelector.setVisible(true);chokeTargetSelector.setVisible(true);rollDivisionSelector.setVisible(true);rollShuffleSelector.setVisible(true);rollReductionSelector.setVisible(true);outputSelector.setVisible(true);initialize.setVisible(true);clearSlots.setVisible(true);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(true);aboutButton.setVisible(true);selectedSlot=positionBeforeGlobalSlot;selectedSlotColumn=positionBeforeGlobalColumn;syncSlotBar(true);saveUiPosition(positionWasInGrid);
+    globalOpen=false;title.setText("LR-608",juce::dontSendNotification);parameterSelector.setTitle("Parameter");slotSelector.setVisible(true);engineSelector.setVisible(true);layerSelector.setVisible(true);noteSelector.setVisible(true);chokeTriggerSelector.setVisible(true);chokeTargetSelector.setVisible(true);rollDivisionSelector.setVisible(true);rollShuffleSelector.setVisible(true);rollReductionSelector.setVisible(true);outputSelector.setVisible(true);slotValue.setVisible(true);initialize.setVisible(true);clearSlots.setVisible(true);previousPreset.setVisible(false);nextPreset.setVisible(false);help.setVisible(true);aboutButton.setVisible(true);selectedSlot=positionBeforeGlobalSlot;selectedSlotColumn=positionBeforeGlobalColumn;syncSlotBar(true);saveUiPosition(positionWasInGrid);
     if(positionWasInGrid)requestShortcutFocus(parameterSelector);else focusSlotColumn(selectedSlotColumn);
     announce(accept?"Global confirmed":"Global cancelled");
 }
@@ -1793,6 +1879,7 @@ juce::String LR608AudioProcessorEditor::currentFocusValueAnnouncement() const
     if(focused==&rollShuffleSelector)return "Roll Shuffle, "+rollShuffleSelector.getText();
     if(focused==&rollReductionSelector)return "Roll Second Hit Velocity Reduction, "+rollReductionSelector.getText();
     if(focused==&outputSelector)return "Output, "+outputSelector.getText();
+    if(focused==&slotValue)return slotValue.getTitle()+", "+slotValue.getButtonText().fromFirstOccurrenceOf("Value: ",false,false);
     const auto item=parameterSelector.getSelectedItemIndex();
     if(focused==&parameterSelector&&juce::isPositiveAndBelow(item,int(visibleNames.size())))return visibleNames[std::size_t(item)]+", "+processor.parameters.getParameter(lr608::generated::parameters[visibleCatalogIndices[std::size_t(item)]].id)->getCurrentValueAsText();
     if((focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused)))&&juce::isPositiveAndBelow(item,int(visibleNames.size())))return "Value. "+visibleNames[std::size_t(item)]+", "+processor.parameters.getParameter(lr608::generated::parameters[visibleCatalogIndices[std::size_t(item)]].id)->getCurrentValueAsText();
@@ -1802,7 +1889,7 @@ juce::String LR608AudioProcessorEditor::currentFocusValueAnnouncement() const
 
 void LR608AudioProcessorEditor::setMainControlsEnabled(bool enabled)
 {
-    for(auto*control:std::array<juce::Component*,21>{&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help,&aboutButton})control->setEnabled(enabled);
+    for(auto*control:std::array<juce::Component*,22>{&slotValue,&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help,&aboutButton})control->setEnabled(enabled);
 }
 
 void LR608AudioProcessorEditor::togglePresetBrowser(){if(presetBrowserOpen)closePresetBrowser();else openPresetBrowser();}
@@ -1820,7 +1907,7 @@ void LR608AudioProcessorEditor::openPresetBrowser()
     presetBrowserReturnGridIndex=parameterSelector.getSelectedItemIndex();
     if(auto* focused=juce::Component::getCurrentlyFocusedComponent())
     {
-        for(auto* control:std::array<juce::Component*,21>{&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help,&aboutButton})
+        for(auto* control:std::array<juce::Component*,22>{&slotValue,&slotSelector,&engineSelector,&layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,&rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector,&parameterSelector,&parameterValue,&reset,&initialize,&clearSlots,&previousPreset,&nextPreset,&loadPreset,&savePreset,&help,&aboutButton})
             if(focused==control||control->isParentOf(focused)){presetBrowserReturnFocus=control;break;}
         presetBrowserReturnWasInGrid=presetBrowserReturnFocus==&parameterSelector;
     }
@@ -2223,8 +2310,13 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     const auto alt = key.getModifiers().isAltDown();
     const auto ctrl = key.getModifiers().isCtrlDown()||key.getModifiers().isCommandDown();
     const auto character = juce::CharacterFunctions::toLowerCase (key.getTextCharacter());
-    if (source != &parameterSelector || lr608ParameterSearchCharacter(key) == 0)
-        parameterSearch.reset();
+    const auto slotBarSource=source==&slotSelector||source==&engineSelector
+        ||source==&layerSelector||source==&noteSelector||source==&chokeTriggerSelector
+        ||source==&chokeTargetSelector||source==&rollDivisionSelector
+        ||source==&rollShuffleSelector||source==&rollReductionSelector||source==&outputSelector;
+    const auto searchKey=lr608ParameterSearchCharacter(key);
+    if (source != &parameterSelector || searchKey == 0)parameterSearch.reset();
+    if (!slotBarSource || searchKey == 0)slotParameterSearch.reset();
     if(aboutOpen)
     {
         const auto mods=key.getModifiers();
@@ -2343,7 +2435,12 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
     if(alt&&character=='c'){copyMidiKey(false);return true;}
     if(alt&&character=='x'){copyMidiKey(true);return true;}
     if(alt&&key.getModifiers().isShiftDown()&&character=='v'){pasteMidiKey();return true;}
-    if(alt&&!key.getModifiers().isShiftDown()&&character=='v'){focusValueAndAnnounce();return true;}
+    if(alt&&!key.getModifiers().isShiftDown()&&character=='v')
+    {
+        if(slotBarSource||source==&slotValue)focusSlotValueAndAnnounce();
+        else focusValueAndAnnounce();
+        return true;
+    }
     if(alt&&character=='g'){if(globalOpen)closeGlobal(false);else openGlobal();return true;}
     if(globalOpen&&(code==juce::KeyPress::escapeKey||code==juce::KeyPress::returnKey)){closeGlobal(code==juce::KeyPress::returnKey);return true;}
     const auto shift=key.getModifiers().isShiftDown();
@@ -2359,33 +2456,72 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         focusSlotColumn(selectedSlotColumn);
         return true;
     }
-    const auto slotBarSource=source==&slotSelector||source==&engineSelector||source==&layerSelector||source==&noteSelector||source==&chokeTriggerSelector||source==&chokeTargetSelector||source==&rollDivisionSelector||source==&rollShuffleSelector||source==&rollReductionSelector||source==&outputSelector;
     if(slotBarSource)
     {
-        selectedSlotColumn=source==&slotSelector?0:source==&engineSelector?1:source==&layerSelector?2:source==&noteSelector?3:source==&chokeTriggerSelector?4:source==&chokeTargetSelector?5:source==&rollDivisionSelector?6:source==&rollShuffleSelector?7:source==&rollReductionSelector?8:9;
-        if(source==&layerSelector&&code==juce::KeyPress::returnKey)
+        selectedSlotColumn=source==&slotSelector?0:source==&engineSelector?1:
+            source==&layerSelector?2:source==&noteSelector?3:source==&chokeTriggerSelector?4:
+            source==&chokeTargetSelector?5:source==&rollDivisionSelector?6:
+            source==&rollShuffleSelector?7:source==&rollReductionSelector?8:9;
+        if(code==juce::KeyPress::tabKey && !alt && !ctrl)
         {
-            if(layerSelector.getText()=="Add Layer")addLayerFromSelector();
-            return true;
-        }
-        if(code==juce::KeyPress::tabKey)
-        {
-            // The Slot area behaves as one logical stop in the plug-in tab ring.
-            // Tab enters the parameter grid; Shift+Tab wraps to the last button.
-            // Keep selectedSlotColumn untouched so returning to Alt+D restores
-            // exactly Slot/Engine/MIDI/Choke/Output instead of always Output.
             if(shift){saveUiPosition(false);requestShortcutFocus(aboutButton);}
             else{saveUiPosition(true);requestShortcutFocus(parameterSelector);}
             return true;
         }
-        if(!alt&&code==juce::KeyPress::leftKey){if(selectedSlotColumn>0)focusSlotColumn(selectedSlotColumn-1);return true;}
-        if(!alt&&code==juce::KeyPress::rightKey){if(selectedSlotColumn<9)focusSlotColumn(selectedSlotColumn+1);return true;}
-        if(!alt&&code==juce::KeyPress::upKey){changeSlotBarValue(-1,false,false,false);return true;}
-        if(!alt&&code==juce::KeyPress::downKey){changeSlotBarValue(1,false,false,false);return true;}
-        if(!alt&&code==juce::KeyPress::pageUpKey){changeSlotBarValue(-1,true,false,false);return true;}
-        if(!alt&&code==juce::KeyPress::pageDownKey){changeSlotBarValue(1,true,false,false);return true;}
-        if(!alt&&code==juce::KeyPress::homeKey){changeSlotBarValue(0,false,true,false);return true;}
-        if(!alt&&code==juce::KeyPress::endKey){changeSlotBarValue(0,false,true,true);return true;}
+        // Like Alt+L, plain keys NAVIGATE.  The four physical Alt+D
+        // columns contain respectively 3, 3, 3 and 1 vertical cells.
+        if(!alt && !ctrl)
+        {
+            if(searchKey!=0)return selectNextSlotParameterStartingWith(searchKey,shift);
+            if(code==juce::KeyPress::leftKey){moveInSlotGrid(0,-1);return true;}
+            if(code==juce::KeyPress::rightKey){moveInSlotGrid(0,1);return true;}
+            if(code==juce::KeyPress::upKey){moveInSlotGrid(-1,0);return true;}
+            if(code==juce::KeyPress::downKey){moveInSlotGrid(1,0);return true;}
+            if(code==juce::KeyPress::pageUpKey){moveInSlotGrid(-parameterPageStep,0);return true;}
+            if(code==juce::KeyPress::pageDownKey){moveInSlotGrid(parameterPageStep,0);return true;}
+            if(code==juce::KeyPress::homeKey){moveInSlotGrid(-3,0);return true;}
+            if(code==juce::KeyPress::endKey){moveInSlotGrid(3,0);return true;}
+            if(code==juce::KeyPress::returnKey){focusSlotValueAndAnnounce();return true;}
+            if(code==juce::KeyPress::escapeKey){requestShortcutFocus(parameterSelector);return true;}
+        }
+        if(ctrl && !alt && code==juce::KeyPress::homeKey){focusSlotColumn(0);return true;}
+        if(ctrl && !alt && code==juce::KeyPress::endKey){focusSlotColumn(9);return true;}
+        if(alt && !ctrl)
+        {
+            if(code==juce::KeyPress::upKey || code==juce::KeyPress::rightKey)
+                {changeSlotBarValue(1,false,false,false);return true;}
+            if(code==juce::KeyPress::downKey || code==juce::KeyPress::leftKey)
+                {changeSlotBarValue(-1,false,false,false);return true;}
+            if(code==juce::KeyPress::pageUpKey){changeSlotBarValue(1,true,false,false);return true;}
+            if(code==juce::KeyPress::pageDownKey){changeSlotBarValue(-1,true,false,false);return true;}
+            if(code==juce::KeyPress::homeKey){changeSlotBarValue(0,false,true,true);return true;}
+            if(code==juce::KeyPress::endKey){changeSlotBarValue(0,false,true,false);return true;}
+        }
+    }
+    if(source==&slotValue && !ctrl)
+    {
+        // The Alt+D Value is intentionally not a numeric TextEditor.
+        if(code==juce::KeyPress::returnKey || code==juce::KeyPress::escapeKey)
+        {
+            if(code==juce::KeyPress::returnKey && selectedSlotColumn==2 &&
+               layerSelector.getText()=="Add Layer")addLayerFromSelector();
+            focusSlotColumn(selectedSlotColumn);
+            return true;
+        }
+        if(code==juce::KeyPress::upKey || code==juce::KeyPress::rightKey)
+            {changeSlotBarValue(1,false,false,false);return true;}
+        if(code==juce::KeyPress::downKey || code==juce::KeyPress::leftKey)
+            {changeSlotBarValue(-1,false,false,false);return true;}
+        if(code==juce::KeyPress::pageUpKey){changeSlotBarValue(1,true,false,false);return true;}
+        if(code==juce::KeyPress::pageDownKey){changeSlotBarValue(-1,true,false,false);return true;}
+        if(code==juce::KeyPress::homeKey){changeSlotBarValue(0,false,true,true);return true;}
+        if(code==juce::KeyPress::endKey){changeSlotBarValue(0,false,true,false);return true;}
+        if(code==juce::KeyPress::tabKey && !alt)
+        {
+            if(shift)focusSlotColumn(selectedSlotColumn);
+            else requestShortcutFocus(parameterSelector);
+            return true;
+        }
     }
     if (source == &pageSelector && ! alt
         && ! key.getModifiers().isCtrlDown() && ! key.getModifiers().isCommandDown()
@@ -2464,7 +2600,11 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         }
         if (character == 'd') { focusSlotColumn(selectedSlotColumn); return true; }
         if (character == 'l') {saveUiPosition(true);focusControl (parameterSelector); return true; }
-        if (character == 'e') { parameterValue.showTextBox(); return true; }
+        if (character == 'e')
+        {
+            if(slotBarSource||source==&slotValue){announce("Alt+D Value has no numeric editor");return true;}
+            parameterValue.showTextBox();return true;
+        }
         if (character == 'a') { aboutButton.triggerClick(); return true; }
         if (character == 'h') { help.triggerClick(); return true; }
         // Value-edit navigation is intentionally local to the Parameter grid.

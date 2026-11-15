@@ -46,6 +46,7 @@ target_sources(LR608 PRIVATE
     Source/PluginEditor.h
     Source/IncrementalParameterSearch.h
     Source/ParameterSearchKey.h
+    Source/SlotGridNavigation.h
     Source/ParameterCatalog.cpp
     Source/ParameterCatalog.h
     Source/PresetManager.cpp
@@ -125,6 +126,11 @@ if(LR608_BUILD_CATALOG_TEST)
     endif()
     enable_testing()
     add_test(NAME LR608IncrementalSearch COMMAND LR608SearchTest)
+
+    add_executable(LR608SlotGridTest Tests/SlotGridNavigationTest.cpp)
+    target_compile_features(LR608SlotGridTest PRIVATE cxx_std_20)
+    target_include_directories(LR608SlotGridTest PRIVATE Source)
+    add_test(NAME LR608SlotGridNavigation COMMAND LR608SlotGridTest)
 
     add_executable(LR608CatalogTest Tests/CatalogAudit.cpp)
     target_compile_features(LR608CatalogTest PRIVATE cxx_std_20)

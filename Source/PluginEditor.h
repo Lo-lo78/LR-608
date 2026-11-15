@@ -65,9 +65,6 @@ private:
     juce::ComboBox rollDivisionSelector;
     juce::ComboBox rollShuffleSelector;
     juce::ComboBox rollReductionSelector;
-    juce::ComboBox rollDivisionSelector;
-    juce::ComboBox rollShuffleSelector;
-    juce::ComboBox rollReductionSelector;
     juce::ComboBox outputSelector;
     juce::ComboBox parameterSelector;
     juce::Slider parameterValue;

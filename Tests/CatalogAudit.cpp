@@ -309,11 +309,46 @@ int main()
             exposed.emplace (page.parameterIds[index]);
         }
     }
-    if (exposed.size() != 355)
+    // TEST35.4: three historical Global Roll controls remain registered for
+    // older projects, but are intentionally absent from the 12 page grids.
+    // Their replacements live in Alt+D and have separate IDs for all 128 Slots.
+    for (const auto* oldRoll : std::array<const char*, 3> { "slider249", "slider253", "slider254" })
+    {
+        if (! ids.contains (oldRoll) || exposed.contains (oldRoll))
+        {
+            std::cerr << "Legacy global Roll was deleted or is still exposed: " << oldRoll << '\n';
+            return EXIT_FAILURE;
+        }
+    }
+    if (exposed.size() != 352) // 355 previously visible controls minus three Global Rolls
     {
         std::cerr << "Unexpected exposed count " << exposed.size() << '\n';
         return EXIT_FAILURE;
     }
-    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 355 page controls including global Output Warmth and Transient Designer; legacy Tom Pan and Output Mode controls hidden\n";
+    std::set<std::string> slotRollIds;
+    for (int slot = 0; slot < lr608::slotCount; ++slot)
+    {
+        const std::array<juce::String, 3> rollIds {
+            lr608::slotRollDivisionId (slot),
+            lr608::slotRollShuffleId (slot),
+            lr608::slotRollReductionId (slot)
+        };
+        for (const auto& rollId : rollIds)
+        {
+            const auto name = rollId.toStdString();
+            if (ids.contains (name) || exposed.contains (name)
+                || ! slotRollIds.emplace (name).second)
+            {
+                std::cerr << "Duplicate or misplaced per-Slot Roll ID " << name << '\n';
+                return EXIT_FAILURE;
+            }
+        }
+    }
+    if (slotRollIds.size() != static_cast<std::size_t> (lr608::slotCount * 3))
+    {
+        std::cerr << "Unexpected per-Slot Roll ID count " << slotRollIds.size() << '\n';
+        return EXIT_FAILURE;
+    }
+    std::cout << "LR-608 catalogue: 256 JSFX + 14 routing parameters + Slot Pan, Voice Overlap, four musical filters, nine stereo delay controls and four Degrade controls, a shared exponential FX Attack/Decay envelope and a zero-cost-when-disabled triggered per-voice LFO, 12 pages, 352 page controls including global Output Warmth and Transient Designer; three legacy Global Roll controls hidden and 384 independent Roll parameter IDs in Alt+D; legacy Tom Pan and Output Mode controls hidden\n";
     return EXIT_SUCCESS;
 }

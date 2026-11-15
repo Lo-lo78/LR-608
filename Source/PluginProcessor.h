@@ -108,7 +108,9 @@ public:
 private:
     static BusesProperties makeBuses();
     double currentSampleRate = 44100.0;
-    lr608::DrumTimingEngine timingEngine;
+    bool anySlotRollPending() const noexcept;
+    lr608::DrumTimingEngine timingEngine; // Legacy compatibility only
+    std::unique_ptr<std::array<lr608::DrumTimingEngine,lr608::slotCount>> slotTimingEngines;
     lr608::OutputStage outputStage;
     std::array<lr608::SlotDelay,lr608::slotCount> slotDelays;
     std::unique_ptr<std::array<lr608::PolyphonicVoice,128>> voicePool;

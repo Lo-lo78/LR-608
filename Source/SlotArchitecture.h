@@ -110,6 +110,9 @@ static_assert(std::size(slotEngines)==slotEngineCount);
 inline juce::String slotEngineId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"Engine";}
 inline juce::String slotNoteId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"Note";}
 inline juce::String slotChokeTriggerId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"ChokeTrigger";}
+inline juce::String slotRollDivisionId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"RollDivision";}
+inline juce::String slotRollShuffleId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"RollShuffle";}
+inline juce::String slotRollReductionId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"RollReduction";}
 inline juce::String slotChokeTargetId(int slot){return "slot"+juce::String(slot+1).paddedLeft('0',3)+"ChokeTarget";}
 inline constexpr int primarySlotEngines[]{0,8,8,17,24,30,35,40,45,52,59,63,67,71,79};
 inline constexpr int primarySlotNotes[]{36,38,40,39,37,41,45,48,42,46,49,51,58,56,52};

@@ -125,6 +125,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
             juce::ParameterID{slotChokeTriggerId(slot),1},"Slot "+juce::String(slot+1)+" MIDI Choke Trigger",chokeNoteChoices,0));
         layout.add(std::make_unique<juce::AudioParameterChoice>(
             juce::ParameterID{slotChokeTargetId(slot),1},"Slot "+juce::String(slot+1)+" MIDI Choke Target",chokeNoteChoices,0));
+        layout.add(std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID{slotRollDivisionId(slot),1},"Slot "+juce::String(slot+1)+" Roll Division",
+            juce::StringArray::fromTokens("Off|4|6|8|12|16|24|32|48|64|96|128|192|256|384|512|768", "|", ""),0));
+        layout.add(std::make_unique<juce::AudioParameterInt>(
+            juce::ParameterID{slotRollShuffleId(slot),1},"Slot "+juce::String(slot+1)+" Roll Shuffle",0,100,0));
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{slotRollReductionId(slot),1},"Slot "+juce::String(slot+1)+" Roll Second Hit Velocity Reduction",
+            juce::NormalisableRange<float>(0.0f,100.0f,0.1f),1.2f));
     }
     return layout;
 }

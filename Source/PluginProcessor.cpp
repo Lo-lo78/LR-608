@@ -196,6 +196,7 @@ LR608AudioProcessor::LR608AudioProcessor (juce::File presetRoot)
       zapEngineBanks (parameters)
 {
     voicePool=std::make_unique<std::array<lr608::PolyphonicVoice,128>>();
+    slotTimingEngines=std::make_unique<std::array<lr608::DrumTimingEngine,lr608::slotCount>>();
     initialiseSlotArchitecture();
     presetManager.setStateCallbacks([this]{return capturePresetState();},
                                     [this](const auto&state){restorePresetState(state);},
@@ -248,6 +249,7 @@ void LR608AudioProcessor::prepareToPlay (double sampleRate, int)
 {
     currentSampleRate = sampleRate;
     timingEngine.reset();
+    for(auto& engine:*slotTimingEngines)engine.reset();
     for(auto& voice:*voicePool)voice.prepare(sampleRate);
     for(auto& delay:slotDelays)delay.prepare(sampleRate);
     slotPingPongRight.fill(false);
@@ -477,6 +479,9 @@ bool LR608AudioProcessor::clearSlot(int slot)
     const auto setOff=[this](const juce::String&id){if(auto*p=parameters.getParameter(id))p->setValueNotifyingHost(p->convertTo0to1(0.0f));};
     setSlotEngine(slot,lr608::offEngineIndex);setSlotReservedLayer(slot,false);setSlotOutput(slot,0);
     setOff(lr608::slotChokeTriggerId(slot));setOff(lr608::slotChokeTargetId(slot));
+    if(auto*p=parameters.getParameter(lr608::slotRollDivisionId(slot)))p->setValueNotifyingHost(0);
+    if(auto*p=parameters.getParameter(lr608::slotRollShuffleId(slot)))p->setValueNotifyingHost(0);
+    if(auto*p=parameters.getParameter(lr608::slotRollReductionId(slot)))p->setValueNotifyingHost(p->convertTo0to1(1.2f));
     return true;
 }
 
@@ -781,6 +786,13 @@ bool LR608AudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) co
     return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
+bool LR608AudioProcessor::anySlotRollPending() const noexcept
+{
+    if(!slotTimingEngines)return false;
+    for(const auto& engine:*slotTimingEngines)if(engine.needsSampleClock())return true;
+    return false;
+}
+
 void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                                          juce::MidiBuffer& midi)
 {
@@ -793,15 +805,22 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // At true silence the only mandatory operation is clearing the synth
         // outputs. Delay send tails keep
         // the renderer alive even after the source voice has finished.
-        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail
+        if(midi.isEmpty()&&activeVoiceCount==0&&!anySlotRollPending()&&!hasDelayTail
            && pendingSlotAudition.load(std::memory_order_acquire)<0)
         {
             if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
             return;
         }
-        lr608::TimingSettings timing;timing.sampleRate=currentSampleRate;timing.rollDivision=juce::roundToInt(parameters.getRawParameterValue("slider249")->load());timing.shufflePercent=parameters.getRawParameterValue("slider253")->load();timing.secondHitReductionPercent=parameters.getRawParameterValue("slider254")->load();timing.cowbellEngine=0;
+        lr608::TimingSettings timing;timing.sampleRate=currentSampleRate;timing.rollDivision=0;timing.shufflePercent=0;timing.secondHitReductionPercent=0;timing.cowbellEngine=0;
         if(auto*hostPlayHead=getPlayHead())if(const auto position=hostPlayHead->getPosition()){if(const auto bpm=position->getBpm())timing.tempo=*bpm;if(const auto signature=position->getTimeSignature()){timing.timeSignatureNumerator=signature->numerator;timing.timeSignatureDenominator=signature->denominator;}if(const auto ppq=position->getPpqPosition()){timing.hostTimelineValid=true;timing.hostPpqPosition=*ppq;if(const auto barStart=position->getPpqPositionOfLastBarStart())timing.hostBarStartPpq=*barStart;else timing.hostBarStartPpq=std::floor(*ppq/(timing.timeSignatureNumerator*4.0/timing.timeSignatureDenominator))*(timing.timeSignatureNumerator*4.0/timing.timeSignatureDenominator);}timing.hostPlaying=position->getIsPlaying();}
-        timingEngine.setSettings(timing);
+        for(int slot=0;slot<lr608::slotCount;++slot)
+        {
+            auto slotSettings=timing;
+            slotSettings.rollDivision=juce::roundToInt(parameters.getRawParameterValue(lr608::slotRollDivisionId(slot))->load());
+            slotSettings.shufflePercent=parameters.getRawParameterValue(lr608::slotRollShuffleId(slot))->load();
+            slotSettings.secondHitReductionPercent=parameters.getRawParameterValue(lr608::slotRollReductionId(slot))->load();
+            (*slotTimingEngines)[std::size_t(slot)].setSettings(slotSettings);
+        }
 
         // One stereo delay send per Slot. The dry signal never passes through
         // SlotDelay: it remains on LR-608's original voice->bus path. Wet is
@@ -824,7 +843,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             slotDelays[std::size_t(slot)].setSettings(settings);
         }
         hasDelayTail=false;for(const auto&delay:slotDelays)if(delay.isActive()){hasDelayTail=true;break;}
-        if(midi.isEmpty()&&activeVoiceCount==0&&!timingEngine.needsSampleClock()&&!hasDelayTail
+        if(midi.isEmpty()&&activeVoiceCount==0&&!anySlotRollPending()&&!hasDelayTail
            && pendingSlotAudition.load(std::memory_order_acquire)<0)
         {
             if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
@@ -886,6 +905,21 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             }
             (*voicePool)[std::size_t(targetIndex)].start(slotEngineIndices[slot].load(std::memory_order_relaxed),velocity,slotOutputs[slot].load(),note,slot,slotValues[slot],timing.tempo,hitGeneration,pingPongRight);
         };
+        // Each Slot owns its roll clock: two Layers on the same MIDI Note can
+        // use different divisions, shuffle and second-hit reductions.
+        auto triggerSingle=[&](int selected,lr608::DrumTrigger hit)
+        {
+            lastPlayedMidiNote.store(hit.note,std::memory_order_relaxed);
+            midiNavigationEvent.store(((++midiNavigationSerial)<<8)|std::uint64_t(juce::jlimit(0,127,hit.note)),std::memory_order_release);
+            for(int slot=0;slot<lr608::slotCount;++slot)
+            {
+                if(lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))continue;
+                const auto chokeTrigger=slotChokeTriggers[slot].load(std::memory_order_relaxed),chokeTarget=slotChokeTargets[slot].load(std::memory_order_relaxed);
+                if(chokeTrigger!=hit.note||!juce::isPositiveAndBelow(chokeTarget,128))continue;
+                for(int active=0;active<activeVoiceCount;++active){auto& voice=(*voicePool)[std::size_t(activeVoiceIndices[std::size_t(active)])];if(voice.isActive()&&voice.getMidiNote()==chokeTarget)voice.choke();}
+            }
+            triggerSlot(selected,hit.velocity,hit.note,++voiceCounter);
+        };
         auto trigger=[&](lr608::DrumTrigger hit)
         {
             lastPlayedMidiNote.store(hit.note,std::memory_order_relaxed);
@@ -913,8 +947,30 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         for(int sample=0;sample<buffer.getNumSamples();++sample)
         {
             auto emitMidi=[&](lr608::GeneratedDrumMidi event){const auto channel=juce::jlimit(1,16,event.channel+1);midi.addEvent(event.noteOn?juce::MidiMessage::noteOn(channel,event.note,juce::uint8(event.velocity)):juce::MidiMessage::noteOff(channel,event.note),sample);};
-            while(iterator!=incomingMidi.cend()&&(*iterator).samplePosition==sample){const auto message=(*iterator).getMessage();const auto*bytes=message.getRawData();bool consumed=false;if(message.getRawDataSize()>=3)consumed=timingEngine.handleMidi(bytes[0],bytes[1],bytes[2],trigger,emitMidi);if(!consumed)midi.addEvent(message,sample);++iterator;}
-            timingEngine.tick(trigger,emitMidi);
+            while(iterator!=incomingMidi.cend()&&(*iterator).samplePosition==sample)
+            {
+                const auto message=(*iterator).getMessage();const auto*bytes=message.getRawData();
+                bool consumed=false;
+                if(message.getRawDataSize()>=3)
+                {
+                    const auto status=bytes[0]&0xf0;
+                    const bool isNote=(status==0x90||status==0x80);
+                    for(int slot=0;slot<lr608::slotCount;++slot)
+                    {
+                        if(lr608::isOffEngine(slotEngineIndices[slot].load(std::memory_order_relaxed)))continue;
+                        if(isNote&&slotMidiNotes[slot].load(std::memory_order_relaxed)!=bytes[1])continue;
+                        const bool handled=(*slotTimingEngines)[std::size_t(slot)].handleMidi(
+                            bytes[0],bytes[1],bytes[2],[&,slot](lr608::DrumTrigger hit){triggerSingle(slot,hit);},emitMidi);
+                        consumed|=handled;
+                    }
+                }
+                if(!consumed)midi.addEvent(message,sample);
+                ++iterator;
+            }
+            for(int slot=0;slot<lr608::slotCount;++slot)
+                if((*slotTimingEngines)[std::size_t(slot)].needsSampleClock())
+                    (*slotTimingEngines)[std::size_t(slot)].tick(
+                        [&,slot](lr608::DrumTrigger hit){triggerSingle(slot,hit);},emitMidi);
             if(sample==0)
             {
                 // A UI audition is not a MIDI input event: only the selected
@@ -972,7 +1028,7 @@ void LR608AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             }
             if(!anySlotProcessing)
             {
-                if(activeVoiceCount==0&&!timingEngine.needsSampleClock())
+                if(activeVoiceCount==0&&!anySlotRollPending())
                 {
                     if(!outputIdleLatched){outputStage.reset();outputIdleLatched=true;}
                 }

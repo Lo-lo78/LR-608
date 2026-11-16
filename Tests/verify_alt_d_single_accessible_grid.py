@@ -4,7 +4,8 @@ from pathlib import Path
 p=Path(__file__).resolve().parents[1]
 editor=(p/'Source/PluginEditor.cpp').read_text(encoding='utf-8')
 header=(p/'Source/PluginEditor.h').read_text(encoding='utf-8')
-assert 'juce::ComboBox slotGridSelector;' in header
+assert 'LR608ParameterComboBox slotGridSelector;' in header
+assert 'class LR608ParameterComboBox final : public juce::ComboBox' in header
 assert 'slotGridSelector.setTitle("Slot parameter")' in editor
 assert 'slotGridSelector.setSelectedItemIndex(next,juce::sendNotificationSync)' in editor
 assert 'slotGridSelector.setSelectedItemIndex(found,juce::sendNotificationSync)' in editor
@@ -18,5 +19,6 @@ assert 'return false; // let REAPER close the FX window' in editor
 assert 'if(code==juce::KeyPress::escapeKey){focusSlotColumn(selectedSlotColumn);return true;}' not in editor
 assert 'if(code==juce::KeyPress::escapeKey){requestShortcutFocus(parameterSelector);return true;}' not in editor
 assert 'slotUiNavigate(selectedSlotColumn,rowDelta,columnDelta)' in editor
-assert 'juce::TextButton slotValue' in header
+assert 'LR608ValueButton slotValue' in header
+assert 'class LR608ValueButton final : public juce::TextButton' in header
 print('PASS TEST35.6: Alt+D single accessible ComboBox; ESC host handling; Alt+L unchanged')

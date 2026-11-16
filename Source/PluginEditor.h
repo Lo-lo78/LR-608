@@ -30,6 +30,61 @@ private:
     KeyHandler keyHandler;
 };
 
+// TEST36.3: A JUCE ComboBox/Slider can consume a chord before the editor's
+// KeyListener sees it. Like LSampler-24, route Ctrl+Shift+A directly from the
+// focus-owning control. On Windows, isCommandDown() IS isCtrlDown(), so do not
+// require !isCommandDown() alongside isCtrlDown().
+inline bool lr608IsEnvelopeShortcut(const juce::KeyPress& key)
+{
+    const auto mods = key.getModifiers();
+    return mods.isCtrlDown() && mods.isShiftDown() && !mods.isAltDown()
+        && (juce::CharacterFunctions::toLowerCase(juce::juce_wchar(key.getKeyCode())) == 'a'
+            || juce::CharacterFunctions::toLowerCase(key.getTextCharacter()) == 'a');
+}
+
+class LR608ParameterComboBox final : public juce::ComboBox
+{
+public:
+    using Shortcut = std::function<bool(const juce::KeyPress&, juce::Component*)>;
+    void setShortcutHandler(Shortcut fn) { shortcut = std::move(fn); }
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        if (lr608IsEnvelopeShortcut(key) && shortcut && shortcut(key, this)) return true;
+        return juce::ComboBox::keyPressed(key);
+    }
+private:
+    Shortcut shortcut;
+};
+
+class LR608ValueSlider final : public juce::Slider
+{
+public:
+    using Shortcut = std::function<bool(const juce::KeyPress&, juce::Component*)>;
+    void setShortcutHandler(Shortcut fn) { shortcut = std::move(fn); }
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        if (lr608IsEnvelopeShortcut(key) && shortcut && shortcut(key, this)) return true;
+        return juce::Slider::keyPressed(key);
+    }
+private:
+    Shortcut shortcut;
+};
+
+class LR608ValueButton final : public juce::TextButton
+{
+public:
+    explicit LR608ValueButton(const juce::String& name) : juce::TextButton(name) {}
+    using Shortcut = std::function<bool(const juce::KeyPress&, juce::Component*)>;
+    void setShortcutHandler(Shortcut fn) { shortcut = std::move(fn); }
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        if (lr608IsEnvelopeShortcut(key) && shortcut && shortcut(key, this)) return true;
+        return juce::TextButton::keyPressed(key);
+    }
+private:
+    Shortcut shortcut;
+};
+
 class LR608AudioProcessorEditor final : public juce::AudioProcessorEditor,
                                          private juce::KeyListener,
                                          private juce::ListBoxModel,
@@ -56,7 +111,7 @@ private:
     juce::Label title;
     juce::Label status;
     juce::ComboBox pageSelector;
-    juce::ComboBox slotGridSelector; // Alt+D: one accessible parameter grid, like Alt+L
+    LR608ParameterComboBox slotGridSelector; // Alt+D: one accessible parameter grid, like Alt+L
     juce::ComboBox slotSelector;
     juce::ComboBox engineSelector;
     juce::ComboBox layerSelector;
@@ -67,9 +122,9 @@ private:
     juce::ComboBox rollShuffleSelector;
     juce::ComboBox rollReductionSelector;
     juce::ComboBox outputSelector;
-    juce::TextButton slotValue { "Value" }; // non-numeric value focus for Alt+D
-    juce::ComboBox parameterSelector;
-    juce::Slider parameterValue;
+    LR608ValueButton slotValue { "Value" }; // non-numeric value focus for Alt+D
+    LR608ParameterComboBox parameterSelector;
+    LR608ValueSlider parameterValue;
     juce::TextButton reset { "Reset parameter" };
     juce::TextButton initialize { "Initialize" };
     juce::TextButton clearSlots { "Clear All Slots" };

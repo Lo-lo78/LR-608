@@ -722,6 +722,12 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
         box->setAccessible(false);
         box->setWantsKeyboardFocus(false);
     }
+    // Handle envelope shortcut at the ComboBox itself, before native ComboBox
+    // keyboard handling. This keeps the accessibility focus on the same cell.
+    slotGridSelector.setShortcutHandler([this](const juce::KeyPress& key, juce::Component* source)
+    {
+        return keyPressed(key, source);
+    });
     slotGridSelector.setTitle("Slot parameter");
     slotGridSelector.setDescription({});
     slotGridSelector.setWantsKeyboardFocus(true);
@@ -778,6 +784,10 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     // Alt+D Value follows Alt+L Value focus/arrow behaviour, but is an
     // ordinary keyboard-focusable button: no popup, slider text editor or
     // numeric-entry box can intercept NVDA/OSARA shortcuts.
+    slotValue.setShortcutHandler([this](const juce::KeyPress& key, juce::Component* source)
+    {
+        return keyPressed(key, source);
+    });
     slotValue.setWantsKeyboardFocus(true);
     slotValue.setTitle("Value");
     slotValue.setDescription("Enter returns to the Alt+D grid; arrows change the current value");
@@ -787,9 +797,17 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
             addLayerFromSelector();
         focusSlotColumn(selectedSlotColumn);
     };
+    parameterSelector.setShortcutHandler([this](const juce::KeyPress& key, juce::Component* source)
+    {
+        return keyPressed(key, source);
+    });
     parameterSelector.setTitle ("Parameter");
     parameterSelector.setExplicitFocusOrder (12);
     parameterSelector.onChange = [this] { selectParameter(); };
+    parameterValue.setShortcutHandler([this](const juce::KeyPress& key, juce::Component* source)
+    {
+        return keyPressed(key, source);
+    });
     parameterValue.setLookAndFeel (shortcutLookAndFeel.get());
     parameterValue.setSliderStyle (juce::Slider::LinearHorizontal);
     parameterValue.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 190, 30);
@@ -2678,13 +2696,11 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
         }
         return true;
     }
-    // Exact LSampler-24 shortcut, not Ctrl+A: toggle the host's real ACTIVE
-    // envelope.  The text editor keeps its own Ctrl+Shift+A; only parameter
-    // grids/Value controls are valid.  No popups or focus changes.
-    if (key.getModifiers().isCtrlDown() && key.getModifiers().isShiftDown()
-        && !alt && !key.getModifiers().isCommandDown()
-        && (juce::CharacterFunctions::toLowerCase(juce::juce_wchar(code)) == 'a'
-            || character == 'a'))
+    // Ctrl+Shift+A: Windows JUCE maps Command to Ctrl, so checking
+    // !isCommandDown() here would permanently disable this shortcut.
+    // ComboBox/Slider/Button subclasses also forward the chord directly.
+    // Only parameter grids/Value controls are valid; no popups or focus changes.
+    if (lr608IsEnvelopeShortcut(key))
     {
         const bool inSlot = source == &slotGridSelector || source == &slotValue;
         const bool inGrid = source == &parameterSelector || source == &parameterValue;

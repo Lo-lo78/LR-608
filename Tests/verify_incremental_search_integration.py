@@ -80,7 +80,8 @@ assert 'lr608::slotUiReverseValueOrder(column)' in editor
 assert 'lr608::IncrementalParameterSearch slotParameterSearch;' in header
 assert 'slotParameterSearch.next(' in editor
 assert 'selectNextSlotParameterStartingWith(searchKey,shift)' in editor
-assert 'juce::TextButton slotValue' in header
+assert 'LR608ValueButton slotValue' in header
+assert 'class LR608ValueButton final : public juce::TextButton' in header
 assert 'slotValue.setWantsKeyboardFocus(true)' in editor
 assert 'if(code==juce::KeyPress::returnKey){focusSlotValueAndAnnounce();return true;}' in editor
 assert 'if(slotBarSource||source==&slotValue){announce("Alt+D Value has no numeric editor");return true;}' in editor

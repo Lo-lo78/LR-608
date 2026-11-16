@@ -20,6 +20,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </nav>
 
 <article id="en" class="manual" lang="en">
+<p><strong>TEST35.6: Alt+D is now one accessible ComboBox like Alt+L. Its 10 parameters are arranged visually in four vertical columns, but focus stays on the same control while navigating. Esc in either grid or Value is passed to REAPER to close the FX window; Enter returns from Value to the grid. Dialogs continue to use Esc to cancel.</strong></p>
 <h1>LR-608 0.99.33: accessible drum synthesizer</h1>
 <p>LR-608 is a keyboard-first VST3 drum synthesizer derived from the original LR-608 JSFX. It combines analogue-style 808/909/Simmons circuits with Saike synthesis, FM, physical modelling, metallic, acoustic and experimental engines. The instrument provides 128 independent Slots, layering, 128-voice polyphony and 32 stereo output pairs.</p>
 <h2>Engine count and version</h2>
@@ -36,7 +37,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 <p>Incoming MIDI always plays normally. <kbd>Alt+M</kbd> toggles MIDI-key editing. While enabled, repeatedly playing a MIDI key cycles through the active Slots assigned to that note without moving keyboard focus. <strong>Voice Overlap</strong> is stored per Slot. Choke Trigger is the incoming note that causes a choke; Choke Target is the note whose active voices are stopped. Every matching link is evaluated.</p>
 <p>Each Slot can be routed independently to Stereo 1/2 through Stereo 63/64. Multiple Slots may share an output and routing is saved in presets.</p>
 <h2>Main area and parameter grid</h2>
-<p><kbd>Alt+D</kbd> is a second keyboard grid with four vertical columns: (1) Slot, Engine, Layer; (2) MIDI Note, MIDI Choke Trigger, MIDI Choke Target; (3) Roll Division, Roll Shuffle, Roll Second Hit Velocity Reduction; (4) Output. Each of the 128 Slots has its own three independent Roll parameters. The columns have 3, 3, 3 and 1 entries, not the fixed row count of Alt+L. Plain Up/Down changes the focused parameter, Left/Right changes column at the closest row, Page Up/Down and Home/End move within the current column; Ctrl+Home/End goes to the first/last cell. <kbd>Alt+Up</kbd> or <kbd>Alt+Right</kbd> increases the current value; <kbd>Alt+Down</kbd> or <kbd>Alt+Left</kbd> decreases it. <kbd>Alt+Page Up/Down</kbd> changes faster; <kbd>Alt+Home/End</kbd> selects maximum/minimum. <kbd>Enter</kbd> focuses the separate Value control, whose arrows/Page/Home/End adjust the same value without numeric editing; Enter/Escape returns to the grid. On Layer, select Add Layer and press Enter in Value to create it. <kbd>F2</kbd> on Slot renames it. Tab or <kbd>Alt+L</kbd> enters the Sound/FX parameter grid at the remembered position.</p>
+<p><kbd>Alt+D</kbd> is a second keyboard grid with four vertical columns: (1) Slot, Engine, Layer; (2) MIDI Note, MIDI Choke Trigger, MIDI Choke Target; (3) Roll Division, Roll Shuffle, Roll Second Hit Velocity Reduction; (4) Output. Each of the 128 Slots has its own three independent Roll parameters. The columns have 3, 3, 3 and 1 entries, not the fixed row count of Alt+L. Plain Up/Down changes the focused parameter, Left/Right changes column at the closest row, Page Up/Down and Home/End move within the current column; Ctrl+Home/End goes to the first/last cell. <kbd>Alt+Up</kbd> or <kbd>Alt+Right</kbd> increases the current value; <kbd>Alt+Down</kbd> or <kbd>Alt+Left</kbd> decreases it. <kbd>Alt+Page Up/Down</kbd> changes faster; <kbd>Alt+Home/End</kbd> selects maximum/minimum. <kbd>Enter</kbd> focuses the separate Value control, whose arrows/Page/Home/End adjust the same value without numeric editing; Enter returns to the grid; Escape is passed to REAPER. On Layer, select Add Layer and press Enter in Value to create it. <kbd>F2</kbd> on Slot renames it. Tab or <kbd>Alt+L</kbd> enters the Sound/FX parameter grid at the remembered position.</p>
 <p>In the grid, arrows move by row/column and typing consecutive letters or digits searches progressively by parameter name or word. Page Up/Down moves five items inside the current column. Home/End moves to the top/bottom of the current column; <kbd>Ctrl+Home</kbd>/<kbd>Ctrl+End</kbd> moves to the first/last parameter. <kbd>Alt+.</kbd> adds a row to each grid column and <kbd>Alt+,</kbd> removes one; the preference is remembered.</p>
 <p><strong>Incremental parameter search (TEST35.5).</strong> In both the Alt+D Slot grid and the Alt+L Sound, FX or Global parameter Grid, type letters or numbers within one second to build a search prefix. The beginning of the whole name has priority, followed by the beginning of a word inside the name (for example, typing Pan can find Ping Pong Pan Depth). Plain keys search forward; <kbd>Shift</kbd> with the same keys searches backwards. <kbd>Shift+1</kbd> searches backwards for digit 1, not the typed symbol. Repeating one character cycles matches; search wraps around the list. After one second or when pressing an arrow/navigation key, a new search begins. The preset browser still cycles by one initial and is unchanged.</p>
 <p>In the Alt+L grid, <kbd>Enter</kbd> moves between Grid and Value. <kbd>Alt+V</kbd> focuses Value. <kbd>Alt+E</kbd> opens numeric editing. In Grid or Value, Up/Down changes the value, Left/Right changes step width, Page Up/Down makes a larger change, Home/End selects a boundary and Backspace resets the parameter.</p>
@@ -52,7 +53,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 <tr><td><kbd>Alt+D</kbd></td><td>Return to the main area at the remembered column.</td></tr>
 <tr><td><kbd>F2</kbd> on Slot</td><td>Rename the current Slot.</td></tr>
 <tr><td><kbd>Alt+L</kbd> / <kbd>Tab</kbd></td><td>Enter the parameter grid.</td></tr>
-<tr><td><kbd>Esc</kbd> in Grid</td><td>Return to the remembered main column.</td></tr>
+<tr><td><kbd>Esc</kbd> in Grid</td><td>Pass to REAPER to close the FX window.</td></tr>
 <tr><td><kbd>Alt+F</kbd></td><td>Toggle Sound parameters / FX parameters for the current Slot.</td></tr>
 <tr><td><kbd>Alt+V</kbd></td><td>Focus Value for the selected parameter.</td></tr>
 <tr><td><kbd>Alt+E</kbd></td><td>Open numeric editing in Alt+L only; unavailable in Alt+D Value.</td></tr>
@@ -77,6 +78,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="it" class="manual" lang="it">
+<p><strong>TEST35.6: Alt+D usa ora una sola casella combinata accessibile, come Alt+L. I 10 parametri restano visibili in quattro colonne verticali, ma il focus rimane sullo stesso controllo durante la navigazione. Esc dalle griglie o da Value viene lasciato a REAPER per chiudere la finestra FX; Invio da Value torna alla griglia. Nei dialoghi Esc continua ad annullare.</strong></p>
 <h1>LR-608 0.99.33: sintetizzatore di batteria accessibile</h1>
 <p>LR-608 è un drum synthesizer VST3 pensato per l’uso da tastiera e derivato dal JSFX LR-608 originale. Riunisce circuiti in stile 808/909/Simmons, sintesi Saike, FM, modelli fisici, motori metallici, acustici e sperimentali. Offre 128 Slot indipendenti, layering, 128 voci e 32 coppie di uscite stereo.</p>
 <h2>Numero di motori e versione</h2>
@@ -110,7 +112,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 <tr><td><kbd>Alt+D</kbd></td><td>Torna all’area principale sulla colonna ricordata.</td></tr>
 <tr><td><kbd>F2</kbd> su Slot</td><td>Rinomina lo Slot corrente.</td></tr>
 <tr><td><kbd>Alt+L</kbd> / <kbd>Tab</kbd></td><td>Entra nella griglia parametri.</td></tr>
-<tr><td><kbd>Esc</kbd> in Grid</td><td>Torna alla colonna principale ricordata.</td></tr>
+<tr><td><kbd>Esc</kbd> in Grid</td><td>Passa a REAPER per chiudere la finestra FX.</td></tr>
 <tr><td><kbd>Alt+F</kbd></td><td>Commuta Sound parameters / FX parameters dello Slot.</td></tr>
 <tr><td><kbd>Alt+V</kbd></td><td>Porta il focus a Value.</td></tr>
 <tr><td><kbd>Alt+E</kbd></td><td>Apre l’editor numerico solo in Alt+L, non in Alt+D.</td></tr>
@@ -135,6 +137,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="es" class="manual" lang="es">
+<p><strong>TEST35.6: Alt+D utiliza ahora un único cuadro combinado accesible, como Alt+L. Los diez parámetros siguen en cuatro columnas visuales, pero el foco permanece en un solo control. Esc en las cuadrículas o Value se entrega a REAPER para cerrar la ventana de FX; Intro vuelve de Value a la cuadrícula. En los diálogos Esc cancela.</strong></p>
 <h1>LR-608 0.99.33: sintetizador de batería accesible</h1>
 <p>LR-608 es un sintetizador de batería VST3 orientado al teclado, derivado del JSFX original. Ofrece 128 Slots, capas, 128 voces y 32 pares estéreo, con motores 808/909/Simmons, Saike, FM, físicos, acústicos, metálicos y experimentales.</p>
 <h2>Número de motores y versión</h2>
@@ -153,6 +156,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="pt" class="manual" lang="pt">
+<p><strong>TEST35.6: Alt+D usa agora uma única caixa de combinação acessível, como Alt+L. Os dez parâmetros continuam em quatro colunas visuais, mas o foco permanece num único controlo. Esc nas grelhas ou em Value é passado ao REAPER para fechar a janela FX; Enter regressa de Value à grelha. Nos diálogos Esc cancela.</strong></p>
 <h1>LR-608 0.99.33: sintetizador de bateria acessível</h1>
 <p>LR-608 é um sintetizador de bateria VST3 voltado ao teclado, derivado do JSFX original. Oferece 128 Slots, camadas, 128 vozes e 32 pares estéreo, com motores 808/909/Simmons, Saike, FM, físicos, acústicos, metálicos e experimentais.</p>
 <h2>Número de motores e versão</h2>
@@ -171,6 +175,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="fr" class="manual" lang="fr">
+<p><strong>TEST35.6 : Alt+D utilise désormais une seule liste déroulante accessible, comme Alt+L. Les dix paramètres restent visibles en quatre colonnes, mais le focus ne change pas pendant la navigation. Échap dans les grilles ou Value est transmis à REAPER pour fermer la fenêtre FX ; Entrée revient de Value à la grille. Dans les dialogues, Échap annule.</strong></p>
 <h1>LR-608 0.99.33 : synthétiseur de batterie accessible</h1>
 <p>LR-608 est un synthétiseur de batterie VST3 conçu pour le clavier, dérivé du JSFX original. Il offre 128 Slots, le layering, 128 voix et 32 paires stéréo, avec moteurs 808/909/Simmons, Saike, FM, physiques, acoustiques, métalliques et expérimentaux.</p>
 <h2>Nombre de moteurs et version</h2>
@@ -189,6 +194,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="ru" class="manual" lang="ru">
+<p><strong>TEST35.6: Alt+D теперь использует один доступный комбинированный список, как Alt+L. Десять параметров по-прежнему расположены в четырёх видимых столбцах, но фокус остаётся на одном элементе. Esc в сетках и Value передаётся REAPER для закрытия окна FX; Enter возвращает из Value в сетку. В диалогах Esc отменяет действие.</strong></p>
 <h1>LR-608 0.99.33: доступный драм-синтезатор</h1>
 <p>LR-608 — управляемый с клавиатуры VST3 драм-синтезатор на основе оригинального JSFX. Он содержит 128 Slots, слои, 128 голосов и 32 стереопары, а также движки 808/909/Simmons, Saike, FM, физические, акустические, металлические и экспериментальные модели.</p>
 <h2>Количество движков и версия</h2>
@@ -207,6 +213,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="zh" class="manual" lang="zh-Hans">
+<p><strong>TEST35.6：Alt+D 现在与 Alt+L 一样，使用一个可访问的组合框。十个参数仍显示在四个纵列中，但导航时焦点不再切换控件。在网格或 Value 中按 Esc 会交给 REAPER 关闭 FX 窗口；按 Enter 从 Value 返回网格。在对话框中 Esc 仍用于取消。</strong></p>
 <h1>LR-608 0.99.33：无障碍鼓合成器</h1>
 <p>LR-608 是以键盘操作为核心的 VST3 鼓合成器，源自原始 LR-608 JSFX。它提供 128 个 Slot、分层、128 声部和 32 组立体声输出，并包含 808/909/Simmons、Saike、FM、物理建模、原声、金属和实验性引擎。</p>
 <h2>音源数量和版本</h2>
@@ -225,6 +232,7 @@ table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid v
 </article>
 
 <article id="ja" class="manual" lang="ja">
+<p><strong>TEST35.6：Alt+D は Alt+L と同じく、一つのアクセシブルなコンボボックスを使います。10 個のパラメーターは引き続き四つの縦列に表示されますが、移動中にフォーカスは切り替わりません。グリッドや Value で Esc を押すと REAPER に渡され、FX ウィンドウを閉じます。Value から Enter でグリッドへ戻ります。ダイアログでは Esc はキャンセルです。</strong></p>
 <h1>LR-608 0.99.33：アクセシブル・ドラムシンセサイザー</h1>
 <p>LR-608 はキーボード操作を中心に設計された VST3 ドラムシンセで、元の LR-608 JSFX を基にしています。128 Slot、レイヤー、128 ボイス、32 系統のステレオ出力を備え、808/909/Simmons、Saike、FM、物理モデル、アコースティック、メタリック、実験的エンジンを収録します。</p>
 <h2>エンジン数とバージョン</h2>

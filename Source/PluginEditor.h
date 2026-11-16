@@ -56,6 +56,7 @@ private:
     juce::Label title;
     juce::Label status;
     juce::ComboBox pageSelector;
+    juce::ComboBox slotGridSelector; // Alt+D: one accessible parameter grid, like Alt+L
     juce::ComboBox slotSelector;
     juce::ComboBox engineSelector;
     juce::ComboBox layerSelector;
@@ -170,6 +171,7 @@ private:
     void updateSlotValueLabel();
     bool selectNextSlotParameterStartingWith (juce::juce_wchar, bool backwards);
     void focusSlotColumn (int);
+    void refreshSlotGridLabels();
     void saveUiPosition (bool inGrid);
     void openGlobal();
     void closeGlobal (bool accept);

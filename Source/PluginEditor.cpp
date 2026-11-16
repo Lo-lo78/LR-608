@@ -454,6 +454,208 @@ struct LR608AudioProcessorEditor::SlotReportModel final : public juce::ListBoxMo
     bool filled=false;
 };
 
+// Matches LSampler-24 TEST187: only real activation/deactivation actions
+// count; Show/Hide changes just the visibility of an envelope.
+namespace
+{
+enum class HostEnvelopeCommand { none, show, hide, toggle, activate, deactivate };
+HostEnvelopeCommand classifyHostEnvelopeItem(const juce::String& original)
+{
+    auto label = original.toLowerCase().trim();
+    if (label.isEmpty() || label.contains("all envelope") || label.contains("all automation")
+        || label.contains("tutte") || label.contains("tutti")
+        || label.contains("write") || label.contains("record") || label.contains("learn")
+        || label.contains("mode") || label.contains("arm") || label.contains("modulation"))
+        return HostEnvelopeCommand::none;
+    label = label.replace("&", "").replace("...", "").trim();
+    const bool envelope = label.contains("envelope") || label.contains("automation lane")
+        || label.contains("automation track") || label.contains("automation for parameter")
+        || label.contains("parameter automation") || label.contains("inviluppo")
+        || label.contains("corsia di automazione") || label.contains("traccia di automazione")
+        || label.contains("pista de automatizaci") || label.contains("courbe d'automation")
+        || label.contains("automationsspur");
+    if (!envelope) return HostEnvelopeCommand::none;
+    if (label.startsWith("disable ") || label.startsWith("deactivate ") || label.startsWith("bypass ")
+        || label.startsWith("disattiva ")) return HostEnvelopeCommand::deactivate;
+    if (label.startsWith("enable ") || label.startsWith("activate ")
+        || label.startsWith("attiva ")) return HostEnvelopeCommand::activate;
+    if (label.startsWith("hide ") || label.startsWith("remove ")
+        || label.startsWith("nascondi ") || label.startsWith("ocultar ")
+        || label.startsWith("masquer ") || label.contains(" ausblenden"))
+        return HostEnvelopeCommand::hide;
+    if (label.startsWith("show ") || label.startsWith("display ")
+        || label.startsWith("mostra ") || label.startsWith("visualizza ")
+        || label.startsWith("mostrar ") || label.startsWith("afficher ")
+        || label.contains(" anzeigen")) return HostEnvelopeCommand::show;
+    if (label.startsWith("toggle ") || label.startsWith("commuta ")
+        || label.startsWith("attiva/disattiva ")) return HostEnvelopeCommand::toggle;
+    return HostEnvelopeCommand::none;
+}
+}
+
+juce::AudioProcessorParameter* LR608AudioProcessorEditor::selectedSlotAutomationParameter() const
+{
+    juce::String id;
+    // Slot and Layer are navigation controls; Output currently uses the
+    // internal route store and is not exposed as a host automatable parameter.
+    switch (selectedSlotColumn)
+    {
+        case 1: id = lr608::slotEngineId(selectedSlot); break;
+        case 3: id = lr608::slotNoteId(selectedSlot); break;
+        case 4: id = lr608::slotChokeTriggerId(selectedSlot); break;
+        case 5: id = lr608::slotChokeTargetId(selectedSlot); break;
+        case 6: id = lr608::slotRollDivisionId(selectedSlot); break;
+        case 7: id = lr608::slotRollShuffleId(selectedSlot); break;
+        case 8: id = lr608::slotRollReductionId(selectedSlot); break;
+        default: return nullptr;
+    }
+    return processor.parameters.getParameter(id);
+}
+
+juce::AudioProcessorParameter* LR608AudioProcessorEditor::selectedGridAutomationParameter() const
+{
+    const int index = parameterSelector.getSelectedItemIndex();
+    if (!juce::isPositiveAndBelow(index, int(visibleCatalogIndices.size()))) return nullptr;
+    return processor.parameters.getParameter(
+        lr608::generated::parameters[visibleCatalogIndices[std::size_t(index)]].id);
+}
+
+int LR608AudioProcessorEditor::getHostAutomationEnvelopeState(juce::AudioProcessorParameter* param) const
+{
+    if (processor.hasReaperEnvelopeApi())
+        return processor.getReaperEnvelopeActive(param);
+    if (param == nullptr) return -1;
+    auto* host = getHostContext();
+    if (host == nullptr) return -1;
+    auto context = host->getContextMenuForParameter(param);
+    if (context == nullptr) return -1;
+    const auto menu = context->getEquivalentPopupMenu();
+    juce::PopupMenu::MenuItemIterator iterator(menu, true);
+    int matches = 0, state = -1;
+    while (iterator.next())
+    {
+        const auto& item = iterator.getItem();
+        if (!item.isEnabled || !item.action || item.isSeparator || item.isSectionHeader)
+            continue;
+        const auto kind = classifyHostEnvelopeItem(item.text);
+        if (kind == HostEnvelopeCommand::none) continue;
+        if (++matches > 1) return -1;
+        if (kind == HostEnvelopeCommand::deactivate) state = 1;
+        else if (kind == HostEnvelopeCommand::activate) state = 0;
+        else state = -1;
+    }
+    return matches == 1 ? state : -1;
+}
+
+juce::String LR608AudioProcessorEditor::selectedSlotAutomationLine() const
+{
+    const std::array<const juce::ComboBox*,10> boxes {&slotSelector,&engineSelector,
+        &layerSelector,&noteSelector,&chokeTriggerSelector,&chokeTargetSelector,
+        &rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,&outputSelector};
+    const int index = juce::jlimit(0,9,selectedSlotColumn);
+    auto line = juce::String(slotParameterNames[index]) + ", "
+        + (index == 0 ? slotDisplayName(selectedSlot) : boxes[std::size_t(index)]->getText());
+    if (observedSlotAutomationState == 1
+        && observedSlotAutomationParameter == selectedSlotAutomationParameter())
+        line += ", Auto";
+    return line;
+}
+
+juce::String LR608AudioProcessorEditor::selectedGridAutomationLine() const
+{
+    const int index = parameterSelector.getSelectedItemIndex();
+    if (!juce::isPositiveAndBelow(index,int(visibleNames.size()))) return {};
+    auto line = visibleNames[std::size_t(index)];
+    if (auto* param = selectedGridAutomationParameter())
+        line += ", " + param->getCurrentValueAsText();
+    if (observedGridAutomationState == 1
+        && observedGridAutomationParameter == selectedGridAutomationParameter())
+        line += ", Auto";
+    return line;
+}
+
+void LR608AudioProcessorEditor::syncSlotAutomationIndicator(bool forceQuery)
+{
+    auto* param = selectedSlotAutomationParameter();
+    const bool changed = observedSlotAutomationParameter != param;
+    if (changed || forceQuery)
+    {
+        const int state = getHostAutomationEnvelopeState(param);
+        if (changed || observedSlotAutomationState != state)
+        {
+            observedSlotAutomationParameter = param;
+            observedSlotAutomationState = state;
+            updateSlotValueLabel(); // Same ComboBox focus: change the selected item's text only.
+        }
+    }
+}
+
+void LR608AudioProcessorEditor::syncGridAutomationIndicator(bool forceQuery)
+{
+    auto* param = selectedGridAutomationParameter();
+    const bool changed = observedGridAutomationParameter != param;
+    if (changed || forceQuery)
+    {
+        const int state = getHostAutomationEnvelopeState(param);
+        if (changed || observedGridAutomationState != state)
+        {
+            observedGridAutomationParameter = param;
+            observedGridAutomationState = state;
+            updateParameterLabel();
+            if (auto index = parameterSelector.getSelectedItemIndex();
+                juce::isPositiveAndBelow(index,int(visibleNames.size())))
+                parameterValue.setTitle("Value. " + visibleNames[std::size_t(index)]
+                    + (state == 1 ? ", Auto" : ""));
+        }
+    }
+}
+
+bool LR608AudioProcessorEditor::toggleHostAutomationEnvelope(juce::AudioProcessorParameter* param,
+                                                               juce::Component* source)
+{
+    if (param == nullptr) return false;
+    const bool slotArea = source == &slotGridSelector || source == &slotValue;
+    const auto announceCompact = [this, source, slotArea]()
+    {
+        if (slotArea) syncSlotAutomationIndicator(true);
+        else syncGridAutomationIndicator(true);
+        lr608::announceToActiveScreenReader(source != nullptr ? *source : static_cast<juce::Component&>(status),
+            slotArea ? selectedSlotAutomationLine() : selectedGridAutomationLine());
+    };
+    if (processor.hasReaperEnvelopeApi())
+    {
+        if (processor.toggleReaperEnvelopeActive(param))
+        {
+            announceCompact();
+            return true;
+        }
+        lr608::announceToActiveScreenReader(source != nullptr ? *source : static_cast<juce::Component&>(status),
+            "Automation unavailable for this FX");
+        return true; // Do not fall back to Hide, which leaves ACTIVE on.
+    }
+    auto* host = getHostContext();
+    if (host == nullptr) return false;
+    auto context = host->getContextMenuForParameter(param);
+    if (context == nullptr) return false;
+    const auto menu = context->getEquivalentPopupMenu();
+    juce::PopupMenu::MenuItemIterator iterator(menu, true);
+    std::function<void()> command;
+    int matches = 0;
+    while (iterator.next())
+    {
+        const auto& item = iterator.getItem();
+        if (!item.isEnabled || !item.action || item.isSeparator || item.isSectionHeader) continue;
+        const auto kind = classifyHostEnvelopeItem(item.text);
+        if (kind != HostEnvelopeCommand::activate && kind != HostEnvelopeCommand::deactivate) continue;
+        if (++matches > 1) break;
+        command = item.action;
+    }
+    if (matches != 1 || !command) return false;
+    command(); // Must execute before destruction of the host context menu.
+    announceCompact();
+    return true;
+}
+
 LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
@@ -532,6 +734,7 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
         if(!juce::isPositiveAndBelow(index,10))return;
         selectedSlotColumn=index;
         saveUiPosition(false);
+        syncSlotAutomationIndicator();
     };
     slotSelector.setExplicitFocusOrder(1);engineSelector.setExplicitFocusOrder(2);layerSelector.setExplicitFocusOrder(3);noteSelector.setExplicitFocusOrder(4);chokeTriggerSelector.setExplicitFocusOrder(5);chokeTargetSelector.setExplicitFocusOrder(6);rollDivisionSelector.setExplicitFocusOrder(7);rollShuffleSelector.setExplicitFocusOrder(8);rollReductionSelector.setExplicitFocusOrder(9);outputSelector.setExplicitFocusOrder(10);
     slotSelector.onChange=[this]{if(updatingSlotBar||globalOpen)return;processor.captureSlotFromProxy(selectedSlot);const auto item=parameterSelector.getSelectedItemIndex();if(item>=0){if(slotFxPage)rememberedFxGridIndices[selectedSlot]=item;else{rememberedGridIndices[selectedSlot]=item;processor.setSlotGridPosition(selectedSlot,item);}}selectedSlot=juce::jlimit(0,lr608::slotCount-1,slotSelector.getSelectedId()-1);saveUiPosition(false);syncSlotBar(true);};
@@ -640,7 +843,9 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
           "keyboard search with reverse Shift search. Alt+D uses one accessible ComboBox like Alt+L, "
           "avoiding repeated screen-reader focus changes. Escape in either main grid or Value is passed to REAPER. "
           "Global Output Warmth adds harmonic body, and the Transient Designer adds Attack, Sustain, Speed and Focus. "
-          "Existing Slot routing, layers, presets and Alt+T audition are retained.";
+          "Existing Slot routing, layers, presets and Alt+T audition are retained. "
+          "Ctrl+Shift+A toggles the real REAPER envelope ACTIVE state for the selected automatable parameter, "
+          "with NVDA Auto indicators. Slot, Layer and Output are navigation/internal controls.";
     aboutInfo.setTitle("About LR-608");
     aboutInfo.setMultiLine(true, true);
     aboutInfo.setReturnKeyStartsNewLine(false);
@@ -1095,6 +1300,7 @@ void LR608AudioProcessorEditor::syncSlotBar(bool updateGrid, bool notifyGrid)
     rollReductionSelector.setSelectedItemIndex(juce::jlimit(0,1000,juce::roundToInt(processor.parameters.getRawParameterValue(lr608::slotRollReductionId(selectedSlot))->load()*10.0f)),juce::dontSendNotification);
     outputSelector.setSelectedId(output+1,juce::dontSendNotification);
     updateSlotValueLabel();
+    syncSlotAutomationIndicator();
     if(updateGrid&&!globalOpen){if(!lr608::isOffEngine(engine)){processor.loadSlotToProxy(selectedSlot);pageSelector.setSelectedItemIndex(lr608::slotEngines[engine].page,juce::dontSendNotification);}updateParameterList();setListIndex(slotFxPage?rememberedFxGridIndices[selectedSlot]:rememberedGridIndices[selectedSlot],notifyGrid);}
 }
 
@@ -1147,7 +1353,10 @@ void LR608AudioProcessorEditor::refreshSlotGridLabels()
     for(int i=0;i<10;++i)
     {
         const auto value=i==0?slotDisplayName(selectedSlot):boxes[std::size_t(i)]->getText();
-        const auto label=juce::String(slotParameterNames[i]) + ", " + value;
+        auto label=juce::String(slotParameterNames[i]) + ", " + value;
+        if (i == selectedSlotColumn && observedSlotAutomationState == 1
+            && observedSlotAutomationParameter == selectedSlotAutomationParameter())
+            label += ", Auto";
         if(slotGridSelector.getItemText(i)!=label)
             slotGridSelector.changeItemText(i+1,label);
     }
@@ -1165,9 +1374,11 @@ void LR608AudioProcessorEditor::updateSlotValueLabel()
     const int index=juce::jlimit(0,9,selectedSlotColumn);
     const auto value=index==0?slotDisplayName(selectedSlot):boxes[std::size_t(index)]->getText();
     refreshSlotGridLabels();
-    slotValue.setTitle("Value. " + juce::String(slotParameterNames[index]));
+    slotValue.setTitle("Value. " + juce::String(slotParameterNames[index])
+        + (observedSlotAutomationState == 1 && observedSlotAutomationParameter == selectedSlotAutomationParameter() ? ", Auto" : ""));
     slotValue.setButtonText("Value: " + value);
     slotValue.setDescription(juce::String(slotParameterNames[index])+", "+value
+        + (observedSlotAutomationState == 1 && observedSlotAutomationParameter == selectedSlotAutomationParameter() ? ", Auto" : "")
        +". Up and Down adjust, Page Up and Down adjust faster, Home and End set boundaries. No numeric editor.");
 }
 
@@ -1176,12 +1387,7 @@ void LR608AudioProcessorEditor::focusSlotValueAndAnnounce()
     if(globalOpen)return;
     updateSlotValueLabel();
     requestShortcutFocus(slotValue);
-    announce("Value. " + juce::String(slotParameterNames[selectedSlotColumn])
-             +", " +(selectedSlotColumn==0?slotDisplayName(selectedSlot):
-                 std::array<juce::ComboBox*,10>{&slotSelector,&engineSelector,&layerSelector,
-                 &noteSelector,&chokeTriggerSelector,&chokeTargetSelector,
-                 &rollDivisionSelector,&rollShuffleSelector,&rollReductionSelector,
-                 &outputSelector}[std::size_t(selectedSlotColumn)]->getText()));
+    announce("Value. " + selectedSlotAutomationLine());
 }
 
 bool LR608AudioProcessorEditor::selectNextSlotParameterStartingWith(juce::juce_wchar character,
@@ -1473,8 +1679,13 @@ void LR608AudioProcessorEditor::selectParameter()
     parameterValue.setDescription ("Alt+V");
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         processor.parameters, descriptor.id, parameterValue);
-    const auto& page = lr608::generated::pages[pageSelector.getSelectedItemIndex()];
     parameterSelector.setDescription({});
+    syncGridAutomationIndicator();
+    // A page/slot rebuild may recreate the ComboBox items even for the same
+    // host parameter. Restore its active suffix without moving NVDA focus.
+    if (observedGridAutomationState == 1
+        && observedGridAutomationParameter == selectedGridAutomationParameter())
+        updateParameterLabel();
 }
 
 void LR608AudioProcessorEditor::updateParameterLabel()
@@ -1487,6 +1698,9 @@ void LR608AudioProcessorEditor::updateParameterLabel()
     const auto id=juce::String(lr608::generated::parameters[catalog].id);
     if (auto* parameter = processor.parameters.getParameter (id))
         label += ", " + parameter->getCurrentValueAsText();
+    if (observedGridAutomationState == 1
+        && observedGridAutomationParameter == selectedGridAutomationParameter())
+        label += ", Auto";
     parameterSelector.changeItemText (item + 1, label);
     parameterSelector.setSelectedId (item + 1, juce::dontSendNotification);
 }
@@ -1643,6 +1857,9 @@ void LR608AudioProcessorEditor::focusValueAndAnnounce()
     const auto catalog=visibleCatalogIndices[item];const auto id=juce::String(lr608::generated::parameters[catalog].id);
     if (auto* parameter = processor.parameters.getParameter (id))
         message += ", " + parameter->getCurrentValueAsText();
+    if (observedGridAutomationState == 1
+        && observedGridAutomationParameter == selectedGridAutomationParameter())
+        message += ", Auto";
     requestShortcutFocus (parameterValue);
     status.setText (message, juce::dontSendNotification);
 }
@@ -1865,6 +2082,16 @@ void LR608AudioProcessorEditor::activateSlotReportEntry(bool filled,int row)
 
 void LR608AudioProcessorEditor::timerCallback()
 {
+    if (isShowing() && ++automationRefreshTicks >= 10)
+    {
+        automationRefreshTicks = 0;
+        auto* focus = juce::Component::getCurrentlyFocusedComponent();
+        if (focus == &slotGridSelector || focus == &slotValue)
+            syncSlotAutomationIndicator(true);
+        else if (focus == &parameterSelector || focus == &parameterValue
+                 || (focus != nullptr && parameterValue.isParentOf(focus)))
+            syncGridAutomationIndicator(true);
+    }
     const auto event=processor.getMidiNavigationEvent();if(event==0||event==lastMidiNavigationEvent)return;lastMidiNavigationEvent=event;
     if(!midiKeyboardModeEnabled)return;
     const auto note=int(event&0xffu);midiEditingNote=note;
@@ -1922,8 +2149,8 @@ juce::String LR608AudioProcessorEditor::currentFocusValueAnnouncement() const
     if(focused==&outputSelector)return "Output, "+outputSelector.getText();
     if(focused==&slotValue)return slotValue.getTitle()+", "+slotValue.getButtonText().fromFirstOccurrenceOf("Value: ",false,false);
     const auto item=parameterSelector.getSelectedItemIndex();
-    if(focused==&parameterSelector&&juce::isPositiveAndBelow(item,int(visibleNames.size())))return visibleNames[std::size_t(item)]+", "+processor.parameters.getParameter(lr608::generated::parameters[visibleCatalogIndices[std::size_t(item)]].id)->getCurrentValueAsText();
-    if((focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused)))&&juce::isPositiveAndBelow(item,int(visibleNames.size())))return "Value. "+visibleNames[std::size_t(item)]+", "+processor.parameters.getParameter(lr608::generated::parameters[visibleCatalogIndices[std::size_t(item)]].id)->getCurrentValueAsText();
+    if(focused==&parameterSelector&&juce::isPositiveAndBelow(item,int(visibleNames.size())))return selectedGridAutomationLine();
+    if((focused==&parameterValue||(focused!=nullptr&&parameterValue.isParentOf(focused)))&&juce::isPositiveAndBelow(item,int(visibleNames.size())))return "Value. "+selectedGridAutomationLine();
     if(focused!=nullptr)return focused->getTitle().isNotEmpty()?focused->getTitle():focused->getName();
     return {};
 }
@@ -2450,6 +2677,35 @@ bool LR608AudioProcessorEditor::keyPressed (const juce::KeyPress& key,
             return true;
         }
         return true;
+    }
+    // Exact LSampler-24 shortcut, not Ctrl+A: toggle the host's real ACTIVE
+    // envelope.  The text editor keeps its own Ctrl+Shift+A; only parameter
+    // grids/Value controls are valid.  No popups or focus changes.
+    if (key.getModifiers().isCtrlDown() && key.getModifiers().isShiftDown()
+        && !alt && !key.getModifiers().isCommandDown()
+        && (juce::CharacterFunctions::toLowerCase(juce::juce_wchar(code)) == 'a'
+            || character == 'a'))
+    {
+        const bool inSlot = source == &slotGridSelector || source == &slotValue;
+        const bool inGrid = source == &parameterSelector || source == &parameterValue;
+        if (inSlot || inGrid)
+        {
+            auto* param = inSlot ? selectedSlotAutomationParameter() : selectedGridAutomationParameter();
+            if (param == nullptr)
+            {
+                lr608::announceToActiveScreenReader(source != nullptr ? *source : static_cast<juce::Component&>(status),
+                    "No automatable parameter selected");
+                return true;
+            }
+            if (toggleHostAutomationEnvelope(param, source)) return true;
+            lr608::announceToActiveScreenReader(source != nullptr ? *source : static_cast<juce::Component&>(status),
+                "Direct automation toggle unavailable. Last touched: " + param->getName(160));
+            // Match LSampler's last-touched fallback without changing its value.
+            param->beginChangeGesture();
+            param->setValueNotifyingHost(param->getValue());
+            param->endChangeGesture();
+            return true;
+        }
     }
     if(alt&&character=='m'){toggleMidiKeyboardMode();return true;}
     if(alt&&character=='b'){togglePresetBrowser();return true;}

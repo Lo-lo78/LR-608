@@ -8,6 +8,151 @@
 #include <limits>
 #include <cmath>
 
+// REAPER VST3 host extension, ported from LSampler-24 TEST187.  We query
+// envelope ACTIVE (not VISIBLE): hiding a lane is not deactivation.
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE("-Wnon-virtual-dtor")
+#include <pluginterfaces/base/funknown.h>
+#include <pluginterfaces/vst/ivsthostapplication.h>
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+
+namespace lr608_reaper
+{
+using namespace Steinberg;
+class IReaperHostApplication : public FUnknown
+{
+public:
+    virtual void* PLUGIN_API getReaperApi(CStringA name) = 0;
+    virtual void* PLUGIN_API getReaperParent(uint32 type) = 0;
+    virtual void* PLUGIN_API reaperExtended(uint32 call, void*, void*, void*) = 0;
+    static const FUID iid;
+};
+DECLARE_CLASS_IID(IReaperHostApplication, 0x79655E36, 0x77EE4267, 0xA573FEF7, 0x4912C27C)
+DEF_CLASS_IID(IReaperHostApplication)
+}
+
+class LR608ReaperHostExtension final : public juce::VST3ClientExtensions
+{
+public:
+    ~LR608ReaperHostExtension() override
+    {
+        if (host != nullptr) host->release();
+    }
+    void setIHostApplication(Steinberg::FUnknown* application) override
+    {
+        if (host != nullptr) { host->release(); host = nullptr; }
+        if (application == nullptr) return;
+        void* result = nullptr;
+        if (application->queryInterface(lr608_reaper::IReaperHostApplication::iid, &result)
+            == Steinberg::kResultOk)
+            host = static_cast<lr608_reaper::IReaperHostApplication*>(result);
+    }
+    bool available() const noexcept { return host != nullptr; }
+    int getActive(const LR608AudioProcessor& processor, juce::AudioProcessorParameter* param) const
+    {
+        const auto fx = findFocusedFx(processor, param);
+        if (!fx) return -1;
+        const auto getEnvelope = getApi<void* (*)(void*, int, int, bool)>("GetFXEnvelope");
+        const auto attribute = getApi<bool (*)(void*, const char*, char*, bool)>("GetSetEnvelopeInfo_String");
+        if (!getEnvelope || !attribute) return -1;
+        auto* env = getEnvelope(fx.track, fx.index, fx.parameter, false);
+        if (env == nullptr) return 0;
+        char text[32] = {};
+        if (!attribute(env, "ACTIVE", text, false)) return -1;
+        return text[0] == '1' ? 1 : text[0] == '0' ? 0 : -1;
+    }
+    bool toggle(LR608AudioProcessor& processor, juce::AudioProcessorParameter* param) const
+    {
+        const auto fx = findFocusedFx(processor, param);
+        if (!fx) return false;
+        const auto getEnvelope = getApi<void* (*)(void*, int, int, bool)>("GetFXEnvelope");
+        const auto attribute = getApi<bool (*)(void*, const char*, char*, bool)>("GetSetEnvelopeInfo_String");
+        if (!getEnvelope || !attribute) return false;
+        void* env = getEnvelope(fx.track, fx.index, fx.parameter, false);
+        bool wasActive = false;
+        if (env != nullptr)
+        {
+            char active[32] = {};
+            if (!attribute(env, "ACTIVE", active, false)
+                || (active[0] != '0' && active[0] != '1')) return false;
+            wasActive = active[0] == '1';
+        }
+        if (!wasActive && env == nullptr)
+            env = getEnvelope(fx.track, fx.index, fx.parameter, true);
+        if (env == nullptr) return false;
+        auto set = [attribute, env](const char* name, const char* value)
+        {
+            char text[2] { value[0], 0 };
+            return attribute(env, name, text, true);
+        };
+        if (!set("ACTIVE", wasActive ? "0" : "1")) return false;
+        if (wasActive)
+        {
+            set("ARM", "0");
+            set("VISIBLE", "0");
+        }
+        else
+        {
+            set("VISIBLE", "1");
+            set("ARM", "1");
+        }
+        if (const auto adjust = getApi<void (*)(bool)>("TrackList_AdjustWindows")) adjust(false);
+        if (const auto update = getApi<void (*)()>("UpdateArrange")) update();
+        return true;
+    }
+private:
+    template <class T> T getApi(const char* name) const
+    {
+        return host != nullptr ? reinterpret_cast<T>(host->getReaperApi(name)) : nullptr;
+    }
+    struct FocusedFx
+    {
+        void* track = nullptr;
+        int index = -1, parameter = -1;
+        explicit operator bool() const { return track != nullptr && index >= 0 && parameter >= 0; }
+    };
+    FocusedFx findFocusedFx(const LR608AudioProcessor& processor, juce::AudioProcessorParameter* param) const
+    {
+        if (host == nullptr || param == nullptr) return {};
+        // Guard against touching another instance, project, take, or track.
+        auto* owner = host->getReaperParent(1);
+        if (owner == nullptr) return {};
+        const auto focused = getApi<bool (*)(int, int*, int*, int*, int*, int*)>("GetTouchedOrFocusedFX");
+        const auto getTrack = getApi<void* (*)(void*, int)>("GetTrack");
+        const auto getMaster = getApi<void* (*)(void*)>("GetMasterTrack");
+        const auto getParamName = getApi<bool (*)(void*, int, int, char*, int)>("TrackFX_GetParamName");
+        if (!focused || !getTrack || !getMaster || !getParamName) return {};
+        int trackIdx = -2, itemIdx = -2, takeIdx = -2, fxIdx = -1, ignored = -1;
+        if (!focused(1, &trackIdx, &itemIdx, &takeIdx, &fxIdx, &ignored)
+            || itemIdx != -1 || fxIdx < 0) return {};
+        void* focusedTrack = trackIdx == -1 ? getMaster(nullptr) : getTrack(nullptr, trackIdx);
+        if (focusedTrack == nullptr || focusedTrack != owner) return {};
+        const int parameter = processor.getParameters().indexOf(param);
+        if (parameter < 0) return {};
+        char name[512] = {};
+        if (!getParamName(owner, fxIdx, parameter, name, int(sizeof(name)))) return {};
+        if (!juce::String::fromUTF8(name).trim().equalsIgnoreCase(param->getName(512).trim())) return {};
+        return { owner, fxIdx, parameter };
+    }
+    lr608_reaper::IReaperHostApplication* host = nullptr;
+};
+
+juce::VST3ClientExtensions* LR608AudioProcessor::getVST3ClientExtensions()
+{
+    return reaperHostExtension.get();
+}
+bool LR608AudioProcessor::hasReaperEnvelopeApi() const noexcept
+{
+    return reaperHostExtension != nullptr && reaperHostExtension->available();
+}
+int LR608AudioProcessor::getReaperEnvelopeActive(juce::AudioProcessorParameter* p) const
+{
+    return reaperHostExtension != nullptr ? reaperHostExtension->getActive(*this, p) : -1;
+}
+bool LR608AudioProcessor::toggleReaperEnvelopeActive(juce::AudioProcessorParameter* p)
+{
+    return reaperHostExtension != nullptr && reaperHostExtension->toggle(*this, p);
+}
+
 namespace
 {
 int catalogIndex(juce::StringRef);
@@ -195,6 +340,7 @@ LR608AudioProcessor::LR608AudioProcessor (juce::File presetRoot)
       cowbellEngineBanks (parameters),
       zapEngineBanks (parameters)
 {
+    reaperHostExtension = std::make_unique<LR608ReaperHostExtension>();
     voicePool=std::make_unique<std::array<lr608::PolyphonicVoice,128>>();
     slotTimingEngines=std::make_unique<std::array<lr608::DrumTimingEngine,lr608::slotCount>>();
     initialiseSlotArchitecture();

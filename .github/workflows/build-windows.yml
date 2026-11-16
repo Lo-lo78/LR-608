@@ -21,6 +21,10 @@ jobs:
         shell: powershell
         run: python Tests/verify_alt_d_single_accessible_grid.py
 
+      - name: Verify Ctrl+Shift+A REAPER automation integration
+        shell: powershell
+        run: python Tests/verify_host_automation_integration.py
+
       - name: Build and test
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File Tools/build-windows.ps1

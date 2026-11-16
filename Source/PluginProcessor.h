@@ -28,6 +28,8 @@
 #include "OutputStage.h"
 #include "SlotDelay.h"
 
+class LR608ReaperHostExtension;
+
 class LR608AudioProcessor final : public juce::AudioProcessor,
                                   private juce::AudioProcessorValueTreeState::Listener
 {
@@ -42,6 +44,10 @@ public:
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
+    juce::VST3ClientExtensions* getVST3ClientExtensions() override;
+    bool hasReaperEnvelopeApi() const noexcept;
+    int getReaperEnvelopeActive(juce::AudioProcessorParameter*) const;
+    bool toggleReaperEnvelopeActive(juce::AudioProcessorParameter*);
     const juce::String getName() const override { return JucePlugin_Name; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return true; }
@@ -106,6 +112,7 @@ public:
     void importLegacyPresetAsKit();
 
 private:
+    std::unique_ptr<LR608ReaperHostExtension> reaperHostExtension;
     static BusesProperties makeBuses();
     double currentSampleRate = 44100.0;
     bool anySlotRollPending() const noexcept;

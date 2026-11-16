@@ -177,6 +177,20 @@ private:
     void closeGlobal (bool accept);
     void selectParameter();
     void updateParameterLabel();
+    // LSampler-24-style REAPER envelope ACTIVE toggle and compact NVDA marker.
+    juce::AudioProcessorParameter* selectedSlotAutomationParameter() const;
+    juce::AudioProcessorParameter* selectedGridAutomationParameter() const;
+    int getHostAutomationEnvelopeState(juce::AudioProcessorParameter*) const;
+    bool toggleHostAutomationEnvelope(juce::AudioProcessorParameter*, juce::Component*);
+    void syncSlotAutomationIndicator(bool forceQuery = false);
+    void syncGridAutomationIndicator(bool forceQuery = false);
+    juce::String selectedSlotAutomationLine() const;
+    juce::String selectedGridAutomationLine() const;
+    juce::AudioProcessorParameter* observedSlotAutomationParameter = nullptr;
+    juce::AudioProcessorParameter* observedGridAutomationParameter = nullptr;
+    int observedSlotAutomationState = -1;
+    int observedGridAutomationState = -1;
+    unsigned automationRefreshTicks = 0;
     void selectRelativePage (int);
     void selectPageByInitial (juce::juce_wchar);
     void announcePage();

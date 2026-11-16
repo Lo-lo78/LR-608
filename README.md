@@ -38,6 +38,7 @@ The interface is designed to work without a mouse:
 | --- | --- |
 | `Alt+D` | Four-column Slot grid: Slot/Engine/Layer; MIDI Note/Choke; per-Slot Roll; Output |
 | `Alt+L` or `Tab` | Parameter grid |
+| `Ctrl+Shift+A` | Toggle the real active automation envelope for the selected VST3 parameter (Alt+D or Alt+L). NVDA says `Auto` when active; no points are deleted on deactivation. |
 | Letters/digits in either grid | Incremental search by parameter name or word beginning (Alt+D and Alt+L, including Sound/FX/Global; 1-second prefix) |
 | `Shift`+letters/digits in Grid | Search backwards; Shift+1 searches digit 1 rather than the symbol |
 | `Alt+F` | Toggle Sound/FX pages |
@@ -93,3 +94,7 @@ Alt+D now exposes **one focused ComboBox**, exactly as Alt+L does. This is a ten
 - Incremental search, including Shift for reverse search, works in Alt+D and Alt+L.
 - Escape in either main grid or Value is passed to REAPER for the host to close the FX window; modal dialogs still use Escape to cancel.
 
+
+### TEST36.1 — Ctrl+Shift+A automation (LSampler-24 parity)
+
+Like LSampler-24, Ctrl+Shift+A creates/activates or deactivates the selected parameter's REAPER envelope (ACTIVE, not merely VISIBLE). Already-recorded envelope points are kept. The accessible parameter label adds **, Auto** while active, in the Alt+D and Alt+L grids and their Value controls. REAPER's own VST3 host API is used to find the correct FX instance and read/modify the envelope; non-REAPER hosts receive only an unambiguous activation/deactivation menu command, if offered. Ctrl+Shift+A is not active in modal file-name editors or the preset browser. **Slot, Layer, and Output in Alt+D are internal navigation/routing controls, not host-automatable parameters.** Engine, MIDI Note, Choke Trigger/Target, and the three Rolls are host parameters per physical slot. Alt+L Sound/FX uses LR-608's existing shared proxy parameter IDs for the currently selected slot (as in 0.99.34); automation for those controls is therefore shared by the corresponding host proxy, not independent for each slot. No parameter IDs were added, removed or reordered in this test.

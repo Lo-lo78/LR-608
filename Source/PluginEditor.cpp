@@ -13,8 +13,8 @@
 namespace
 {
 
-constexpr auto lr608Version = "0.99.33";
-constexpr auto lr608ReleaseDate = "9 November 2026";
+constexpr auto lr608Version = "0.99.34";
+constexpr auto lr608ReleaseDate = "16 November 2026";
 constexpr auto lr608ProjectUrl = "https://github.com/Lo-lo78/LR-608";
 constexpr auto lr608ContactEmail = "vmanolo301@gmail.com";
 
@@ -635,11 +635,12 @@ LR608AudioProcessorEditor::LR608AudioProcessorEditor (LR608AudioProcessor& p)
         + "\nRelease date: " + lr608ReleaseDate
         + "\nProject: " + lr608ProjectUrl
         + "\nContact: " + lr608ContactEmail
-        + "\nIn 0.99.33: publication update retaining TEST33 Alt+T Slot Engine audition at velocity 115, and incremental keyboard search on Sound, FX and Global parameter grids. "
-          "Type consecutive letters or numbers to find a parameter by its name or a word within it. "
-          "Shift searches backwards, including Shift+digits; repeated characters cycle; "
-          "the search resets after one second or navigation keys. "
-          "Preset browser and MIDI-layer shortcuts remain unchanged.";
+        + "\nIn 0.99.34: 128 independent per-Slot Rolls (Division, Shuffle and Second Hit Velocity Reduction), "
+          "moved from Global to the four-column Alt+D Slot grid. Alt+D and Alt+L offer incremental "
+          "keyboard search with reverse Shift search. Alt+D uses one accessible ComboBox like Alt+L, "
+          "avoiding repeated screen-reader focus changes. Escape in either main grid or Value is passed to REAPER. "
+          "Global Output Warmth adds harmonic body, and the Transient Designer adds Attack, Sustain, Speed and Focus. "
+          "Existing Slot routing, layers, presets and Alt+T audition are retained.";
     aboutInfo.setTitle("About LR-608");
     aboutInfo.setMultiLine(true, true);
     aboutInfo.setReturnKeyStartsNewLine(false);

@@ -27,7 +27,12 @@ assert 'if (code >= juce::KeyPress::F1Key' in key
 assert key.index("if (code >= '0' && code <= '9')") < key.index('const auto typed')
 assert 'numberPad0' in key and 'numberPad9' in key
 assert 'mods.isCtrlDown() || mods.isAltDown() || mods.isCommandDown()' in key
-assert '0.99.33' in editor and '9 November 2026' in editor
+# Check the release version consistently instead of hardcoding the previous release.
+version_match = re.search(r'project\(LR608 VERSION (\d+\.\d+\.\d+)', cmake)
+assert version_match, 'Missing CMake release version'
+version = version_match.group(1)
+assert f'constexpr auto lr608Version = "{version}";' in editor
+assert 'constexpr auto lr608ReleaseDate = "16 November 2026";' in editor
 assert 'LR608SearchTest' in cmake and 'LR608IncrementalSearch' in cmake
 assert 'verify_incremental_search_integration.py' in workflow
 # Validate the actual CI checks and packaging stages, without coupling this
@@ -37,7 +42,7 @@ assert 'python Tests/verify_incremental_search_integration.py' in workflow
 assert 'powershell -ExecutionPolicy Bypass -File Tools/build-windows.ps1' in workflow
 assert 'Compress-Archive -Path $vst3' in workflow
 assert 'actions/upload-artifact@v4' in workflow
-assert 'LR-608-Windows-VST3.zip' in workflow
+assert f'LR-608.{version}.vst3.zip' in workflow and f'LR-608-{version}-Windows-VST3' in workflow
 processor = (root / 'Source/PluginProcessor.cpp').read_text(encoding='utf-8')
 processor_header = (root / 'Source/PluginProcessor.h').read_text(encoding='utf-8')
 assert 'void requestSlotAudition(int slot) noexcept;' in processor_header
@@ -61,7 +66,7 @@ articles = re.findall(r'<article id="([a-z]+)"[^>]*>(.*?)</article>', help_html,
 assert len(articles) == 8
 assert {lang for lang, _ in articles} == {'en', 'it', 'es', 'pt', 'fr', 'ru', 'zh', 'ja'}
 for lang, body in articles:
-    assert '0.99.33' in body, lang
+    assert version in body, lang
     assert ('TEST32' in body or 'TEST35.5' in body) and 'Shift+1' in body and '115' in body, lang
 assert '0.99.32' not in help_html
 print('PASS LR-608: incremental search + Alt+T slot audition, shortcuts, eight translated manuals, CI workflow')

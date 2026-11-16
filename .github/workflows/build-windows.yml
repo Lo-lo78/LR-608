@@ -32,11 +32,11 @@ jobs:
           if (-not (Test-Path -LiteralPath $vst3)) {
             throw "VST3 bundle not found: $vst3"
           }
-          Compress-Archive -Path $vst3 -DestinationPath "LR-608-Windows-VST3.zip" -Force
+          Compress-Archive -Path $vst3 -DestinationPath "LR-608.0.99.34.vst3.zip" -Force
 
       - name: Upload VST3 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LR-608-0.99.33-TEST35.6-Windows-VST3
-          path: LR-608-Windows-VST3.zip
+          name: LR-608-0.99.34-Windows-VST3
+          path: LR-608.0.99.34.vst3.zip
           if-no-files-found: error

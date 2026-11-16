@@ -1,10 +1,10 @@
 """Static API/mapping regression for TEST36.1; the REAPER-host runtime test is manual."""
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
-processor = (root/'Source/PluginProcessor.cpp').read_text()
-header = (root/'Source/PluginProcessor.h').read_text()
-editor = (root/'Source/PluginEditor.cpp').read_text()
-manual = (root/'Documentation/LR608Help.html').read_text()
+processor = (root/'Source/PluginProcessor.cpp').read_text(encoding="utf-8")
+header = (root/'Source/PluginProcessor.h').read_text(encoding="utf-8")
+editor = (root/'Source/PluginEditor.cpp').read_text(encoding="utf-8")
+manual = (root/'Documentation/LR608Help.html').read_text(encoding="utf-8")
 for term in ('getVST3ClientExtensions()', 'getReaperEnvelopeActive(', 'toggleReaperEnvelopeActive('):
     assert term in header and term in processor, term
 for term in ('0x79655E36', 'GetTouchedOrFocusedFX', 'getReaperParent(1)', 'TrackFX_GetParamName', 'GetFXEnvelope', 'GetSetEnvelopeInfo_String', '"ACTIVE"', '"VISIBLE"', '"ARM"'):
